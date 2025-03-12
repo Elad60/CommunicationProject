@@ -30,7 +30,7 @@ const AppContent = () => {
     if (isRegistering) {
       return (
         <RegisterScreen
-          onRegister={async (username, password, email) => {
+          onRegister={async (username: string, password: string, email: string) => {
             const result = await register(username, password, email);
             if (result && result.success) {
               setIsRegistering(false);
@@ -44,7 +44,7 @@ const AppContent = () => {
     } else {
       return (
         <LoginScreen
-          onLogin={async (username, password) => {
+          onLogin={async (username: string, password: string) => {
             const result = await login(username, password);
             return result || {success: false, message: 'Login failed'};
           }}

@@ -341,6 +341,7 @@ const styles = StyleSheet.create({
     flex: 1,
     marginRight: 100, // Space for nav panel
     marginBottom: 60, // Add space for bottom panel
+    //marginLeft: 100,
   },
   mainGrid: {
     flexDirection: 'row',
