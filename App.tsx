@@ -47,7 +47,7 @@ const AppContent = () => {
       );
     }
   }
-//fsaf
+
   // If user is logged in, show main app
   return <MainScreen onLogout={logout} />;
 };
