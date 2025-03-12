@@ -57,7 +57,7 @@ const LoginScreen = ({onLogin, onNavigateToRegister}) => {
 
         <TouchableOpacity onPress={onNavigateToRegister}>
           <Text style={styles.registerText}>
-            Don't have an account? Registerrrrr
+            Don't have an account? Register
           </Text>
         </TouchableOpacity>
       </View>
