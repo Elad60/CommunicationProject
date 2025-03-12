@@ -30,9 +30,15 @@ const AppContent = () => {
       return (
         <RegisterScreen
           onRegister={async (username, password, email) => {
-            const result = await register(username, password, email);
-            if (result.success) {
-              setIsRegistering(false);
+            try {
+              const result = await register(username, password, email);
+              return result || {success: false, message: 'Registration failed'};
+            } catch (error) {
+              console.error('Registration error:', error);
+              return {
+                success: false,
+                message: 'Registration failed due to an error',
+              };
             }
           }}
           onNavigateToLogin={() => setIsRegistering(false)}
