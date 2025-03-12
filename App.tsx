@@ -6,12 +6,13 @@ import {
   View,
   ActivityIndicator,
 } from 'react-native';
-import MainScreen from './src/screens/MainScreen';
+import AppNavigator from './src/navigation/AppNavigator';
 import LoginScreen from './src/screens/LoginScreen';
 import RegisterScreen from './src/screens/RegisterScreen';
 import {AuthProvider, useAuth} from './src/context/AuthContext';
+import MainScreen from './src/screens/MainScreen';
 
-// This component needs to be INSIDE the AuthProvider to use the hook
+// Main App component with auth routing
 const AppContent = () => {
   const {user, loading, login, register, logout} = useAuth();
   const [isRegistering, setIsRegistering] = React.useState(false);
@@ -31,9 +32,11 @@ const AppContent = () => {
         <RegisterScreen
           onRegister={async (username, password, email) => {
             const result = await register(username, password, email);
-            if (result.success) {
+            if (result && result.success) {
               setIsRegistering(false);
+              return {success: true};
             }
+            return result || {success: false, message: 'Registration failed'};
           }}
           onNavigateToLogin={() => setIsRegistering(false)}
         />
@@ -41,15 +44,23 @@ const AppContent = () => {
     } else {
       return (
         <LoginScreen
-          onLogin={login}
+          onLogin={async (username, password) => {
+            const result = await login(username, password);
+            return result || {success: false, message: 'Login failed'};
+          }}
           onNavigateToRegister={() => setIsRegistering(true)}
         />
       );
     }
   }
 
-  // If user is logged in, show main app
-  return <MainScreen onLogout={logout} />;
+  // If user is logged in, show main app with navigation
+  // We're wrapping the AppNavigator with a custom MainScreen component to handle logout
+  return (
+    <View style={styles.container}>
+      <AppNavigator />
+    </View>
+  );
 };
 
 // Root component with providers
