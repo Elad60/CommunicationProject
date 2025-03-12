@@ -117,12 +117,56 @@ const radioChannelsData = [
   {id: 18, name: 'Radio 18', frequency: '', isActive: false, mode: 'rx_tx'},
 ];
 
-const MainScreen = ({onLogout}) => {
+const MainScreen = ({navigation, onLogout}) => {
   const [speakerVolume, setSpeakerVolume] = useState(40);
   const [brightness, setBrightness] = useState(0);
   const [activeNav, setActiveNav] = useState('radios');
   const [selectedChannel, setSelectedChannel] = useState(null);
   const {user} = useAuth();
+
+  // Handle navigation between screens
+  const handleNavigation = screen => {
+    switch (screen) {
+      case 'radios':
+        // Already on radios screen
+        setActiveNav('radios');
+        break;
+      case 'groups':
+        setActiveNav('groups');
+        navigation.navigate('Groups');
+        break;
+      case 'intercoms':
+        setActiveNav('intercoms');
+        navigation.navigate('Intercoms');
+        break;
+      case 'pas':
+        setActiveNav('pas');
+        navigation.navigate('Pas');
+        break;
+      case 'more_radios':
+        setActiveNav('more_radios');
+        navigation.navigate('ChannelConfig');
+        break;
+      case 'relay':
+        setActiveNav('relay');
+        navigation.navigate('Relay');
+        break;
+      case 'control':
+        setActiveNav('control');
+        navigation.navigate('Control');
+        break;
+      default:
+        setActiveNav('radios');
+        break;
+    }
+  };
+
+  // Handle channel selection
+  const handleChannelSelect = id => {
+    setSelectedChannel(id);
+    // Optionally navigate to channel details
+    // navigation.navigate('ChannelDetails', { channelId: id });
+  };
 
   return (
     <View style={styles.container}>
@@ -143,7 +187,7 @@ const MainScreen = ({onLogout}) => {
           {radioChannelsData.map(channel => (
             <TouchableOpacity
               key={channel.id}
-              onPress={() => setSelectedChannel(channel.id)}>
+              onPress={() => handleChannelSelect(channel.id)}>
               <RadioChannel
                 name={channel.name}
                 frequency={channel.frequency}
@@ -162,43 +206,43 @@ const MainScreen = ({onLogout}) => {
           title="Radios"
           icon="📻"
           isActive={activeNav === 'radios'}
-          onPress={() => setActiveNav('radios')}
+          onPress={() => handleNavigation('radios')}
         />
         <NavButton
           title="Groups"
           icon="👥"
           isActive={activeNav === 'groups'}
-          onPress={() => setActiveNav('groups')}
+          onPress={() => handleNavigation('groups')}
         />
         <NavButton
           title="Intercoms"
           icon="🔊"
           isActive={activeNav === 'intercoms'}
-          onPress={() => setActiveNav('intercoms')}
+          onPress={() => handleNavigation('intercoms')}
         />
         <NavButton
           title="PAS"
           icon="📢"
           isActive={activeNav === 'pas'}
-          onPress={() => setActiveNav('pas')}
+          onPress={() => handleNavigation('pas')}
         />
         <NavButton
-          title="Radios"
+          title="More Radios"
           icon="📻"
           isActive={activeNav === 'more_radios'}
-          onPress={() => setActiveNav('more_radios')}
+          onPress={() => handleNavigation('more_radios')}
         />
         <NavButton
           title="Relay"
           icon="🔄"
           isActive={activeNav === 'relay'}
-          onPress={() => setActiveNav('relay')}
+          onPress={() => handleNavigation('relay')}
         />
         <NavButton
           title="Control"
           icon="🎛️"
           isActive={activeNav === 'control'}
-          onPress={() => setActiveNav('control')}
+          onPress={() => handleNavigation('control')}
         />
       </View>
 
@@ -208,28 +252,51 @@ const MainScreen = ({onLogout}) => {
           title="Speaker"
           icon="🔊"
           value={speakerVolume}
-          onPress={() => {}} // Add volume control logic
+          onPress={() => {
+            // Volume control logic
+            const newVolume = (speakerVolume + 10) % 110;
+            setSpeakerVolume(newVolume);
+          }}
         />
         <ControlButton
           title="Ch Vol"
           icon="🎚️"
-          onPress={() => {}} // Add channel volume control logic
+          onPress={() => {
+            // Channel volume control logic
+            if (selectedChannel) {
+              // Handle channel volume
+              alert(
+                `Adjusting volume for ${
+                  radioChannelsData.find(c => c.id === selectedChannel)?.name
+                }`,
+              );
+            } else {
+              alert('Please select a channel first');
+            }
+          }}
         />
         <ControlButton
           title="Bright"
           icon="☀️"
           value={brightness}
-          onPress={() => {}} // Add brightness control logic
+          onPress={() => {
+            // Brightness control logic
+            const newBrightness = (brightness + 20) % 120;
+            setBrightness(newBrightness);
+          }}
         />
         <ControlButton
           title="Mute All"
           icon="🔇"
-          onPress={() => {}} // Add mute logic
+          onPress={() => {
+            // Mute logic
+            setSpeakerVolume(0);
+          }}
         />
         <ControlButton
           title="Settings"
           icon="⚙️"
-          onPress={() => {}} // Add settings navigation logic
+          onPress={() => navigation.navigate('Settings')}
         />
       </View>
     </View>
@@ -273,6 +340,7 @@ const styles = StyleSheet.create({
   scrollView: {
     flex: 1,
     marginRight: 100, // Space for nav panel
+    marginBottom: 60, // Add space for bottom panel
   },
   mainGrid: {
     flexDirection: 'row',
@@ -285,13 +353,16 @@ const styles = StyleSheet.create({
     position: 'absolute',
     right: 0,
     top: 50,
-    bottom: 60,
+    bottom: 60, // Stop before the bottom panel
     backgroundColor: '#111',
     alignItems: 'center',
     justifyContent: 'space-around',
   },
   controlPanel: {
     height: 60,
+    width: '100%', // Full width
+    position: 'absolute',
+    bottom: 0,
     backgroundColor: '#111',
     flexDirection: 'row',
     justifyContent: 'space-around',
