@@ -1,20 +1,13 @@
 import React from 'react';
 import {View, Text, StyleSheet} from 'react-native';
 
-const RadioChannel = ({ 
-  name, 
-  frequency, 
-  isActive, 
-  mode,
-  isSelected
-}) => {
-  // Update getBackgroundColor
+const RadioChannel = ({name, frequency, isActive, mode, isSelected}) => {
+  // Determine background color based on state
   const getBackgroundColor = () => {
     if (!isActive) return '#222';
     if (isSelected) return '#555';
-    return mode === 'rx_tx' ? '#0a192f' : '#0a2f0a';
+    return mode === 'rx_tx' ? '#0a192f' : '#0a2f0a'; // Blue for Rx/Tx, Green for Rx Only
   };
-
 
   return (
     <View style={[styles.container, {backgroundColor: getBackgroundColor()}]}>
@@ -47,9 +40,9 @@ const RadioChannel = ({
 
 const styles = StyleSheet.create({
   container: {
-    width: '16%',
-    aspectRatio: 1,
-    margin: '0.5%',
+    width: 120,
+    height: 120,
+    margin: 5,
     borderRadius: 5,
     borderWidth: 1,
     borderColor: '#444',

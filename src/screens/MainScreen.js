@@ -1,9 +1,15 @@
 import React, {useState} from 'react';
-import {View, Text, StyleSheet, ScrollView} from 'react-native';
+import {
+  View,
+  Text,
+  StyleSheet,
+  ScrollView,
+  TouchableOpacity,
+} from 'react-native';
 import RadioChannel from '../components/RadioChannel';
 import NavButton from '../components/NavButton';
 import ControlButton from '../components/ControlButton';
-import {TouchableOpacity} from 'react-native';
+import {useAuth} from '../context/AuthContext';
 
 // Sample radio channel data
 const radioChannelsData = [
@@ -111,37 +117,53 @@ const radioChannelsData = [
   {id: 18, name: 'Radio 18', frequency: '', isActive: false, mode: 'rx_tx'},
 ];
 
-
-const MainScreen = () => {
+const MainScreen = ({onLogout}) => {
   const [speakerVolume, setSpeakerVolume] = useState(40);
   const [brightness, setBrightness] = useState(0);
   const [activeNav, setActiveNav] = useState('radios');
   const [selectedChannel, setSelectedChannel] = useState(null);
+  const {user} = useAuth();
 
   return (
     <View style={styles.container}>
       {/* Top header section */}
       <View style={styles.header}>
         <Text style={styles.headerText}>Commander</Text>
+        {user && (
+          <Text style={styles.userInfo}>Logged in as: {user.username}</Text>
+        )}
+        <TouchableOpacity style={styles.logoutButton} onPress={onLogout}>
+          <Text style={styles.logoutText}>Logout</Text>
+        </TouchableOpacity>
       </View>
 
       {/* Main grid for radio channels */}
       <ScrollView style={styles.scrollView}>
         <View style={styles.mainGrid}>
           {radioChannelsData.map(channel => (
-            <RadioChannel
+            <TouchableOpacity
               key={channel.id}
-              name={channel.name}
-              frequency={channel.frequency}
-              isActive={channel.isActive}
-              mode={channel.mode}
-            />
+              onPress={() => setSelectedChannel(channel.id)}>
+              <RadioChannel
+                name={channel.name}
+                frequency={channel.frequency}
+                isActive={channel.isActive}
+                mode={channel.mode}
+                isSelected={selectedChannel === channel.id}
+              />
+            </TouchableOpacity>
           ))}
         </View>
       </ScrollView>
 
       {/* Right navigation panel */}
       <View style={styles.navPanel}>
+        <NavButton
+          title="Radios"
+          icon="📻"
+          isActive={activeNav === 'radios'}
+          onPress={() => setActiveNav('radios')}
+        />
         <NavButton
           title="Groups"
           icon="👥"
@@ -224,13 +246,29 @@ const styles = StyleSheet.create({
     backgroundColor: '#111',
     borderBottomWidth: 1,
     borderBottomColor: '#333',
-    justifyContent: 'center',
+    flexDirection: 'row',
+    justifyContent: 'space-between',
     alignItems: 'center',
+    paddingHorizontal: 15,
   },
   headerText: {
     color: '#fff',
     fontSize: 20,
     fontWeight: 'bold',
+  },
+  userInfo: {
+    color: '#aaa',
+    fontSize: 14,
+  },
+  logoutButton: {
+    backgroundColor: '#5A5A5A',
+    paddingVertical: 5,
+    paddingHorizontal: 10,
+    borderRadius: 5,
+  },
+  logoutText: {
+    color: '#fff',
+    fontSize: 12,
   },
   scrollView: {
     flex: 1,
