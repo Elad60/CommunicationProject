@@ -5,7 +5,7 @@ import NavButton from './NavButton';
 const { width } = Dimensions.get('window');
 const NAV_PANEL_WIDTH = 100;
 
-const DraggableNavPanel = ({ activeNav, handleNavigation }) => {
+const NavPanel = ({ activeNav, handleNavigation }) => {
   const position = useRef(new Animated.Value(width - NAV_PANEL_WIDTH)).current;
   const [dragging, setDragging] = useState(false);
   const [startX, setStartX] = useState(0); 
@@ -34,10 +34,10 @@ const DraggableNavPanel = ({ activeNav, handleNavigation }) => {
         }
 
         const middleScreen = width / 2;
-        const newX = gestureState.moveX < middleScreen ? 0 : width - NAV_PANEL_WIDTH;
+        const finalX = gestureState.moveX < middleScreen ? 0 : width - NAV_PANEL_WIDTH;
 
         Animated.spring(position, {
-          toValue: newX,
+          toValue: finalX,
           useNativeDriver: false,
         }).start();
       },
@@ -64,7 +64,7 @@ const DraggableNavPanel = ({ activeNav, handleNavigation }) => {
         { title: 'Groups', icon: '👥', screen: 'Groups' },
         { title: 'Intercoms', icon: '🔊', screen: 'Intercoms' },
         { title: 'PAS', icon: '📢', screen: 'Pas' },
-        { title: 'More Radios', icon: '📻', screen: 'MoreRadios' },
+        { title: 'More Radios', icon: '📻', screen: 'ChannelConfig' },
         { title: 'Relay', icon: '🔄', screen: 'Relay' },
         { title: 'Control', icon: '🎛️', screen: 'Control' },
       ].map(({ title, icon, screen }) => (
@@ -80,4 +80,4 @@ const DraggableNavPanel = ({ activeNav, handleNavigation }) => {
   );
 };
 
-export default DraggableNavPanel;
+export default NavPanel;
