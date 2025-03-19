@@ -5,15 +5,15 @@ import ControlButton from './ControlButton';
 const { height } = Dimensions.get('window');
 const CONTROL_PANEL_HEIGHT = 60;
 
-const ControlPanel = ({ speakerVolume, setSpeakerVolume, brightness, setBrightness, selectedChannel, navigation }) => {
+const ControlPanel = ({ speakerVolume, setSpeakerVolume, brightness, setBrightness, selectedChannel, navigation, isMovable = false }) => {
   const position = useRef(new Animated.Value(height - CONTROL_PANEL_HEIGHT)).current;
   const [dragging, setDragging] = useState(false);
   const [startY, setStartY] = useState(0);
 
   const panResponder = useRef(
     PanResponder.create({
-      onStartShouldSetPanResponder: () => true,
-      onMoveShouldSetPanResponder: () => true,
+      onStartShouldSetPanResponder: () => isMovable,
+      onMoveShouldSetPanResponder: () => isMovable,
       onPanResponderGrant: (_, gestureState) => {
         setDragging(true);
         setStartY(gestureState.moveY);

@@ -18,6 +18,7 @@ const SettingsScreen = ({navigation}) => {
     autoConnect: false,
     saveTransmissions: true,
     lowPowerMode: false,
+    ToolBarAdjustment:false,
     showFrequency: true,
     showStatus: true,
   });
@@ -59,6 +60,7 @@ const SettingsScreen = ({navigation}) => {
           {renderSettingItem('Auto-Connect', 'autoConnect')}
           {renderSettingItem('Save Transmissions', 'saveTransmissions')}
           {renderSettingItem('Low Power Mode', 'lowPowerMode')}
+          {renderSettingItem('Tool Bar Adjustment', 'ToolBarAdjustment')}
         </View>
 
         <View style={styles.section}>

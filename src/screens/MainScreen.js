@@ -1,7 +1,6 @@
 import React, { useState } from 'react';
 import { View, Text, StyleSheet, ScrollView, TouchableOpacity } from 'react-native';
 import RadioChannel from '../components/RadioChannel';
-import ControlButton from '../components/ControlButton';
 import { useAuth } from '../context/AuthContext';
 import NavPanel from '../components/NavPanel';
 import ControlPanel from '../components/ControlPanel';

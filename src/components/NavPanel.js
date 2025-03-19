@@ -5,15 +5,15 @@ import NavButton from './NavButton';
 const { width } = Dimensions.get('window');
 const NAV_PANEL_WIDTH = 100;
 
-const NavPanel = ({ activeNav, handleNavigation }) => {
+const NavPanel = ({ activeNav, handleNavigation, isMovable = false }) => {
   const position = useRef(new Animated.Value(width - NAV_PANEL_WIDTH)).current;
   const [dragging, setDragging] = useState(false);
   const [startX, setStartX] = useState(0); 
 
   const panResponder = useRef(
     PanResponder.create({
-      onStartShouldSetPanResponder: () => true,
-      onMoveShouldSetPanResponder: () => true,
+      onStartShouldSetPanResponder: () => isMovable,
+      onMoveShouldSetPanResponder: () => isMovable,   
       onPanResponderGrant: (_, gestureState) => {
         setDragging(true);
         setStartX(gestureState.moveX); 
