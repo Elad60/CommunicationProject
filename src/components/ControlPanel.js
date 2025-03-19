@@ -1,19 +1,22 @@
 import React, { useRef, useState } from 'react';
-import { Animated, PanResponder, Dimensions, View } from 'react-native';
+import { Animated, PanResponder, Dimensions} from 'react-native';
 import ControlButton from './ControlButton';
 
-const { height } = Dimensions.get('window');
-const CONTROL_PANEL_HEIGHT = 60;
+const { height, width } = Dimensions.get('window');
+const CONTROL_PANEL_HEIGHT = height * 0.1;
+const CONTROL_PANEL_WIDTH = width * 0.92;
+import { useSettings } from '../context/SettingsContext';
 
-const ControlPanel = ({ speakerVolume, setSpeakerVolume, brightness, setBrightness, selectedChannel, navigation, isMovable = true }) => {
+const ControlPanel = ({ speakerVolume, setSpeakerVolume, brightness, setBrightness, selectedChannel, navigation}) => {
+  const { toolBarAdjustment } = useSettings();
   const position = useRef(new Animated.Value(height - CONTROL_PANEL_HEIGHT)).current;
   const [dragging, setDragging] = useState(false);
   const [startY, setStartY] = useState(0);
 
   const panResponder = useRef(
     PanResponder.create({
-      onStartShouldSetPanResponder: () => isMovable,
-      onMoveShouldSetPanResponder: () => isMovable,
+      onStartShouldSetPanResponder: () => toolBarAdjustment,
+      onMoveShouldSetPanResponder: () => toolBarAdjustment,
       onPanResponderGrant: (_, gestureState) => {
         setDragging(true);
         setStartY(gestureState.moveY);
@@ -31,8 +34,8 @@ const ControlPanel = ({ speakerVolume, setSpeakerVolume, brightness, setBrightne
             return;
         }
 
-        const middleScreen = (height / 2) + 50;
-        const finalY = gestureState.moveY < middleScreen ? 50 : height - CONTROL_PANEL_HEIGHT;
+        const middleScreen = (height / 2) + height * 0.05;
+        const finalY = gestureState.moveY < middleScreen ? height * 0.05 : height - CONTROL_PANEL_HEIGHT;
 
         Animated.spring(position, {
           toValue: finalY,
@@ -46,7 +49,7 @@ const ControlPanel = ({ speakerVolume, setSpeakerVolume, brightness, setBrightne
     <Animated.View
       style={{
         position: 'absolute',
-        width: '100%',
+        width: CONTROL_PANEL_WIDTH,
         height: CONTROL_PANEL_HEIGHT,
         backgroundColor: '#111',
         flexDirection: 'row',

@@ -15,7 +15,7 @@ const NavButton = ({title, icon, onPress, isActive}) => {
 const styles = StyleSheet.create({
   button: {
     width: '90%',
-    aspectRatio: 1,
+    height: '12%',
     backgroundColor: '#222',
     borderRadius: 5,
     justifyContent: 'center',
@@ -26,13 +26,16 @@ const styles = StyleSheet.create({
     backgroundColor: '#444',
   },
   icon: {
-    fontSize: 24,
+    fontSize: '50%',
     color: '#fff',
     marginBottom: 5,
   },
   title: {
     color: '#fff',
-    fontSize: 12,
+    fontSize: '5%', 
+    textAlign: 'center',  
+    width: '80%',  
+    flexWrap: 'wrap',  
   },
 });
 

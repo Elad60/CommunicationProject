@@ -1,19 +1,22 @@
 import React, { useState, useRef } from 'react';
 import { Animated, PanResponder, Dimensions, View } from 'react-native';
 import NavButton from './NavButton';
+import { useSettings } from '../context/SettingsContext';
 
-const { width } = Dimensions.get('window');
-const NAV_PANEL_WIDTH = 100;
+const { width,height } = Dimensions.get('window');
+const NAV_PANEL_WIDTH = width * 0.08;
+const NAV_PANEL_HEIGHT = height * 0.95;
 
-const NavPanel = ({ activeNav, handleNavigation, isMovable = true }) => {
+const NavPanel = ({ activeNav, handleNavigation}) => {
+  const { toolBarAdjustment } = useSettings();
   const position = useRef(new Animated.Value(width - NAV_PANEL_WIDTH)).current;
   const [dragging, setDragging] = useState(false);
   const [startX, setStartX] = useState(0); 
 
   const panResponder = useRef(
     PanResponder.create({
-      onStartShouldSetPanResponder: () => isMovable,
-      onMoveShouldSetPanResponder: () => isMovable,   
+      onStartShouldSetPanResponder: () => toolBarAdjustment,
+      onMoveShouldSetPanResponder: () => toolBarAdjustment,   
       onPanResponderGrant: (_, gestureState) => {
         setDragging(true);
         setStartX(gestureState.moveX); 
@@ -48,8 +51,9 @@ const NavPanel = ({ activeNav, handleNavigation, isMovable = true }) => {
     <Animated.View
       style={{
         position: 'absolute',
-        top: 50,
-        bottom: 60,
+        //top: height* 0.1,
+        //bottom: height* 0.1,
+        height:NAV_PANEL_HEIGHT,
         width: NAV_PANEL_WIDTH,
         backgroundColor: '#111',
         alignItems: 'center',

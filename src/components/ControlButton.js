@@ -13,24 +13,30 @@ const ControlButton = ({title, icon, value, onPress}) => {
 
 const styles = StyleSheet.create({
   button: {
-    width: 80,
-    height: 50,
+    width: '10%',
+    height: '90%',
     backgroundColor: '#222',
     borderRadius: 5,
     justifyContent: 'center',
     alignItems: 'center',
   },
   icon: {
-    fontSize: 18,
+    fontSize: '50%',
     color: '#fff',
   },
   value: {
     color: '#fff',
-    fontSize: 12,
+    fontSize: '7%', 
+    textAlign: 'center',  
+    width: '80%',  
+    flexWrap: 'wrap', 
   },
   title: {
     color: '#fff',
-    fontSize: 10,
+    fontSize: '5%', 
+    textAlign: 'center',  
+    width: '80%',  
+    flexWrap: 'wrap', 
   },
 });
 

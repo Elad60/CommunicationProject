@@ -1,9 +1,8 @@
-import React, { useState } from 'react';
-import { View, Text, StyleSheet, ScrollView, TouchableOpacity } from 'react-native';
+import React, {useState} from 'react';
+import {View, StyleSheet, ScrollView, TouchableOpacity} from 'react-native';
 import RadioChannel from '../components/RadioChannel';
-import { useAuth } from '../context/AuthContext';
-import NavPanel from '../components/NavPanel';
-import ControlPanel from '../components/ControlPanel';
+import AppLayout from '../components/AppLayout';
+import {useAuth} from '../context/AuthContext';
 
 const radioChannelsData = [
   { id: 1, name: 'HF 1', frequency: '12.564 MHz', isActive: true, mode: 'rx_tx' },
@@ -26,36 +25,24 @@ const radioChannelsData = [
   { id: 18, name: 'Radio 18', frequency: '', isActive: false, mode: 'rx_tx' },
 ];
 
-const MainScreen = ({ navigation, onLogout }) => {
-  const [speakerVolume, setSpeakerVolume] = useState(40);
-  const [brightness, setBrightness] = useState(0);
-  const [activeNav, setActiveNav] = useState('radios');
+const MainScreen = ({navigation}) => {
   const [selectedChannel, setSelectedChannel] = useState(null);
-  const { user } = useAuth();
 
-  const handleNavigation = screen => {
-    setActiveNav(screen);
-    navigation.navigate(screen);
-  };
-
+  // Handle channel selection
   const handleChannelSelect = id => {
     setSelectedChannel(id);
+    // Optionally navigate to channel details
+    // navigation.navigate('ChannelDetails', { channelId: id });
   };
 
   return (
-    <View style={styles.container}>
-      <View style={styles.header}>
-        <Text style={styles.headerText}>Commander</Text>
-        {user && <Text style={styles.userInfo}>Logged in as: {user.username}</Text>}
-        <TouchableOpacity style={styles.logoutButton} onPress={onLogout}>
-          <Text style={styles.logoutText}>Logout</Text>
-        </TouchableOpacity>
-      </View>
-
+    <AppLayout navigation={navigation} title="Commander">
       <ScrollView style={styles.scrollView}>
         <View style={styles.mainGrid}>
           {radioChannelsData.map(channel => (
-            <TouchableOpacity key={channel.id} onPress={() => handleChannelSelect(channel.id)}>
+            <TouchableOpacity
+              key={channel.id}
+              onPress={() => handleChannelSelect(channel.id)}>
               <RadioChannel
                 name={channel.name}
                 frequency={channel.frequency}
@@ -67,62 +54,20 @@ const MainScreen = ({ navigation, onLogout }) => {
           ))}
         </View>
       </ScrollView>
-
-      <NavPanel activeNav={activeNav} handleNavigation={handleNavigation} navigation={navigation} />
-
-      <ControlPanel
-        speakerVolume={speakerVolume}
-        setSpeakerVolume={setSpeakerVolume}
-        brightness={brightness}
-        setBrightness={setBrightness}
-        selectedChannel={selectedChannel}
-        navigation={navigation}
-      />
-    </View>
+    </AppLayout>
   );
 };
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: '#000' },
-  header: {
-    height: 50,
-    backgroundColor: '#111',
-    borderBottomWidth: 1,
-    borderBottomColor: '#333',
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    paddingHorizontal: 15,
-  },
-  headerText: {
-    color: '#fff',
-    fontSize: 20,
-    fontWeight: 'bold'
-  },
-  userInfo: {
-    color: '#aaa',
-    fontSize: 14
-  },
-  logoutButton: {
-    backgroundColor: '#5A5A5A',
-    paddingVertical: 5,
-    paddingHorizontal: 10,
-    borderRadius: 5
-  },
-  logoutText: {
-    color: '#fff',
-    fontSize: 12
-  },
   scrollView: {
     flex: 1,
-    marginBottom: 60
   },
   mainGrid: {
     flexDirection: 'row',
     flexWrap: 'wrap',
     padding: 5,
-    justifyContent: 'flex-start'
-  }
+    justifyContent: 'flex-start',
+  },
 });
 
 export default MainScreen;

@@ -11,6 +11,7 @@ import LoginScreen from './src/screens/LoginScreen';
 import RegisterScreen from './src/screens/RegisterScreen';
 import {AuthProvider, useAuth} from './src/context/AuthContext';
 import MainScreen from './src/screens/MainScreen';
+import { SettingsProvider } from './src/context/SettingsContext';
 
 // Main App component with auth routing
 const AppContent = () => {
@@ -69,7 +70,9 @@ const App = () => {
     <SafeAreaView style={styles.container}>
       <StatusBar barStyle="light-content" backgroundColor="#000" />
       <AuthProvider>
-        <AppContent />
+        <SettingsProvider> 
+          <AppContent />
+        </SettingsProvider>
       </AuthProvider>
     </SafeAreaView>
   );
