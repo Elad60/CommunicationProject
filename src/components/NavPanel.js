@@ -1,5 +1,5 @@
-import React, { useState, useRef } from 'react';
-import { Animated, PanResponder, Dimensions, View } from 'react-native';
+import React, { useState, useRef} from 'react';
+import { Animated, PanResponder, Dimensions} from 'react-native';
 import NavButton from './NavButton';
 import { useSettings } from '../context/SettingsContext';
 
@@ -77,8 +77,9 @@ const NavPanel = ({ activeNav, handleNavigation}) => {
           title={title}
           icon={icon}
           isActive={activeNav === screen}
-          onPress={() => handleNavigation(screen)}
+          onPress={toolBarAdjustment ? null : () => handleNavigation(screen)} 
         />
+
       ))}
     </Animated.View>
   );
