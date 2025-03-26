@@ -62,6 +62,7 @@ const AppNavigator = () => {
           <Stack.Screen name="Intercoms" component={IntercomsScreen} />
           <Stack.Screen name="Pas" component={PasScreen} />
           <Stack.Screen name="Relay" component={RelayScreen} />
+          <Stack.Screen name="Control" component={ControlScreen} />
         </Stack.Navigator>
       )}
     </NavigationContainer>
