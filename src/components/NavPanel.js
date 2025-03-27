@@ -51,8 +51,6 @@ const NavPanel = ({ activeNav, handleNavigation}) => {
     <Animated.View
       style={{
         position: 'absolute',
-        //top: height* 0.1,
-        //bottom: height* 0.1,
         height:NAV_PANEL_HEIGHT,
         width: NAV_PANEL_WIDTH,
         backgroundColor: '#111',
@@ -77,7 +75,8 @@ const NavPanel = ({ activeNav, handleNavigation}) => {
           title={title}
           icon={icon}
           isActive={activeNav === screen}
-          onPress={toolBarAdjustment ? null : () => handleNavigation(screen)} 
+          onPress={() => handleNavigation(screen)}
+          //onPress={toolBarAdjustment ? null : () => handleNavigation(screen)} 
         />
 
       ))}

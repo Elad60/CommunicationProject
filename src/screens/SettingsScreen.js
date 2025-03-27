@@ -61,9 +61,7 @@ const SettingsScreen = ({ navigation }) => {
           {renderSettingItem('Auto-Connect', 'autoConnect', settings.autoConnect, () => toggleSetting('autoConnect'))}
           {renderSettingItem('Save Transmissions', 'saveTransmissions', settings.saveTransmissions, () => toggleSetting('saveTransmissions'))}
           {renderSettingItem('Low Power Mode', 'lowPowerMode', settings.lowPowerMode, () => toggleSetting('lowPowerMode'))}
-          {renderSettingItem('Tool Bar Adjustment', 'ToolBarAdjustment', toolBarAdjustment, () => {setToolBarAdjustment(!toolBarAdjustment);
-          navigation.navigate('Main'); //
-          })}
+          {renderSettingItem('Tool Bar Adjustment', 'ToolBarAdjustment', toolBarAdjustment, () => setToolBarAdjustment(!toolBarAdjustment))}
         </View>
 
         <View style={styles.section}>
