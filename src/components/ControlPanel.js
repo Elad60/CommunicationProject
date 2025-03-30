@@ -1,17 +1,21 @@
-import React, { useRef, useState } from 'react';
-import { Animated, PanResponder, Dimensions} from 'react-native';
+import React, { useRef, useState, useEffect } from 'react';
+import { Animated, PanResponder, Dimensions } from 'react-native';
 import ControlButton from './ControlButton';
+import { useSettings } from '../context/SettingsContext';
 
 const { height, width } = Dimensions.get('window');
 const CONTROL_PANEL_HEIGHT = height * 0.1;
 const CONTROL_PANEL_WIDTH = width * 0.92;
-import { useSettings } from '../context/SettingsContext';
 
-const ControlPanel = ({ speakerVolume, setSpeakerVolume, brightness, setBrightness, selectedChannel, navigation}) => {
-  const { toolBarAdjustment } = useSettings();
-  const position = useRef(new Animated.Value(height - CONTROL_PANEL_HEIGHT)).current;
+const ControlPanel = ({ speakerVolume, setSpeakerVolume, brightness, setBrightness, selectedChannel, navigation }) => {
+  const { toolBarAdjustment, controlPanelPosition, setControlPanelPosition } = useSettings();
+  const position = useRef(new Animated.Value(controlPanelPosition)).current;
   const [dragging, setDragging] = useState(false);
   const [startY, setStartY] = useState(0);
+
+  useEffect(() => {
+    position.setValue(controlPanelPosition);
+  }, [controlPanelPosition]);
 
   const panResponder = useRef(
     PanResponder.create({
@@ -31,12 +35,13 @@ const ControlPanel = ({ speakerVolume, setSpeakerVolume, brightness, setBrightne
         const movementThreshold = 10;
         const movedDistance = Math.abs(gestureState.moveY - startY);
         if (movedDistance < movementThreshold) {
-            return;
+          return;
         }
 
         const middleScreen = (height / 2) + height * 0.05;
         const finalY = gestureState.moveY < middleScreen ? height * 0.05 : height - CONTROL_PANEL_HEIGHT;
 
+        setControlPanelPosition(finalY);
         Animated.spring(position, {
           toValue: finalY,
           useNativeDriver: false,

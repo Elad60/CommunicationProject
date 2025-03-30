@@ -1,25 +1,29 @@
-import React, { useState, useRef} from 'react';
-import { Animated, PanResponder, Dimensions} from 'react-native';
+import React, { useState, useRef, useEffect } from 'react';
+import { Animated, PanResponder, Dimensions } from 'react-native';
 import NavButton from './NavButton';
 import { useSettings } from '../context/SettingsContext';
 
-const { width,height } = Dimensions.get('window');
+const { width, height } = Dimensions.get('window');
 const NAV_PANEL_WIDTH = width * 0.08;
 const NAV_PANEL_HEIGHT = height * 0.95;
 
-const NavPanel = ({ activeNav, handleNavigation}) => {
-  const { toolBarAdjustment } = useSettings();
-  const position = useRef(new Animated.Value(width - NAV_PANEL_WIDTH)).current;
+const NavPanel = ({ activeNav, handleNavigation }) => {
+  const { toolBarAdjustment, navPanelPosition, setNavPanelPosition } = useSettings();
+  const position = useRef(new Animated.Value(navPanelPosition)).current;
   const [dragging, setDragging] = useState(false);
-  const [startX, setStartX] = useState(0); 
+  const [startX, setStartX] = useState(0);
+
+  useEffect(() => {
+    position.setValue(navPanelPosition);
+  }, [navPanelPosition]);
 
   const panResponder = useRef(
     PanResponder.create({
       onStartShouldSetPanResponder: () => toolBarAdjustment,
-      onMoveShouldSetPanResponder: () => toolBarAdjustment,   
+      onMoveShouldSetPanResponder: () => toolBarAdjustment,
       onPanResponderGrant: (_, gestureState) => {
         setDragging(true);
-        setStartX(gestureState.moveX); 
+        setStartX(gestureState.moveX);
       },
       onPanResponderMove: (_, gestureState) => {
         let newX = gestureState.moveX - NAV_PANEL_WIDTH / 2;
@@ -28,9 +32,8 @@ const NavPanel = ({ activeNav, handleNavigation}) => {
       },
       onPanResponderRelease: (_, gestureState) => {
         setDragging(false);
-
-        const movementThreshold = 10; 
-        const movedDistance = Math.abs(gestureState.moveX - startX); 
+        const movementThreshold = 10;
+        const movedDistance = Math.abs(gestureState.moveX - startX);
 
         if (movedDistance < movementThreshold) {
           return;
@@ -39,6 +42,7 @@ const NavPanel = ({ activeNav, handleNavigation}) => {
         const middleScreen = width / 2;
         const finalX = gestureState.moveX < middleScreen ? 0 : width - NAV_PANEL_WIDTH;
 
+        setNavPanelPosition(finalX);
         Animated.spring(position, {
           toValue: finalX,
           useNativeDriver: false,
@@ -51,7 +55,7 @@ const NavPanel = ({ activeNav, handleNavigation}) => {
     <Animated.View
       style={{
         position: 'absolute',
-        height:NAV_PANEL_HEIGHT,
+        height: NAV_PANEL_HEIGHT,
         width: NAV_PANEL_WIDTH,
         backgroundColor: '#111',
         alignItems: 'center',
@@ -76,9 +80,7 @@ const NavPanel = ({ activeNav, handleNavigation}) => {
           icon={icon}
           isActive={activeNav === screen}
           onPress={() => handleNavigation(screen)}
-          //onPress={toolBarAdjustment ? null : () => handleNavigation(screen)} 
         />
-
       ))}
     </Animated.View>
   );
