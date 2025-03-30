@@ -3,19 +3,26 @@ import { View, Text, StyleSheet, TouchableOpacity, Dimensions } from 'react-nati
 import { useAuth } from '../context/AuthContext';
 import ControlPanel from './ControlPanel';
 import NavPanel from './NavPanel';
+import { useSettings } from '../context/SettingsContext'; 
 
-const {height, width} = Dimensions.get('window');
+const { height, width } = Dimensions.get('window');
 
 const AppLayout = ({ children, navigation, title, showControls = true, showNavPanel = true }) => {
   const [speakerVolume, setSpeakerVolume] = useState(40);
   const [brightness, setBrightness] = useState(0);
   const [activeNav, setActiveNav] = useState('radios');
   const { user, logout } = useAuth();
+  const { controlBarAdjustment, toolBarAdjustment } = useSettings();  // Get control and toolbar adjustment values
 
   // Handle navigation between screens
   const handleNavigation = screen => {
     setActiveNav(screen);
     navigation.navigate(screen);
+  };
+
+  const contentContainerStyle = {
+    marginTop: controlBarAdjustment ? 0 : height * 0.1, 
+    marginLeft: toolBarAdjustment ? 0 : width * 0.08,  
   };
 
   return (
@@ -30,7 +37,7 @@ const AppLayout = ({ children, navigation, title, showControls = true, showNavPa
       </View>
 
       {/* Main content area */}
-      <View style={styles.contentContainer}>
+      <View style={[styles.contentContainer, contentContainerStyle]}>
         {children}
 
         {/* Right navigation panel */}
@@ -86,9 +93,8 @@ const styles = StyleSheet.create({
     fontSize: 12,
   },
   contentContainer: {
-    flexDirection: 'row',
     width: width * 0.92,
-    height: height * 0.85
+    height: height * 0.85,
   },
 });
 

@@ -1,5 +1,5 @@
-import React, { useState, useRef, useEffect } from 'react';
-import { Animated, PanResponder, Dimensions } from 'react-native';
+import React, { useEffect, useRef } from 'react';
+import { Animated, Dimensions } from 'react-native';
 import NavButton from './NavButton';
 import { useSettings } from '../context/SettingsContext';
 
@@ -8,72 +8,42 @@ const NAV_PANEL_WIDTH = width * 0.08;
 const NAV_PANEL_HEIGHT = height * 0.95;
 
 const NavPanel = ({ activeNav, handleNavigation }) => {
-  const { toolBarAdjustment, navPanelPosition, setNavPanelPosition } = useSettings();
-  const position = useRef(new Animated.Value(navPanelPosition)).current;
-  const [dragging, setDragging] = useState(false);
-  const [startX, setStartX] = useState(0);
+  const { toolBarAdjustment, controlBarAdjustment } = useSettings();
+  const positionX = useRef(new Animated.Value(toolBarAdjustment ? width - NAV_PANEL_WIDTH : -NAV_PANEL_WIDTH)).current;
+
+  const navPanelStyle = {
+    bottom: controlBarAdjustment ? -height * 0.10 : 0,
+  };
 
   useEffect(() => {
-    position.setValue(navPanelPosition);
-  }, [navPanelPosition]);
-
-  const panResponder = useRef(
-    PanResponder.create({
-      onStartShouldSetPanResponder: () => toolBarAdjustment,
-      onMoveShouldSetPanResponder: () => toolBarAdjustment,
-      onPanResponderGrant: (_, gestureState) => {
-        setDragging(true);
-        setStartX(gestureState.moveX);
-      },
-      onPanResponderMove: (_, gestureState) => {
-        let newX = gestureState.moveX - NAV_PANEL_WIDTH / 2;
-        newX = Math.max(0, Math.min(newX, width - NAV_PANEL_WIDTH));
-        position.setValue(newX);
-      },
-      onPanResponderRelease: (_, gestureState) => {
-        setDragging(false);
-        const movementThreshold = 10;
-        const movedDistance = Math.abs(gestureState.moveX - startX);
-
-        if (movedDistance < movementThreshold) {
-          return;
-        }
-
-        const middleScreen = width / 2;
-        const finalX = gestureState.moveX < middleScreen ? 0 : width - NAV_PANEL_WIDTH;
-
-        setNavPanelPosition(finalX);
-        Animated.spring(position, {
-          toValue: finalX,
-          useNativeDriver: false,
-        }).start();
-      },
-    })
-  ).current;
+    Animated.spring(positionX, {
+      toValue: toolBarAdjustment ? width - NAV_PANEL_WIDTH : -NAV_PANEL_WIDTH,
+      useNativeDriver: false,
+    }).start();
+  }, [toolBarAdjustment]);  
 
   return (
     <Animated.View
-      style={{
-        position: 'absolute',
-        height: NAV_PANEL_HEIGHT,
-        width: NAV_PANEL_WIDTH,
-        backgroundColor: '#111',
-        alignItems: 'center',
-        justifyContent: 'space-around',
-        transform: [{ translateX: position }],
-        opacity: dragging ? 0.8 : 1,
-      }}
-      {...panResponder.panHandlers}
+      style={[
+        {
+          position: 'absolute',
+          height: NAV_PANEL_HEIGHT,
+          width: NAV_PANEL_WIDTH,
+          backgroundColor: '#111',
+          alignItems: 'center',
+          justifyContent: 'space-around',
+          transform: [{ translateX: positionX }], 
+        },
+        navPanelStyle, 
+      ]}
     >
-      {[
-        { title: 'Radios', icon: '📻', screen: 'Main' },
+      {[{ title: 'Radios', icon: '📻', screen: 'Main' },
         { title: 'Groups', icon: '👥', screen: 'Groups' },
         { title: 'Intercoms', icon: '🔊', screen: 'Intercoms' },
         { title: 'PAS', icon: '📢', screen: 'Pas' },
         { title: 'More Radios', icon: '📻', screen: 'ChannelConfig' },
         { title: 'Relay', icon: '🔄', screen: 'Relay' },
-        { title: 'Control', icon: '🎛️', screen: 'Control' },
-      ].map(({ title, icon, screen }) => (
+        { title: 'Control', icon: '🎛️', screen: 'Control' }].map(({ title, icon, screen }) => (
         <NavButton
           key={screen}
           title={title}

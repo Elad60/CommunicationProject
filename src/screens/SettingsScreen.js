@@ -8,11 +8,11 @@ import {
   ScrollView,
 } from 'react-native';
 import AppLayout from '../components/AppLayout';
-import { useSettings } from '../context/SettingsContext'; // Import context
+import { useSettings } from '../context/SettingsContext'; 
 
 const SettingsScreen = ({ navigation }) => {
-  const { toolBarAdjustment, setToolBarAdjustment } = useSettings(); // Get context values
-
+  const { toolBarAdjustment, setToolBarAdjustment, controlBarAdjustment, setControlBarAdjustment } = useSettings(); 
+  
   // Static settings state (example)
   const [settings, setSettings] = useState({
     darkMode: true,
@@ -61,9 +61,8 @@ const SettingsScreen = ({ navigation }) => {
           {renderSettingItem('Auto-Connect', 'autoConnect', settings.autoConnect, () => toggleSetting('autoConnect'))}
           {renderSettingItem('Save Transmissions', 'saveTransmissions', settings.saveTransmissions, () => toggleSetting('saveTransmissions'))}
           {renderSettingItem('Low Power Mode', 'lowPowerMode', settings.lowPowerMode, () => toggleSetting('lowPowerMode'))}
-          {renderSettingItem('Tool Bar Adjustment', 'ToolBarAdjustment', toolBarAdjustment, () => {setToolBarAdjustment(!toolBarAdjustment);
-          navigation.navigate('Main'); //
-          })}
+          {renderSettingItem('Nav Bar Adjustment', 'ToolBarAdjustment', toolBarAdjustment, () => setToolBarAdjustment(!toolBarAdjustment))}
+          {renderSettingItem('Control Bar Adjustment', 'controlBarAdjustment', controlBarAdjustment, () => setControlBarAdjustment(!controlBarAdjustment))}
         </View>
 
         <View style={styles.section}>

@@ -1,3 +1,4 @@
+// Updated SettingsContext.js
 import React, { createContext, useContext, useState } from 'react';
 import { Dimensions } from 'react-native';
 
@@ -9,7 +10,8 @@ const CONTROL_PANEL_HEIGHT = height * 0.1;
 
 // Provider Component
 export const SettingsProvider = ({ children }) => {
-  const [toolBarAdjustment, setToolBarAdjustment] = useState(false); // Default: false
+  const [toolBarAdjustment, setToolBarAdjustment] = useState(true); 
+  const [controlBarAdjustment, setControlBarAdjustment] = useState(true); 
   const [navPanelPosition, setNavPanelPosition] = useState(width - NAV_PANEL_WIDTH);
   const [controlPanelPosition, setControlPanelPosition] = useState(height - CONTROL_PANEL_HEIGHT);
 
@@ -18,6 +20,8 @@ export const SettingsProvider = ({ children }) => {
       value={{
         toolBarAdjustment,
         setToolBarAdjustment,
+        controlBarAdjustment,
+        setControlBarAdjustment,
         navPanelPosition,
         setNavPanelPosition,
         controlPanelPosition,
