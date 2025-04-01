@@ -1,0 +1,5 @@
+CREATE TABLE [dbo].[Users](
+	[UserName] [nvarchar](50) NOT NULL,
+	[PasswordHash] [nvarchar](255) NOT NULL,
+	[Email] [nvarchar](100) NOT NULL,
+	[IsAdmin] [bit] NULL,
