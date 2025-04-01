@@ -1,5 +1,4 @@
-// src/screens/SettingsScreen.js
-import React, {useState} from 'react';
+import React, { useState } from 'react';
 import {
   View,
   Text,
@@ -9,9 +8,12 @@ import {
   ScrollView,
 } from 'react-native';
 import AppLayout from '../components/AppLayout';
+import { useSettings } from '../context/SettingsContext'; 
 
-const SettingsScreen = ({navigation}) => {
-  // Settings state
+const SettingsScreen = ({ navigation }) => {
+  const { toolBarAdjustment, setToolBarAdjustment, controlBarAdjustment, setControlBarAdjustment } = useSettings(); 
+  
+  // Static settings state (example)
   const [settings, setSettings] = useState({
     darkMode: true,
     notifications: true,
@@ -22,7 +24,7 @@ const SettingsScreen = ({navigation}) => {
     showStatus: true,
   });
 
-  const toggleSetting = key => {
+  const toggleSetting = (key) => {
     setSettings({
       ...settings,
       [key]: !settings[key],
@@ -30,15 +32,15 @@ const SettingsScreen = ({navigation}) => {
   };
 
   // Render a setting item with a toggle switch
-  const renderSettingItem = (label, key) => (
+  const renderSettingItem = (label, key, value, onToggle) => (
     <View style={styles.settingItem}>
       <Text style={styles.settingLabel}>{label}</Text>
       <Switch
-        trackColor={{false: '#767577', true: '#0066cc'}}
-        thumbColor={settings[key] ? '#fff' : '#f4f3f4'}
+        trackColor={{ false: '#767577', true: '#0066cc' }}
+        thumbColor={value ? '#fff' : '#f4f3f4'}
         ios_backgroundColor="#3e3e3e"
-        onValueChange={() => toggleSetting(key)}
-        value={settings[key]}
+        onValueChange={onToggle}
+        value={value}
       />
     </View>
   );
@@ -48,17 +50,19 @@ const SettingsScreen = ({navigation}) => {
       <ScrollView style={styles.container}>
         <View style={styles.section}>
           <Text style={styles.sectionTitle}>Display Settings</Text>
-          {renderSettingItem('Dark Mode', 'darkMode')}
-          {renderSettingItem('Show Frequency', 'showFrequency')}
-          {renderSettingItem('Show Status', 'showStatus')}
+          {renderSettingItem('Dark Mode', 'darkMode', settings.darkMode, () => toggleSetting('darkMode'))}
+          {renderSettingItem('Show Frequency', 'showFrequency', settings.showFrequency, () => toggleSetting('showFrequency'))}
+          {renderSettingItem('Show Status', 'showStatus', settings.showStatus, () => toggleSetting('showStatus'))}
         </View>
 
         <View style={styles.section}>
           <Text style={styles.sectionTitle}>Radio Settings</Text>
-          {renderSettingItem('Notifications', 'notifications')}
-          {renderSettingItem('Auto-Connect', 'autoConnect')}
-          {renderSettingItem('Save Transmissions', 'saveTransmissions')}
-          {renderSettingItem('Low Power Mode', 'lowPowerMode')}
+          {renderSettingItem('Notifications', 'notifications', settings.notifications, () => toggleSetting('notifications'))}
+          {renderSettingItem('Auto-Connect', 'autoConnect', settings.autoConnect, () => toggleSetting('autoConnect'))}
+          {renderSettingItem('Save Transmissions', 'saveTransmissions', settings.saveTransmissions, () => toggleSetting('saveTransmissions'))}
+          {renderSettingItem('Low Power Mode', 'lowPowerMode', settings.lowPowerMode, () => toggleSetting('lowPowerMode'))}
+          {renderSettingItem('Nav Bar Adjustment', 'ToolBarAdjustment', toolBarAdjustment, () => setToolBarAdjustment(!toolBarAdjustment))}
+          {renderSettingItem('Control Bar Adjustment', 'controlBarAdjustment', controlBarAdjustment, () => setControlBarAdjustment(!controlBarAdjustment))}
         </View>
 
         <View style={styles.section}>

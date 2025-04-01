@@ -1,14 +1,14 @@
 import React from 'react';
 import {View, Text, StyleSheet, TouchableOpacity} from 'react-native';
 
-const ControlScreen = ({navigation}) => {
+const AdjustmentScreen = ({navigation}) => {
   return (
     <View style={styles.container}>
-      <Text style={styles.title}>setting</Text>
+      <Text style={styles.title}>adjustment bars</Text>
       <TouchableOpacity
         style={styles.button}
         onPress={() => navigation.goBack()}>
-        <Text style={styles.buttonText}>Back to main</Text>
+        <Text style={styles.buttonText}>done</Text>
       </TouchableOpacity>
     </View>
   );
@@ -41,4 +41,4 @@ const styles = StyleSheet.create({
   },
 });
 
-export default ControlScreen;
+export default AdjustmentScreen;
