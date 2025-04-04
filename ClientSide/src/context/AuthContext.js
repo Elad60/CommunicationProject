@@ -1,52 +1,47 @@
 import React, {createContext, useState, useEffect, useContext} from 'react';
-import {
-  registerUser,
-  loginUser,
-  getCurrentUser,
-  logoutUser,
-} from '../utils/authStorage';
+import {authApi} from '../utils/apiService';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 
-// Create context
 const AuthContext = createContext();
 
-// Auth provider component
 export const AuthProvider = ({children}) => {
   const [user, setUser] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
 
-  // Check if user is already logged in
+  // Load current user from storage on app start
   useEffect(() => {
-    const checkUser = async () => {
+    const loadUser = async () => {
       try {
-        const currentUser = await getCurrentUser();
-        setUser(currentUser);
+        const storedUser = await AsyncStorage.getItem('user');
+        if (storedUser) {
+          setUser(JSON.parse(storedUser));
+        }
       } catch (err) {
-        console.error('Error checking authentication:', err);
+        console.error('Error loading user from storage:', err);
       } finally {
         setLoading(false);
       }
     };
-
-    checkUser();
+    loadUser();
   }, []);
 
-  // Register function
   const register = async (username, password, email) => {
     setLoading(true);
     setError('');
-
     try {
-      const result = await registerUser(username, password, email);
+      const result = await authApi.register(username, password, email);
 
-      if (result.success) {
+      if (result.success && result.user) {
+        await AsyncStorage.setItem('user', JSON.stringify(result.user));
         setUser(result.user);
         return {success: true};
       } else {
-        setError(result.message);
+        setError(result.message || 'Registration failed');
         return {success: false, message: result.message};
       }
     } catch (err) {
+      console.error(err);
       setError('Registration failed');
       return {success: false, message: 'Registration failed'};
     } finally {
@@ -54,22 +49,22 @@ export const AuthProvider = ({children}) => {
     }
   };
 
-  // Login function
   const login = async (username, password) => {
     setLoading(true);
     setError('');
-
     try {
-      const result = await loginUser(username, password);
+      const result = await authApi.login(username, password);
 
-      if (result.success) {
+      if (result.success && result.user) {
+        await AsyncStorage.setItem('user', JSON.stringify(result.user));
         setUser(result.user);
         return {success: true};
       } else {
-        setError(result.message);
+        setError(result.message || 'Login failed');
         return {success: false, message: result.message};
       }
     } catch (err) {
+      console.error(err);
       setError('Login failed');
       return {success: false, message: 'Login failed'};
     } finally {
@@ -77,36 +72,28 @@ export const AuthProvider = ({children}) => {
     }
   };
 
-  // Logout function
-  const logout = async () => {
-    setLoading(true);
+const logout = async () => {
+  setLoading(true);
+  try {
+    await AsyncStorage.clear(); // Clears all AsyncStorage (or use removeItem('user') if only clearing user)
+    setUser(null);
+    console.log('Logged out and AsyncStorage cleared');
+  } catch (err) {
+    console.error('Logout error:', err);
+  } finally {
+    setLoading(false);
+  }
+};
 
-    try {
-      await logoutUser();
-      setUser(null);
-    } catch (err) {
-      console.error('Error logging out:', err);
-    } finally {
-      setLoading(false);
-    }
-  };
 
   return (
     <AuthContext.Provider
-      value={{
-        user,
-        loading,
-        error,
-        register,
-        login,
-        logout,
-      }}>
+      value={{user, loading, error, login, register, logout}}>
       {children}
     </AuthContext.Provider>
   );
 };
 
-// Custom hook to use the auth context
 export const useAuth = () => {
   const context = useContext(AuthContext);
   if (!context) {

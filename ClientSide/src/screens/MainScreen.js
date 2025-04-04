@@ -10,8 +10,7 @@ import {
 import RadioChannel from '../components/RadioChannel';
 import AppLayout from '../components/AppLayout';
 import {useAuth} from '../context/AuthContext';
-import radioChannelsApi from '../utils/apiService';
-
+import {radioChannelsApi} from '../utils/apiService';
 
 const MainScreen = ({navigation}) => {
   const [selectedChannel, setSelectedChannel] = useState(null);

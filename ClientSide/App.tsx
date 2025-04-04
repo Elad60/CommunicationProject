@@ -10,8 +10,7 @@ import AppNavigator from './src/navigation/AppNavigator';
 import LoginScreen from './src/screens/LoginScreen';
 import RegisterScreen from './src/screens/RegisterScreen';
 import {AuthProvider, useAuth} from './src/context/AuthContext';
-import MainScreen from './src/screens/MainScreen';
-import { SettingsProvider } from './src/context/SettingsContext';
+import {SettingsProvider} from './src/context/SettingsContext';
 
 // Main App component with auth routing
 const AppContent = () => {
@@ -31,7 +30,11 @@ const AppContent = () => {
     if (isRegistering) {
       return (
         <RegisterScreen
-          onRegister={async (username: string, password: string, email: string) => {
+          onRegister={async (
+            username: string,
+            password: string,
+            email: string,
+          ) => {
             const result = await register(username, password, email);
             if (result && result.success) {
               setIsRegistering(false);
@@ -70,7 +73,7 @@ const App = () => {
     <SafeAreaView style={styles.container}>
       <StatusBar barStyle="light-content" backgroundColor="#000" />
       <AuthProvider>
-        <SettingsProvider> 
+        <SettingsProvider>
           <AppContent />
         </SettingsProvider>
       </AuthProvider>

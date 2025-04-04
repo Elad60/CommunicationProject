@@ -159,6 +159,77 @@ namespace CommunicationServer.DAL
             }
         }
 
+        public bool RegisterUser(string username, string email, string password)
+        {
+            SqlConnection con = null;
+            try
+            {
+                con = Connect("myProjDB");
+
+                var paramDic = new Dictionary<string, object>
+        {
+            { "@Username", username },
+            { "@Email", email },
+            { "@Password", password },
+        };
+
+                SqlCommand cmd = CreateCommandWithStoredProcedure("sp_RegisterUser", con, paramDic);
+                cmd.ExecuteNonQuery();
+
+                return true;
+            }
+            catch (SqlException ex)
+            {
+                // Handle duplicate username/email error if needed
+                Console.WriteLine("SQL Error: " + ex.Message);
+                return false;
+            }
+            finally
+            {
+                con?.Close();
+            }
+        }
+        public User LoginUser(string username, string password)
+        {
+            SqlConnection con = null;
+            try
+            {
+                con = Connect("myProjDB");
+
+                var paramDic = new Dictionary<string, object>
+        {
+            { "@Username", username },
+            { "@Password", password }
+        };
+
+                SqlCommand cmd = CreateCommandWithStoredProcedure("sp_LoginUser", con, paramDic);
+                SqlDataReader reader = cmd.ExecuteReader();
+
+                if (reader.Read())
+                {
+                    return new User
+                    {
+                        Id = Convert.ToInt32(reader["Id"]),
+                        Username = reader["Username"].ToString(),
+                        Email = reader["Email"].ToString(),
+                        Role = reader["Role"].ToString(),
+                    };
+                }
+
+                return null;
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine("Login error: " + ex.Message);
+                return null;
+            }
+            finally
+            {
+                con?.Close();
+            }
+        }
+
+
 
     }
 }
