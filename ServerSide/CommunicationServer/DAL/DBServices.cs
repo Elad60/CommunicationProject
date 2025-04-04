@@ -64,8 +64,10 @@ namespace CommunicationServer.DAL
                         Name = reader["Name"].ToString(),
                         Frequency = reader["Frequency"].ToString(),
                         Status = reader["Status"].ToString(),
-                        Mode = reader["Mode"].ToString()
+                        Mode = reader["Mode"].ToString(),
+                        ChannelState = reader["ChannelState"].ToString()
                     };
+
 
                     channels.Add(channel);
                 }
@@ -83,5 +85,80 @@ namespace CommunicationServer.DAL
 
             return channels;
         }
+        public List<RadioChannel> GetUserRadioChannels(int userId)
+        {
+            SqlConnection con = null;
+            List<RadioChannel> channels = new List<RadioChannel>();
+
+            try
+            {
+                con = Connect("myProjDB");
+
+                var parameters = new Dictionary<string, object>
+        {
+            { "@UserId", userId }
+        };
+
+                SqlCommand cmd = CreateCommandWithStoredProcedure("sp_GetUserRadioChannels", con, parameters);
+                SqlDataReader reader = cmd.ExecuteReader();
+
+                while (reader.Read())
+                {
+                    RadioChannel channel = new RadioChannel
+                    {
+                        Id = Convert.ToInt32(reader["Id"]),
+                        Name = reader["Name"].ToString(),
+                        Frequency = reader["Frequency"].ToString(),
+                        Status = reader["Status"].ToString(),
+                        Mode = reader["Mode"].ToString(),
+                        ChannelState = reader["ChannelState"].ToString()
+                    };
+
+                    channels.Add(channel);
+                }
+
+                reader.Close();
+            }
+            catch (Exception ex)
+            {
+                throw new Exception("Error retrieving user-specific radio channels: " + ex.Message);
+            }
+            finally
+            {
+                con?.Close();
+            }
+
+            return channels;
+        }
+
+        public void UpdateUserChannelState(int userId, int channelId, string channelState)
+        {
+            SqlConnection con = null;
+
+            try
+            {
+                con = Connect("myProjDB");
+
+                var parameters = new Dictionary<string, object>
+        {
+            { "@UserId", userId },
+            { "@ChannelId", channelId },
+            { "@ChannelState", channelState }
+        };
+
+                SqlCommand cmd = CreateCommandWithStoredProcedure("sp_UpdateUserChannelState", con, parameters);
+                cmd.ExecuteNonQuery();
+            }
+            catch (Exception ex)
+            {
+                throw new Exception("Error updating user channel state: " + ex.Message);
+            }
+            finally
+            {
+                con?.Close();
+            }
+        }
+
+
     }
 }

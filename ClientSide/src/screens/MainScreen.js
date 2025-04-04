@@ -20,23 +20,24 @@ const MainScreen = ({navigation}) => {
   const [error, setError] = useState(null);
   const {getAuthToken} = useAuth(); // Assuming your AuthContext provides this
 
-const fetchRadioChannels = async () => {
-  try {
-    setLoading(true);
+  const fetchRadioChannels = async () => {
+    try {
+      setLoading(true);
 
-    // Use the Axios API call
-    const data = await radioChannelsApi.getAllChannels();
+      // Replace this with real user ID from context or auth state
+      const userId = 1; // Or: const userId = currentUser.id;
+      const data = await radioChannelsApi.getAllChannels(1);
 
-    // Update state with fetched data
-    setRadioChannels(data);
-    setError(null);
-  } catch (err) {
-    console.error('Error fetching radio channels:', err);
-    setError('Failed to load radio channels. Please try again later.');
-  } finally {
-    setLoading(false);
-  }
-};
+      setRadioChannels(data);
+      setError(null);
+    } catch (err) {
+      console.error('Error fetching radio channels:', err);
+      setError('Failed to load radio channels. Please try again later.');
+    } finally {
+      setLoading(false);
+    }
+  };
+
   useEffect(() => {
     fetchRadioChannels();
   }, []); // Empty dependency array means this effect runs once when component mounts
@@ -46,6 +47,36 @@ const fetchRadioChannels = async () => {
     setSelectedChannel(id);
     // Optionally navigate to channel details
     // navigation.navigate('ChannelDetails', { channelId: id });
+  };
+  const handleToggleChannelState = async channelId => {
+    const current = radioChannels.find(c => c.id === channelId);
+    const nextState = getNextState(current.channelState);
+
+    // Update locally
+    const updatedChannels = radioChannels.map(c =>
+      c.id === channelId ? {...c, channelState: nextState} : c,
+    );
+    setRadioChannels(updatedChannels);
+
+    // Update in DB
+    try {
+      const userId = 1; // Replace this with real user ID from context if available
+      await radioChannelsApi.updateChannelState(userId, channelId, nextState);
+    } catch (error) {
+      console.error('Error updating channel state:', error);
+    }
+  };
+  const getNextState = state => {
+    switch (state) {
+      case 'Idle':
+        return 'ListenOnly';
+      case 'ListenOnly':
+        return 'ListenAndTalk';
+      case 'ListenAndTalk':
+        return 'Idle';
+      default:
+        return 'Idle';
+    }
   };
 
   // Render loading indicator
@@ -83,13 +114,17 @@ const fetchRadioChannels = async () => {
           {radioChannels.map(channel => (
             <TouchableOpacity
               key={channel.id}
-              onPress={() => handleChannelSelect(channel.id)}>
+              onPress={() => {
+                handleChannelSelect(channel.id);
+                handleToggleChannelState(channel.id);
+              }}>
               <RadioChannel
                 name={channel.name}
                 frequency={channel.frequency}
-                isActive={channel.isActive}
+                isActive={channel.status === 'Active'}
                 mode={channel.mode}
                 isSelected={selectedChannel === channel.id}
+                channelState={channel.channelState}
               />
             </TouchableOpacity>
           ))}

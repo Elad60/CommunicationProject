@@ -1,38 +1,66 @@
 import React from 'react';
-import {View, Text, StyleSheet} from 'react-native';
+import {View, Text, StyleSheet, Image} from 'react-native';
 
-const RadioChannel = ({name, frequency, isActive, mode, isSelected}) => {
-  // Determine background color based on state
-  const getBackgroundColor = () => {
-    if (!isActive) return '#222';
-    if (isSelected) return '#555';
-    return mode === 'rx_tx' ? '#0a192f' : '#0a2f0a'; // Blue for Rx/Tx, Green for Rx Only
+const RadioChannel = ({
+  name,
+  frequency,
+  isActive,
+  mode,
+  isSelected,
+  channelState,
+}) => {
+  const getCircleColor = () => {
+    switch (channelState) {
+      case 'Idle':
+        return '#ffffff';
+      case 'ListenOnly':
+        return '#00cc00';
+      case 'ListenAndTalk':
+        return '#cc0000';
+      default:
+        return '#888';
+    }
   };
 
+  const getIconPaths = () => {
+    switch (channelState) {
+      case 'Idle':
+        return {
+          headphones: require('../../assets/logos/crossed-HF.png'),
+          mic: require('../../assets/logos/crossed-mic.webp'),
+        };
+      case 'ListenOnly':
+        return {
+          headphones: require('../../assets/logos/headphones.png'),
+          mic: require('../../assets/logos/crossed-mic.webp'),
+        };
+      case 'ListenAndTalk':
+        return {
+          headphones: require('../../assets/logos/headphones.png'),
+          mic: require('../../assets/logos/microphone.png'),
+        };
+      default:
+        return {
+          headphones: require('../../assets/logos/crossed-HF.png'),
+          mic: require('../../assets/logos/microphone.png'),
+        };
+    }
+  };
+
+  const {headphones, mic} = getIconPaths();
+
   return (
-    <View style={[styles.container, {backgroundColor: getBackgroundColor()}]}>
+    <View style={[styles.container, {backgroundColor: '#222'}]}>
       <Text style={styles.name}>{name}</Text>
       <Text style={styles.frequency}>{frequency}</Text>
       <Text style={styles.status}>{isActive ? 'Active' : 'Not used'}</Text>
 
       <View style={styles.iconContainer}>
-        {/* Headphone icon */}
-        <View style={styles.icon}>
-          <Text style={styles.iconText}>🎧</Text>
-        </View>
-
-        {/* Transmit status */}
+        <Image source={headphones} style={styles.iconImage} />
         <View
-          style={[
-            styles.statusIndicator,
-            {backgroundColor: isActive ? '#f00' : '#333'},
-          ]}
+          style={[styles.statusIndicator, {backgroundColor: getCircleColor()}]}
         />
-
-        {/* Microphone icon */}
-        <View style={styles.icon}>
-          <Text style={styles.iconText}>🎤</Text>
-        </View>
+        <Image source={mic} style={styles.iconImage} />
       </View>
     </View>
   );
@@ -71,14 +99,10 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     marginTop: 5,
   },
-  icon: {
-    width: 20,
-    height: 20,
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  iconText: {
-    fontSize: 16,
+  iconImage: {
+    width: 24,
+    height: 24,
+    resizeMode: 'contain',
   },
   statusIndicator: {
     width: 16,
