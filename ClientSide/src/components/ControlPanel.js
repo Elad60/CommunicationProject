@@ -1,11 +1,10 @@
-import React, { useRef, useEffect } from 'react';
-import { Animated, Dimensions } from 'react-native';
+import React, {useRef, useEffect} from 'react';
+import {Animated, Dimensions} from 'react-native';
 import ControlButton from './ControlButton';
-import { useSettings } from '../context/SettingsContext';
+import {useSettings} from '../context/SettingsContext';
 
-const { height, width } = Dimensions.get('window');
-const CONTROL_PANEL_HEIGHT = height * 0.1;
-const CONTROL_PANEL_WIDTH = width * 0.92;
+const {height, width} = Dimensions.get('window');
+const CONTROL_PANEL_HEIGHT = 80;
 
 const ControlPanel = ({
   speakerVolume,
@@ -14,7 +13,12 @@ const ControlPanel = ({
   navigation,
   darkMode,
 }) => {
-  const { controlBarAdjustment, controlPanelPosition, setControlPanelPosition, toolBarAdjustment } = useSettings();
+  const {
+    controlBarAdjustment,
+    controlPanelPosition,
+    setControlPanelPosition,
+    toolBarAdjustment,
+  } = useSettings();
   const position = useRef(new Animated.Value(controlPanelPosition)).current;
 
   const controlPanelStyle = {
@@ -26,7 +30,9 @@ const ControlPanel = ({
   const buttonTextColor = darkMode ? '#fff' : '#000';
 
   useEffect(() => {
-    const targetPosition = controlBarAdjustment ? height - CONTROL_PANEL_HEIGHT : height * 0.05;
+    const targetPosition = controlBarAdjustment
+      ? height - CONTROL_PANEL_HEIGHT
+      : height * 0.05;
 
     Animated.spring(position, {
       toValue: targetPosition,
@@ -41,17 +47,13 @@ const ControlPanel = ({
       style={[ 
         {
           position: 'absolute',
-          width: CONTROL_PANEL_WIDTH,
+          width: width,
           height: CONTROL_PANEL_HEIGHT,
           backgroundColor,
           flexDirection: 'row',
-          justifyContent: 'space-around',
-          alignItems: 'center',
-          transform: [{ translateY: position }],
+          bottom: 0,
         },
-        controlPanelStyle,
-      ]}
-    >
+      ]}>
       <ControlButton
         title="Speaker"
         icon="🔊"
