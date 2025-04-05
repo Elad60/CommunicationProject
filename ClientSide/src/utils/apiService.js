@@ -5,7 +5,7 @@ const api = axios.create({
   timeout: 5000,
 });
 
-// 📡 Radio Channels
+// 🛁 Radio Channels
 const radioChannelsApi = {
   getAllChannels: async userId => {
     const response = await api.get(`/radiochannels/user/${userId}`);
@@ -42,7 +42,7 @@ const authApi = {
       },
       {
         headers: {
-          'Content-Type': 'application/json', // 👈 ensure JSON
+          'Content-Type': 'application/json',
         },
       },
     );
@@ -50,4 +50,30 @@ const authApi = {
   },
 };
 
-export {radioChannelsApi, authApi};
+// 🔒 Admin API
+const adminApi = {
+  getAllUsers: async () => {
+    const response = await api.get('/user/all'); // 🔧 FIXED endpoint
+    return response.data;
+  },
+  blockUser: async (userId, isBlocked) => {
+    await api.post(`/user/block/${userId}`, isBlocked, {
+      headers: {'Content-Type': 'application/json'},
+    });
+  },
+  updateUserRole: async (userId, newRole) => {
+    await api.post(
+      '/user/update-role',
+      {userId, newRole},
+      {
+        headers: {'Content-Type': 'application/json'},
+      },
+    );
+  },
+  deleteUser: async userId => {
+    await api.delete(`/user/${userId}`);
+  },
+};
+
+
+export {radioChannelsApi, authApi, adminApi};

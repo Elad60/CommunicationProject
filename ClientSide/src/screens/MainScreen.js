@@ -17,7 +17,7 @@ const MainScreen = ({navigation}) => {
   const [radioChannels, setRadioChannels] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
-  const {user} = useAuth(); // ✅ Access the current logged-in user
+  const {user} = useAuth();
 
   const fetchRadioChannels = async () => {
     try {
@@ -35,19 +35,18 @@ const MainScreen = ({navigation}) => {
       setLoading(false);
     }
   };
+
   useEffect(() => {
     if (user?.id) {
       fetchRadioChannels();
     }
-  // eslint-disable-next-line react-hooks/exhaustive-deps
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [user]);
 
-  // Handle channel selection
   const handleChannelSelect = id => {
     setSelectedChannel(id);
-    // Optionally navigate to channel details
-    // navigation.navigate('ChannelDetails', { channelId: id });
   };
+
   const handleToggleChannelState = async channelId => {
     const current = radioChannels.find(c => c.id === channelId);
     const nextState = getNextState(current.channelState);
@@ -79,7 +78,6 @@ const MainScreen = ({navigation}) => {
     }
   };
 
-  // Render loading indicator
   if (loading) {
     return (
       <AppLayout navigation={navigation} title={user?.role}>
@@ -91,7 +89,6 @@ const MainScreen = ({navigation}) => {
     );
   }
 
-  // Render error message
   if (error) {
     return (
       <AppLayout navigation={navigation} title={user?.role}>
@@ -110,6 +107,14 @@ const MainScreen = ({navigation}) => {
   return (
     <AppLayout navigation={navigation} title={user?.role}>
       <ScrollView style={styles.scrollView}>
+        {user?.role === 'Admin' && (
+          <TouchableOpacity
+            style={styles.adminButton}
+            onPress={() => navigation.navigate('UserManagement')}>
+            <Text style={styles.adminButtonText}>👥 Manage Users</Text>
+          </TouchableOpacity>
+        )}
+
         <View style={styles.mainGrid}>
           {radioChannels.map(channel => (
             <TouchableOpacity
@@ -167,6 +172,18 @@ const styles = StyleSheet.create({
   },
   retryButtonText: {
     color: 'white',
+    fontSize: 16,
+  },
+  adminButton: {
+    backgroundColor: '#0066cc',
+    padding: 10,
+    borderRadius: 8,
+    margin: 10,
+    alignSelf: 'center',
+  },
+  adminButtonText: {
+    color: '#fff',
+    fontWeight: 'bold',
     fontSize: 16,
   },
 });

@@ -2,30 +2,31 @@ import React, {useEffect, useState} from 'react';
 import {
   View,
   Text,
+  TextInput,
   FlatList,
   StyleSheet,
   TouchableOpacity,
   ActivityIndicator,
+  Alert,
 } from 'react-native';
 import AppLayout from '../components/AppLayout';
-import {
-  getAllUsers,
-  blockUser,
-  updateUserRole,
-  deleteUser,
-} from '../utils/adminApi';
+import {adminApi} from '../utils/apiService';
 
 const UserManagementScreen = ({navigation}) => {
   const [users, setUsers] = useState([]);
+  const [filteredUsers, setFilteredUsers] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [searchQuery, setSearchQuery] = useState('');
 
   const loadUsers = async () => {
     try {
       setLoading(true);
-      const data = await getAllUsers();
+      const data = await adminApi.getAllUsers();
       setUsers(data);
+      setFilteredUsers(data); // Initialize filtered users
     } catch (err) {
       console.error('Error loading users:', err);
+      Alert.alert('Error', 'Failed to load users.');
     } finally {
       setLoading(false);
     }
@@ -35,20 +36,60 @@ const UserManagementScreen = ({navigation}) => {
     loadUsers();
   }, []);
 
+  useEffect(() => {
+    const lower = searchQuery.toLowerCase();
+    const filtered = users.filter(
+      u =>
+        u.username.toLowerCase().includes(lower) ||
+        u.email.toLowerCase().includes(lower),
+    );
+    setFilteredUsers(filtered);
+  }, [searchQuery, users]);
+
   const handleToggleBlock = async user => {
-    await blockUser(user.id, !user.isBlocked);
-    loadUsers();
+    try {
+      await adminApi.blockUser(user.id, !user.isBlocked);
+      loadUsers();
+    } catch (err) {
+      Alert.alert('Error', 'Failed to update block status.');
+    }
   };
 
   const handleToggleRole = async user => {
-    const newRole = user.role === 'Operator' ? 'Technician' : 'Operator';
-    await updateUserRole(user.id, newRole);
-    loadUsers();
+    const newRole =
+      user.role === 'Operator'
+        ? 'Technician'
+        : user.role === 'Technician'
+        ? 'Operator'
+        : 'Technician';
+    try {
+      await adminApi.updateUserRole(user.id, newRole);
+      loadUsers();
+    } catch (err) {
+      Alert.alert('Error', 'Failed to update user role.');
+    }
   };
 
   const handleDelete = async user => {
-    await deleteUser(user.id);
-    loadUsers();
+    Alert.alert(
+      'Confirm Delete',
+      `Are you sure you want to delete ${user.username}?`,
+      [
+        {text: 'Cancel', style: 'cancel'},
+        {
+          text: 'Delete',
+          style: 'destructive',
+          onPress: async () => {
+            try {
+              await adminApi.deleteUser(user.id);
+              loadUsers();
+            } catch (err) {
+              Alert.alert('Error', 'Failed to delete user.');
+            }
+          },
+        },
+      ],
+    );
   };
 
   const renderItem = ({item}) => (
@@ -67,11 +108,15 @@ const UserManagementScreen = ({navigation}) => {
             {item.isBlocked ? 'Unblock' : 'Block'}
           </Text>
         </TouchableOpacity>
-        <TouchableOpacity
-          style={styles.button}
-          onPress={() => handleToggleRole(item)}>
-          <Text style={styles.buttonText}>Toggle Role</Text>
-        </TouchableOpacity>
+        {item.role !== 'Admin' && (
+          <TouchableOpacity
+            style={styles.button}
+            onPress={() => handleToggleRole(item)}>
+            <Text style={styles.buttonText}>
+              Make {item.role === 'Operator' ? 'Technician' : 'Operator'}
+            </Text>
+          </TouchableOpacity>
+        )}
         <TouchableOpacity
           style={styles.deleteButton}
           onPress={() => handleDelete(item)}>
@@ -83,23 +128,46 @@ const UserManagementScreen = ({navigation}) => {
 
   return (
     <AppLayout navigation={navigation} title="User Management">
-      {loading ? (
-        <ActivityIndicator size="large" color="#00f" />
-      ) : (
-        <FlatList
-          data={users}
-          keyExtractor={item => item.id.toString()}
-          renderItem={renderItem}
+      <View style={styles.container}>
+        <TextInput
+          placeholder="Search by username or email..."
+          placeholderTextColor="#888"
+          style={styles.searchInput}
+          value={searchQuery}
+          onChangeText={setSearchQuery}
         />
-      )}
+        {loading ? (
+          <ActivityIndicator size="large" color="#00f" />
+        ) : (
+          <FlatList
+            data={filteredUsers}
+            keyExtractor={item => item.id.toString()}
+            renderItem={renderItem}
+            contentContainerStyle={{paddingBottom: 20}}
+          />
+        )}
+      </View>
     </AppLayout>
   );
 };
 
 const styles = StyleSheet.create({
+  container: {
+    flex: 1,
+    padding: 10,
+  },
+  searchInput: {
+    backgroundColor: '#2a2a2a',
+    color: '#fff',
+    padding: 10,
+    marginBottom: 10,
+    borderRadius: 8,
+    borderWidth: 1,
+    borderColor: '#555',
+  },
   userCard: {
     backgroundColor: '#1e1e1e',
-    margin: 10,
+    marginVertical: 5,
     padding: 15,
     borderRadius: 10,
     borderColor: '#444',
@@ -124,15 +192,20 @@ const styles = StyleSheet.create({
     backgroundColor: '#0066cc',
     padding: 8,
     borderRadius: 5,
+    flex: 1,
+    marginRight: 5,
   },
   deleteButton: {
     backgroundColor: '#cc0000',
     padding: 8,
     borderRadius: 5,
+    flex: 1,
+    marginLeft: 5,
   },
   buttonText: {
     color: '#fff',
     fontSize: 13,
+    textAlign: 'center',
   },
 });
 
