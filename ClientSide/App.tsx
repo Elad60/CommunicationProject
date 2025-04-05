@@ -14,7 +14,7 @@ import {SettingsProvider} from './src/context/SettingsContext';
 
 // Main App component with auth routing
 const AppContent = () => {
-  const {user, loading, login, register, logout} = useAuth();
+  const {user, loading, login, register} = useAuth();
   const [isRegistering, setIsRegistering] = React.useState(false);
 
   if (loading) {

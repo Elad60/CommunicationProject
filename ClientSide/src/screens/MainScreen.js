@@ -17,16 +17,15 @@ const MainScreen = ({navigation}) => {
   const [radioChannels, setRadioChannels] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
-  const {getAuthToken} = useAuth(); // Assuming your AuthContext provides this
+  const {user} = useAuth(); // ✅ Access the current logged-in user
 
   const fetchRadioChannels = async () => {
     try {
       setLoading(true);
+      const userId = user?.id;
+      if (!userId) throw new Error('User ID not found');
 
-      // Replace this with real user ID from context or auth state
-      const userId = 1; // Or: const userId = currentUser.id;
-      const data = await radioChannelsApi.getAllChannels(1);
-
+      const data = await radioChannelsApi.getAllChannels(userId);
       setRadioChannels(data);
       setError(null);
     } catch (err) {
@@ -36,10 +35,12 @@ const MainScreen = ({navigation}) => {
       setLoading(false);
     }
   };
-
   useEffect(() => {
-    fetchRadioChannels();
-  }, []); // Empty dependency array means this effect runs once when component mounts
+    if (user?.id) {
+      fetchRadioChannels();
+    }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [user]);
 
   // Handle channel selection
   const handleChannelSelect = id => {
@@ -51,20 +52,20 @@ const MainScreen = ({navigation}) => {
     const current = radioChannels.find(c => c.id === channelId);
     const nextState = getNextState(current.channelState);
 
-    // Update locally
     const updatedChannels = radioChannels.map(c =>
       c.id === channelId ? {...c, channelState: nextState} : c,
     );
     setRadioChannels(updatedChannels);
 
-    // Update in DB
     try {
-      const userId = 1; // Replace this with real user ID from context if available
+      const userId = user?.id;
+      if (!userId) throw new Error('User ID not found');
       await radioChannelsApi.updateChannelState(userId, channelId, nextState);
     } catch (error) {
       console.error('Error updating channel state:', error);
     }
   };
+
   const getNextState = state => {
     switch (state) {
       case 'Idle':
@@ -81,7 +82,7 @@ const MainScreen = ({navigation}) => {
   // Render loading indicator
   if (loading) {
     return (
-      <AppLayout navigation={navigation} title="Commander">
+      <AppLayout navigation={navigation} title={user?.role}>
         <View style={styles.centerContainer}>
           <ActivityIndicator size="large" color="#0000ff" />
           <Text style={styles.loadingText}>Loading channels...</Text>
@@ -93,7 +94,7 @@ const MainScreen = ({navigation}) => {
   // Render error message
   if (error) {
     return (
-      <AppLayout navigation={navigation} title="Commander">
+      <AppLayout navigation={navigation} title={user?.role}>
         <View style={styles.centerContainer}>
           <Text style={styles.errorText}>{error}</Text>
           <TouchableOpacity
@@ -107,7 +108,7 @@ const MainScreen = ({navigation}) => {
   }
 
   return (
-    <AppLayout navigation={navigation} title="Commander">
+    <AppLayout navigation={navigation} title={user?.role}>
       <ScrollView style={styles.scrollView}>
         <View style={styles.mainGrid}>
           {radioChannels.map(channel => (
