@@ -1,5 +1,14 @@
 import React from 'react';
-import {TouchableOpacity, Text, View, StyleSheet} from 'react-native';
+import {
+  TouchableOpacity,
+  Text,
+  View,
+  StyleSheet,
+  Dimensions,
+} from 'react-native';
+
+const {width} = Dimensions.get('window');
+const buttonWidth = width / 5; // Divide screen into 5 equal parts
 
 const ControlButton = ({title, icon, value, onPress}) => {
   return (
@@ -13,30 +22,26 @@ const ControlButton = ({title, icon, value, onPress}) => {
 
 const styles = StyleSheet.create({
   button: {
-    width: '10%',
-    height: '90%',
-    backgroundColor: '#222',
-    borderRadius: 5,
+    width: buttonWidth,
+    height: 80,
+    backgroundColor: '#1A1A1A',
     justifyContent: 'center',
     alignItems: 'center',
   },
   icon: {
-    fontSize: '50%',
+    fontSize: 24,
     color: '#fff',
+    marginBottom: 5,
   },
   value: {
     color: '#fff',
-    fontSize: '7%', 
-    textAlign: 'center',  
-    width: '80%',  
-    flexWrap: 'wrap', 
+    fontSize: 16,
+    fontWeight: '600',
   },
   title: {
     color: '#fff',
-    fontSize: '5%', 
-    textAlign: 'center',  
-    width: '80%',  
-    flexWrap: 'wrap', 
+    fontSize: 14,
+    marginTop: 3,
   },
 });
 

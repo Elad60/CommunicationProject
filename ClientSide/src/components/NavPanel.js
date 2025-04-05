@@ -1,18 +1,22 @@
-import React, { useEffect, useRef } from 'react';
-import { Animated, Dimensions } from 'react-native';
+import React, {useEffect, useRef} from 'react';
+import {Animated, Dimensions} from 'react-native';
 import NavButton from './NavButton';
-import { useSettings } from '../context/SettingsContext';
+import {useSettings} from '../context/SettingsContext';
 
-const { width, height } = Dimensions.get('window');
+const {width, height} = Dimensions.get('window');
 const NAV_PANEL_WIDTH = width * 0.08;
 const NAV_PANEL_HEIGHT = height * 0.95;
 
-const NavPanel = ({ activeNav, handleNavigation }) => {
-  const { toolBarAdjustment, controlBarAdjustment } = useSettings();
-  const positionX = useRef(new Animated.Value(toolBarAdjustment ? width - NAV_PANEL_WIDTH : -NAV_PANEL_WIDTH)).current;
+const NavPanel = ({activeNav, handleNavigation}) => {
+  const {toolBarAdjustment, controlBarAdjustment} = useSettings();
+  const positionX = useRef(
+    new Animated.Value(
+      toolBarAdjustment ? width - NAV_PANEL_WIDTH : -NAV_PANEL_WIDTH,
+    ),
+  ).current;
 
   const navPanelStyle = {
-    bottom: controlBarAdjustment ? -height * 0.10 : 0,
+    bottom: controlBarAdjustment ? -height * 0.1 : 0,
   };
 
   useEffect(() => {
@@ -20,7 +24,7 @@ const NavPanel = ({ activeNav, handleNavigation }) => {
       toValue: toolBarAdjustment ? width - NAV_PANEL_WIDTH : -NAV_PANEL_WIDTH,
       useNativeDriver: false,
     }).start();
-  }, [toolBarAdjustment]);  
+  }, [toolBarAdjustment]);
 
   return (
     <Animated.View
@@ -32,18 +36,19 @@ const NavPanel = ({ activeNav, handleNavigation }) => {
           backgroundColor: '#111',
           alignItems: 'center',
           justifyContent: 'space-around',
-          transform: [{ translateX: positionX }], 
+          transform: [{translateX: positionX}],
         },
-        navPanelStyle, 
-      ]}
-    >
-      {[{ title: 'Radios', icon: '📻', screen: 'Main' },
-        { title: 'Groups', icon: '👥', screen: 'Groups' },
-        { title: 'Intercoms', icon: '🔊', screen: 'Intercoms' },
-        { title: 'PAS', icon: '📢', screen: 'Pas' },
-        { title: 'More Radios', icon: '📻', screen: 'ChannelConfig' },
-        { title: 'Relay', icon: '🔄', screen: 'Relay' },
-        { title: 'Control', icon: '🎛️', screen: 'Control' }].map(({ title, icon, screen }) => (
+        navPanelStyle,
+      ]}>
+      {[
+        {title: 'Radios', icon: '📻', screen: 'Main'},
+        {title: 'Groups', icon: '👥', screen: 'Groups'},
+        {title: 'Intercoms', icon: '🔊', screen: 'Intercoms'},
+        {title: 'PAS', icon: '📢', screen: 'Pas'},
+        {title: 'More Radios', icon: '📻', screen: 'ChannelConfig'},
+        {title: 'Relay', icon: '🔄', screen: 'Relay'},
+        {title: 'Control', icon: '🎛️', screen: 'Control'},
+      ].map(({title, icon, screen}) => (
         <NavButton
           key={screen}
           title={title}

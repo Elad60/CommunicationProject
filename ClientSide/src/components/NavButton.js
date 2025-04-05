@@ -32,10 +32,10 @@ const styles = StyleSheet.create({
   },
   title: {
     color: '#fff',
-    fontSize: '5%', 
-    textAlign: 'center',  
-    width: '80%',  
-    flexWrap: 'wrap',  
+    fontSize: '5%',
+    textAlign: 'center',
+    width: '80%',
+    flexWrap: 'wrap',
   },
 });
 
