@@ -229,7 +229,125 @@ namespace CommunicationServer.DAL
             }
         }
 
+        public List<User> GetAllUsers()
+        {
+            List<User> users = new List<User>();
+            SqlConnection con = null;
 
+            try
+            {
+                con = Connect("myProjDB");
+                SqlCommand cmd = CreateCommandWithStoredProcedure("sp_GetAllUsers", con, null);
+                SqlDataReader reader = cmd.ExecuteReader();
+
+                while (reader.Read())
+                {
+                    users.Add(new User
+                    {
+                        Id = Convert.ToInt32(reader["Id"]),
+                        Username = reader["Username"].ToString(),
+                        Email = reader["Email"].ToString(),
+                        Role = reader["Role"].ToString(),
+                        CreatedAt = Convert.ToDateTime(reader["CreatedAt"]),
+                        IsBlocked = Convert.ToBoolean(reader["IsBlocked"])
+                    });
+                }
+
+                reader.Close();
+            }
+            catch (Exception ex)
+            {
+                throw new Exception("Error fetching users: " + ex.Message);
+            }
+            finally
+            {
+                con?.Close();
+            }
+
+            return users;
+        }
+        public bool SetUserBlockedStatus(int userId, bool isBlocked)
+        {
+            SqlConnection con = null;
+            try
+            {
+                con = Connect("myProjDB");
+
+                Dictionary<string, object> parameters = new Dictionary<string, object>
+        {
+            { "@UserId", userId },
+            { "@IsBlocked", isBlocked }
+        };
+
+                SqlCommand cmd = CreateCommandWithStoredProcedure("sp_SetUserBlockedStatus", con, parameters);
+                cmd.ExecuteNonQuery();
+
+                return true; // Assume success unless an exception is thrown
+            }
+            catch (Exception ex)
+            {
+                throw new Exception("Error updating block status: " + ex.Message);
+            }
+            finally
+            {
+                con?.Close();
+            }
+        }
+        public bool UpdateUserRole(int userId, string newRole)
+        {
+            SqlConnection con = null;
+            try
+            {
+                con = Connect("myProjDB");
+
+                Dictionary<string, object> parameters = new Dictionary<string, object>
+        {
+            { "@UserId", userId },
+            { "@NewRole", newRole }
+        };
+
+                SqlCommand cmd = CreateCommandWithStoredProcedure("sp_UpdateUserRole", con, parameters);
+                cmd.ExecuteNonQuery(); // Don't check result if SET NOCOUNT ON
+                return true;
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine("Exception in UpdateUserRole: " + ex.Message);
+                return false;
+            }
+            finally
+            {
+                con?.Close();
+            }
+        }
+
+        public bool DeleteUser(int userId)
+        {
+            SqlConnection con = null;
+
+            try
+            {
+                con = Connect("myProjDB");
+
+                Dictionary<string, object> parameters = new Dictionary<string, object>
+        {
+            { "@UserId", userId }
+        };
+
+                SqlCommand cmd = CreateCommandWithStoredProcedure("sp_DeleteUser", con, parameters);
+                int rowsAffected = cmd.ExecuteNonQuery();
+
+                return rowsAffected > 0;
+            }
+            catch (Exception ex)
+            {
+                throw new Exception("Error deleting user: " + ex.Message);
+            }
+            finally
+            {
+                con?.Close();
+            }
+        }
 
     }
 }

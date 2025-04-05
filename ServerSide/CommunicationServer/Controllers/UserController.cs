@@ -32,6 +32,61 @@ namespace CommunicationServer.Controllers
             else
                 return Unauthorized(new { success = false, message = "Invalid username or password" });
         }
+        [HttpGet("all")]
+        public IActionResult GetAllUsers()
+        {
+            try
+            {
+                DBServices db = new DBServices();
+                List<User> users = db.GetAllUsers();
+
+                return Ok(users);
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(500, new { success = false, message = ex.Message });
+            }
+        }
+        [HttpPost("block/{userId}")]
+        public IActionResult BlockUser(int userId, [FromBody] bool isBlocked)
+        {
+            DBServices db = new DBServices();
+
+            try
+            {
+                bool success = db.SetUserBlockedStatus(userId, isBlocked);
+                if (success)
+                    return Ok(new { success = true });
+                else
+                    return BadRequest(new { success = false, message = "User not found or update failed." });
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(500, new { success = false, message = ex.Message });
+            }
+        }
+        [HttpPost("update-role")]
+        public IActionResult UpdateUserRole([FromBody] UpdateUserRoleRequest req)
+        {
+            DBServices db = new DBServices();
+            bool success = db.UpdateUserRole(req.UserId, req.NewRole);
+
+            if (success)
+                return Ok(new { success = true });
+            else
+                return BadRequest(new { success = false, message = "Failed to update user role." });
+        }
+        [HttpDelete("{userId}")]
+        public IActionResult DeleteUser(int userId)
+        {
+            DBServices db = new DBServices();
+            bool success = db.DeleteUser(userId);
+
+            if (success)
+                return Ok(new { success = true });
+            else
+                return BadRequest(new { success = false, message = "Failed to delete user." });
+        }
 
 
     }
