@@ -9,16 +9,15 @@ const RadioChannel = ({
   isSelected,
   channelState,
 }) => {
-  const getCircleColor = () => {
+  const getBackgroundColor = () => {
     switch (channelState) {
-      case 'Idle':
-        return '#ffffff';
       case 'ListenOnly':
-        return '#00cc00';
+        return '#1f3d1f'; // subtle green
       case 'ListenAndTalk':
-        return '#cc0000';
+        return '#1e2f4d'; // subtle blue
+      case 'Idle':
       default:
-        return '#888';
+        return '#222'; // default dark
     }
   };
 
@@ -50,7 +49,7 @@ const RadioChannel = ({
   const {headphones, mic} = getIconPaths();
 
   return (
-    <View style={[styles.container, {backgroundColor: '#222'}]}>
+    <View style={[styles.container, {backgroundColor: getBackgroundColor()}]}>
       <Text style={styles.name}>{name}</Text>
       <Text style={styles.frequency}>{frequency}</Text>
       <Text style={styles.status}>{isActive ? 'Active' : 'Not used'}</Text>
@@ -58,7 +57,10 @@ const RadioChannel = ({
       <View style={styles.iconContainer}>
         <Image source={headphones} style={styles.iconImage} />
         <View
-          style={[styles.statusIndicator, {backgroundColor: getCircleColor()}]}
+          style={[
+            styles.statusIndicator,
+            {backgroundColor: isActive ? '#00cc00' : '#555'},
+          ]}
         />
         <Image source={mic} style={styles.iconImage} />
       </View>
@@ -76,6 +78,7 @@ const styles = StyleSheet.create({
     borderColor: '#444',
     padding: 5,
     justifyContent: 'space-between',
+    alignItems: 'center',
   },
   name: {
     color: '#fff',
@@ -98,6 +101,8 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
     alignItems: 'center',
     marginTop: 5,
+    width: '100%',
+    paddingHorizontal: 10,
   },
   iconImage: {
     width: 24,
@@ -105,9 +110,10 @@ const styles = StyleSheet.create({
     resizeMode: 'contain',
   },
   statusIndicator: {
-    width: 16,
-    height: 16,
-    borderRadius: 8,
+    width: 14,
+    height: 14,
+    borderRadius: 7,
+    marginHorizontal: 5,
   },
 });
 
