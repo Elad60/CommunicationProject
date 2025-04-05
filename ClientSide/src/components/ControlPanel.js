@@ -10,17 +10,20 @@ const CONTROL_PANEL_WIDTH = width * 0.92;
 const ControlPanel = ({
   speakerVolume,
   setSpeakerVolume,
-  brightness,
-  setBrightness,
   selectedChannel,
   navigation,
+  darkMode,
 }) => {
   const { controlBarAdjustment, controlPanelPosition, setControlPanelPosition, toolBarAdjustment } = useSettings();
   const position = useRef(new Animated.Value(controlPanelPosition)).current;
 
   const controlPanelStyle = {
-    marginLeft: toolBarAdjustment ? 0 : width * 0.08, 
+    marginLeft: toolBarAdjustment ? 0 : width * 0.08,
   };
+
+  // Dark mode background color for control panel
+  const backgroundColor = darkMode ? '#333' : '#e0e0e0';
+  const buttonTextColor = darkMode ? '#fff' : '#000';
 
   useEffect(() => {
     const targetPosition = controlBarAdjustment ? height - CONTROL_PANEL_HEIGHT : height * 0.05;
@@ -35,12 +38,12 @@ const ControlPanel = ({
 
   return (
     <Animated.View
-      style={[
+      style={[ 
         {
           position: 'absolute',
           width: CONTROL_PANEL_WIDTH,
           height: CONTROL_PANEL_HEIGHT,
-          backgroundColor: '#111',
+          backgroundColor,
           flexDirection: 'row',
           justifyContent: 'space-around',
           alignItems: 'center',
@@ -53,11 +56,15 @@ const ControlPanel = ({
         title="Speaker"
         icon="🔊"
         value={speakerVolume}
+        textColor={buttonTextColor}  // Pass textColor to ControlButton
+        darkMode={darkMode}
         onPress={() => setSpeakerVolume((speakerVolume + 10) % 110)}
       />
       <ControlButton
         title="Ch Vol"
         icon="🎚️"
+        textColor={buttonTextColor}  // Pass textColor to ControlButton
+        darkMode={darkMode}
         onPress={() =>
           selectedChannel
             ? alert(`Adjusting volume for ${selectedChannel}`)
@@ -65,13 +72,19 @@ const ControlPanel = ({
         }
       />
       <ControlButton
-        title="Bright"
-        icon="☀️"
-        value={brightness}
-        onPress={() => setBrightness((brightness + 20) % 120)}
+        title="Mute All"
+        icon="🔇"
+        textColor={buttonTextColor}  // Pass textColor to ControlButton
+        darkMode={darkMode}
+        onPress={() => setSpeakerVolume(0)}
       />
-      <ControlButton title="Mute All" icon="🔇" onPress={() => setSpeakerVolume(0)} />
-      <ControlButton title="Settings" icon="⚙️" onPress={() => navigation.navigate('Settings')} />
+      <ControlButton
+        title="Settings"
+        icon="⚙️"
+        textColor={buttonTextColor}  // Pass textColor to ControlButton
+        darkMode={darkMode}
+        onPress={() => navigation.navigate('Settings')}
+      />
     </Animated.View>
   );
 };

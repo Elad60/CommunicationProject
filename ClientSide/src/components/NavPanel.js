@@ -7,13 +7,16 @@ const { width, height } = Dimensions.get('window');
 const NAV_PANEL_WIDTH = width * 0.08;
 const NAV_PANEL_HEIGHT = height * 0.95;
 
-const NavPanel = ({ activeNav, handleNavigation }) => {
+const NavPanel = ({ activeNav, handleNavigation, darkMode }) => {
   const { toolBarAdjustment, controlBarAdjustment } = useSettings();
   const positionX = useRef(new Animated.Value(toolBarAdjustment ? width - NAV_PANEL_WIDTH : -NAV_PANEL_WIDTH)).current;
 
   const navPanelStyle = {
     bottom: controlBarAdjustment ? -height * 0.10 : 0,
   };
+
+  const backgroundColor = darkMode ? '#333' : '#e0e0e0'; // Dark mode background color
+  const textColor = darkMode ? '#fff' : '#000'; // Dark mode text/icon color
 
   useEffect(() => {
     Animated.spring(positionX, {
@@ -29,10 +32,10 @@ const NavPanel = ({ activeNav, handleNavigation }) => {
           position: 'absolute',
           height: NAV_PANEL_HEIGHT,
           width: NAV_PANEL_WIDTH,
-          backgroundColor: '#111',
+          backgroundColor,
           alignItems: 'center',
           justifyContent: 'space-around',
-          transform: [{ translateX: positionX }], 
+          transform: [{ translateX: positionX }],
         },
         navPanelStyle, 
       ]}
@@ -45,11 +48,11 @@ const NavPanel = ({ activeNav, handleNavigation }) => {
         { title: 'Relay', icon: '🔄', screen: 'Relay' },
         { title: 'Control', icon: '🎛️', screen: 'Control' }].map(({ title, icon, screen }) => (
         <NavButton
-          key={screen}
           title={title}
           icon={icon}
-          isActive={activeNav === screen}
           onPress={() => handleNavigation(screen)}
+          isActive={activeNav === screen}
+          darkMode={darkMode}
         />
       ))}
     </Animated.View>

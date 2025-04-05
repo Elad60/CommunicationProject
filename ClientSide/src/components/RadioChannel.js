@@ -1,19 +1,28 @@
 import React from 'react';
-import {View, Text, StyleSheet} from 'react-native';
+import { View, Text, StyleSheet } from 'react-native';
+import { useSettings } from '../context/SettingsContext'; // Assuming you have the context for darkMode
 
-const RadioChannel = ({name, frequency, isActive, mode, isSelected}) => {
-  // Determine background color based on state
+const RadioChannel = ({ name, frequency, isActive, mode, isSelected }) => {
+  const { darkMode } = useSettings(); // Get darkMode from context
+
+  // Determine background color based on isActive and darkMode
   const getBackgroundColor = () => {
-    if (!isActive) return '#222';
-    if (isSelected) return '#555';
+    if (!isActive && darkMode) return '#222'; // If not active and darkMode is true, use #222
+    if (!isActive && !darkMode) return '#ddd'; // If not active and darkMode is false, use #ddd
+    if (isSelected) return '#555'; // If selected, use #555
     return mode === 'rx_tx' ? '#0a192f' : '#0a2f0a'; // Blue for Rx/Tx, Green for Rx Only
   };
 
+  // Get text color based on darkMode state
+  const getTextColor = () => {
+    return darkMode ? '#fff' : '#000'; // White text for darkMode, black for light mode
+  };
+
   return (
-    <View style={[styles.container, {backgroundColor: getBackgroundColor()}]}>
-      <Text style={styles.name}>{name}</Text>
-      <Text style={styles.frequency}>{frequency}</Text>
-      <Text style={styles.status}>{isActive ? 'Active' : 'Not used'}</Text>
+    <View style={[styles.container, { backgroundColor: getBackgroundColor() }]}>
+      <Text style={[styles.name, { color: getTextColor() }]}>{name}</Text>
+      <Text style={[styles.frequency, { color: getTextColor() }]}>{frequency}</Text>
+      <Text style={[styles.status, { color: getTextColor() }]}>{isActive ? 'Active' : 'Not used'}</Text>
 
       <View style={styles.iconContainer}>
         {/* Headphone icon */}
@@ -25,7 +34,7 @@ const RadioChannel = ({name, frequency, isActive, mode, isSelected}) => {
         <View
           style={[
             styles.statusIndicator,
-            {backgroundColor: isActive ? '#f00' : '#333'},
+            { backgroundColor: isActive ? '#f00' : '#333' },
           ]}
         />
 
@@ -50,18 +59,15 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
   },
   name: {
-    color: '#fff',
     fontSize: 16,
     fontWeight: 'bold',
     textAlign: 'center',
   },
   frequency: {
-    color: '#ddd',
     fontSize: 14,
     textAlign: 'center',
   },
   status: {
-    color: '#ddd',
     fontSize: 12,
     textAlign: 'center',
   },
