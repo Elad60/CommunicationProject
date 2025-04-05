@@ -10,48 +10,77 @@ import {
 import RadioChannel from '../components/RadioChannel';
 import AppLayout from '../components/AppLayout';
 import {useAuth} from '../context/AuthContext';
-import radioChannelsApi from '../utils/apiService';
-
+import {radioChannelsApi} from '../utils/apiService';
 
 const MainScreen = ({navigation}) => {
   const [selectedChannel, setSelectedChannel] = useState(null);
   const [radioChannels, setRadioChannels] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
-  const {getAuthToken} = useAuth(); // Assuming your AuthContext provides this
+  const {user} = useAuth();
 
-const fetchRadioChannels = async () => {
-  try {
-    setLoading(true);
+  const fetchRadioChannels = async () => {
+    try {
+      setLoading(true);
+      const userId = user?.id;
+      if (!userId) throw new Error('User ID not found');
 
-    // Use the Axios API call
-    const data = await radioChannelsApi.getAllChannels();
-
-    // Update state with fetched data
-    setRadioChannels(data);
-    setError(null);
-  } catch (err) {
-    console.error('Error fetching radio channels:', err);
-    setError('Failed to load radio channels. Please try again later.');
-  } finally {
-    setLoading(false);
-  }
-};
-  useEffect(() => {
-    fetchRadioChannels();
-  }, []); // Empty dependency array means this effect runs once when component mounts
-
-  // Handle channel selection
-  const handleChannelSelect = id => {
-    setSelectedChannel(id);
-    // Optionally navigate to channel details
-    // navigation.navigate('ChannelDetails', { channelId: id });
+      const data = await radioChannelsApi.getAllChannels(userId);
+      setRadioChannels(data);
+      setError(null);
+    } catch (err) {
+      console.error('Error fetching radio channels:', err);
+      setError('Failed to load radio channels. Please try again later.');
+    } finally {
+      setLoading(false);
+    }
   };
 
-  // Render loading indicator
+  useEffect(() => {
+    if (user?.id) {
+      fetchRadioChannels();
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [user]);
+
+  const handleChannelSelect = id => {
+    setSelectedChannel(id);
+  };
+
+  const handleToggleChannelState = async channelId => {
+    const current = radioChannels.find(c => c.id === channelId);
+    const nextState = getNextState(current.channelState);
+
+    const updatedChannels = radioChannels.map(c =>
+      c.id === channelId ? {...c, channelState: nextState} : c,
+    );
+    setRadioChannels(updatedChannels);
+
+    try {
+      const userId = user?.id;
+      if (!userId) throw new Error('User ID not found');
+      await radioChannelsApi.updateChannelState(userId, channelId, nextState);
+    } catch (error) {
+      console.error('Error updating channel state:', error);
+    }
+  };
+
+  const getNextState = state => {
+    switch (state) {
+      case 'Idle':
+        return 'ListenOnly';
+      case 'ListenOnly':
+        return 'ListenAndTalk';
+      case 'ListenAndTalk':
+        return 'Idle';
+      default:
+        return 'Idle';
+    }
+  };
+
   if (loading) {
     return (
-      <AppLayout navigation={navigation} title="Commander">
+      <AppLayout navigation={navigation} title={user?.role}>
         <View style={styles.centerContainer}>
           <ActivityIndicator size="large" color="#0000ff" />
           <Text style={styles.loadingText}>Loading channels...</Text>
@@ -60,10 +89,9 @@ const fetchRadioChannels = async () => {
     );
   }
 
-  // Render error message
   if (error) {
     return (
-      <AppLayout navigation={navigation} title="Commander">
+      <AppLayout navigation={navigation} title={user?.role}>
         <View style={styles.centerContainer}>
           <Text style={styles.errorText}>{error}</Text>
           <TouchableOpacity
@@ -77,19 +105,31 @@ const fetchRadioChannels = async () => {
   }
 
   return (
-    <AppLayout navigation={navigation} title="Commander">
+    <AppLayout navigation={navigation} title={user?.role}>
       <ScrollView style={styles.scrollView}>
+        {user?.role === 'Admin' && (
+          <TouchableOpacity
+            style={styles.adminButton}
+            onPress={() => navigation.navigate('UserManagement')}>
+            <Text style={styles.adminButtonText}>👥 Manage Users</Text>
+          </TouchableOpacity>
+        )}
+
         <View style={styles.mainGrid}>
           {radioChannels.map(channel => (
             <TouchableOpacity
               key={channel.id}
-              onPress={() => handleChannelSelect(channel.id)}>
+              onPress={() => {
+                handleChannelSelect(channel.id);
+                handleToggleChannelState(channel.id);
+              }}>
               <RadioChannel
                 name={channel.name}
                 frequency={channel.frequency}
-                isActive={channel.isActive}
+                isActive={channel.status === 'Active'}
                 mode={channel.mode}
                 isSelected={selectedChannel === channel.id}
+                channelState={channel.channelState}
               />
             </TouchableOpacity>
           ))}
@@ -132,6 +172,18 @@ const styles = StyleSheet.create({
   },
   retryButtonText: {
     color: 'white',
+    fontSize: 16,
+  },
+  adminButton: {
+    backgroundColor: '#0066cc',
+    padding: 10,
+    borderRadius: 8,
+    margin: 10,
+    alignSelf: 'center',
+  },
+  adminButtonText: {
+    color: '#fff',
+    fontWeight: 'bold',
     fontSize: 16,
   },
 });

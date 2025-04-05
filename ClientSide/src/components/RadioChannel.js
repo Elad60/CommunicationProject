@@ -1,47 +1,68 @@
 import React from 'react';
-import { View, Text, StyleSheet } from 'react-native';
-import { useSettings } from '../context/SettingsContext'; // Assuming you have the context for darkMode
+import {View, Text, StyleSheet, Image} from 'react-native';
 
-const RadioChannel = ({ name, frequency, isActive, mode, isSelected }) => {
-  const { darkMode } = useSettings(); // Get darkMode from context
-
-  // Determine background color based on isActive and darkMode
+const RadioChannel = ({
+  name,
+  frequency,
+  isActive,
+  mode,
+  isSelected,
+  channelState,
+}) => {
   const getBackgroundColor = () => {
-    if (!isActive && darkMode) return '#222'; // If not active and darkMode is true, use #222
-    if (!isActive && !darkMode) return '#ddd'; // If not active and darkMode is false, use #ddd
-    if (isSelected) return '#555'; // If selected, use #555
-    return mode === 'rx_tx' ? '#0a192f' : '#0a2f0a'; // Blue for Rx/Tx, Green for Rx Only
+    switch (channelState) {
+      case 'ListenOnly':
+        return '#1f3d1f'; // subtle green
+      case 'ListenAndTalk':
+        return '#1e2f4d'; // subtle blue
+      case 'Idle':
+      default:
+        return '#222'; // default dark
+    }
   };
 
-  // Get text color based on darkMode state
-  const getTextColor = () => {
-    return darkMode ? '#fff' : '#000'; // White text for darkMode, black for light mode
+  const getIconPaths = () => {
+    switch (channelState) {
+      case 'Idle':
+        return {
+          headphones: require('../../assets/logos/crossed-HF.png'),
+          mic: require('../../assets/logos/crossed-mic.webp'),
+        };
+      case 'ListenOnly':
+        return {
+          headphones: require('../../assets/logos/headphones.png'),
+          mic: require('../../assets/logos/crossed-mic.webp'),
+        };
+      case 'ListenAndTalk':
+        return {
+          headphones: require('../../assets/logos/headphones.png'),
+          mic: require('../../assets/logos/microphone.png'),
+        };
+      default:
+        return {
+          headphones: require('../../assets/logos/crossed-HF.png'),
+          mic: require('../../assets/logos/microphone.png'),
+        };
+    }
   };
+
+  const {headphones, mic} = getIconPaths();
 
   return (
-    <View style={[styles.container, { backgroundColor: getBackgroundColor() }]}>
-      <Text style={[styles.name, { color: getTextColor() }]}>{name}</Text>
-      <Text style={[styles.frequency, { color: getTextColor() }]}>{frequency}</Text>
-      <Text style={[styles.status, { color: getTextColor() }]}>{isActive ? 'Active' : 'Not used'}</Text>
+    <View style={[styles.container, {backgroundColor: getBackgroundColor()}]}>
+      <Text style={styles.name}>{name}</Text>
+      <Text style={styles.frequency}>{frequency}</Text>
+      <Text style={styles.status}>{isActive ? 'Active' : 'Not used'}</Text>
 
       <View style={styles.iconContainer}>
-        {/* Headphone icon */}
-        <View style={styles.icon}>
-          <Text style={styles.iconText}>🎧</Text>
-        </View>
-
-        {/* Transmit status */}
+        <Image source={headphones} style={styles.iconImage} />
         <View
           style={[
             styles.statusIndicator,
-            { backgroundColor: isActive ? '#f00' : '#333' },
+            {backgroundColor: isActive ? '#00cc00' : '#555'},
           ]}
         />
-
-        {/* Microphone icon */}
-        <View style={styles.icon}>
-          <Text style={styles.iconText}>🎤</Text>
-        </View>
+        <Image source={mic} style={styles.iconImage} />
       </View>
     </View>
   );
@@ -57,17 +78,21 @@ const styles = StyleSheet.create({
     borderColor: '#444',
     padding: 5,
     justifyContent: 'space-between',
+    alignItems: 'center',
   },
   name: {
+    color: '#fff',
     fontSize: 16,
     fontWeight: 'bold',
     textAlign: 'center',
   },
   frequency: {
+    color: '#ddd',
     fontSize: 14,
     textAlign: 'center',
   },
   status: {
+    color: '#ddd',
     fontSize: 12,
     textAlign: 'center',
   },
@@ -76,20 +101,19 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
     alignItems: 'center',
     marginTop: 5,
+    width: '100%',
+    paddingHorizontal: 10,
   },
-  icon: {
-    width: 20,
-    height: 20,
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  iconText: {
-    fontSize: 16,
+  iconImage: {
+    width: 24,
+    height: 24,
+    resizeMode: 'contain',
   },
   statusIndicator: {
-    width: 16,
-    height: 16,
-    borderRadius: 8,
+    width: 14,
+    height: 14,
+    borderRadius: 7,
+    marginHorizontal: 5,
   },
 });
 

@@ -13,7 +13,7 @@ import ControlScreen from '../screens/ControlScreen';
 import LoginScreen from '../screens/LoginScreen';
 import RegisterScreen from '../screens/RegisterScreen';
 import {useAuth} from '../context/AuthContext';
-
+import UserManagementScreen from '../screens/UserManagementScreen';
 const Stack = createStackNavigator();
 
 const AppNavigator = () => {
@@ -63,6 +63,12 @@ const AppNavigator = () => {
           <Stack.Screen name="Pas" component={PasScreen} />
           <Stack.Screen name="Relay" component={RelayScreen} />
           <Stack.Screen name="Control" component={ControlScreen} />
+          {user?.role === 'Admin' && (
+            <Stack.Screen
+              name="UserManagement"
+              component={UserManagementScreen}
+            />
+          )}
         </Stack.Navigator>
       )}
     </NavigationContainer>

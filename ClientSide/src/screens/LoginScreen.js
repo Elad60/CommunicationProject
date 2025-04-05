@@ -9,7 +9,6 @@ import {
   Alert,
   ImageBackground,
 } from 'react-native';
-// In your LoginScreen.js, import the image directly
 import authBackgroundPic from '../../assets/images/tank.jpg';
 import techmerLogo from '../../assets/logos/techmerLogo.jpeg';
 
@@ -27,6 +26,7 @@ const LoginScreen = ({onLogin, onNavigateToRegister}) => {
     try {
       // Call the login function passed from parent
       const result = await onLogin(username, password);
+      console.log('Login result:', result);
       if (result && !result.success) {
         setError(result.message || 'Login failed');
         Alert.alert(
