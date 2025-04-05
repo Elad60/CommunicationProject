@@ -3,11 +3,11 @@ import {
   View,
   Text,
   TextInput,
-  FlatList,
   StyleSheet,
   TouchableOpacity,
   ActivityIndicator,
   Alert,
+  ScrollView,
 } from 'react-native';
 import AppLayout from '../components/AppLayout';
 import {adminApi} from '../utils/apiService';
@@ -15,15 +15,15 @@ import {adminApi} from '../utils/apiService';
 const UserManagementScreen = ({navigation}) => {
   const [users, setUsers] = useState([]);
   const [filteredUsers, setFilteredUsers] = useState([]);
-  const [loading, setLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState('');
+  const [loading, setLoading] = useState(true);
 
   const loadUsers = async () => {
     try {
       setLoading(true);
       const data = await adminApi.getAllUsers();
       setUsers(data);
-      setFilteredUsers(data); // Initialize filtered users
+      setFilteredUsers(data);
     } catch (err) {
       console.error('Error loading users:', err);
       Alert.alert('Error', 'Failed to load users.');
@@ -92,59 +92,61 @@ const UserManagementScreen = ({navigation}) => {
     );
   };
 
-  const renderItem = ({item}) => (
-    <View style={styles.userCard}>
-      <Text style={styles.username}>{item.username}</Text>
-      <Text style={styles.details}>Email: {item.email}</Text>
-      <Text style={styles.details}>Role: {item.role}</Text>
-      <Text style={styles.details}>
-        Blocked: {item.isBlocked ? 'Yes' : 'No'}
-      </Text>
-      <View style={styles.buttonRow}>
-        <TouchableOpacity
-          style={styles.button}
-          onPress={() => handleToggleBlock(item)}>
-          <Text style={styles.buttonText}>
-            {item.isBlocked ? 'Unblock' : 'Block'}
-          </Text>
-        </TouchableOpacity>
-        {item.role !== 'Admin' && (
-          <TouchableOpacity
-            style={styles.button}
-            onPress={() => handleToggleRole(item)}>
-            <Text style={styles.buttonText}>
-              Make {item.role === 'Operator' ? 'Technician' : 'Operator'}
-            </Text>
-          </TouchableOpacity>
-        )}
-        <TouchableOpacity
-          style={styles.deleteButton}
-          onPress={() => handleDelete(item)}>
-          <Text style={styles.buttonText}>Delete</Text>
-        </TouchableOpacity>
-      </View>
-    </View>
-  );
-
   return (
     <AppLayout navigation={navigation} title="User Management">
-      <View style={styles.container}>
+      <View style={{flex: 1}}>
         <TextInput
-          placeholder="Search by username or email..."
-          placeholderTextColor="#888"
           style={styles.searchInput}
+          placeholder="Search by username or email"
+          placeholderTextColor="#888"
           value={searchQuery}
           onChangeText={setSearchQuery}
         />
+
         {loading ? (
           <ActivityIndicator size="large" color="#00f" />
         ) : (
-          <FlatList
-            data={filteredUsers}
-            keyExtractor={item => item.id.toString()}
-            renderItem={renderItem}
-            contentContainerStyle={{paddingBottom: 20}}
-          />
+          <ScrollView contentContainerStyle={{paddingBottom: 20}}>
+            {filteredUsers.map(user => (
+              <View key={user.id} style={styles.userCard}>
+                <Text style={styles.username}>{user.username}</Text>
+                <Text style={styles.details}>Email: {user.email}</Text>
+                <Text style={styles.details}>Role: {user.role}</Text>
+                <Text style={styles.details}>
+                  Blocked: {user.isBlocked ? 'Yes' : 'No'}
+                </Text>
+                <View style={styles.buttonRow}>
+                  <TouchableOpacity
+                    style={styles.button}
+                    onPress={() => handleToggleBlock(user)}>
+                    <Text style={styles.buttonText}>
+                      {user.isBlocked ? 'Unblock' : 'Block'}
+                    </Text>
+                  </TouchableOpacity>
+                  {user.role !== 'Admin' && (
+                    <TouchableOpacity
+                      style={styles.button}
+                      onPress={() => handleToggleRole(user)}>
+                      <Text style={styles.buttonText}>
+                        Make{' '}
+                        {user.role === 'Operator' ? 'Technician' : 'Operator'}
+                      </Text>
+                    </TouchableOpacity>
+                  )}
+                  <TouchableOpacity
+                    style={styles.deleteButton}
+                    onPress={() => handleDelete(user)}>
+                    <Text style={styles.buttonText}>Delete</Text>
+                  </TouchableOpacity>
+                </View>
+              </View>
+            ))}
+            {filteredUsers.length === 0 && (
+              <Text style={{textAlign: 'center', color: '#ccc', marginTop: 30}}>
+                No users found.
+              </Text>
+            )}
+          </ScrollView>
         )}
       </View>
     </AppLayout>
@@ -152,21 +154,18 @@ const UserManagementScreen = ({navigation}) => {
 };
 
 const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    padding: 10,
-  },
   searchInput: {
     backgroundColor: '#2a2a2a',
     color: '#fff',
     padding: 10,
-    marginBottom: 10,
+    margin: 10,
     borderRadius: 8,
     borderWidth: 1,
     borderColor: '#555',
   },
   userCard: {
     backgroundColor: '#1e1e1e',
+    marginHorizontal: 10,
     marginVertical: 5,
     padding: 15,
     borderRadius: 10,
