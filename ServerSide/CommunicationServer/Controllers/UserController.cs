@@ -14,7 +14,7 @@ namespace CommunicationServer.Controllers
         {
             DBServices db = new DBServices();
 
-            bool success = db.RegisterUser(req.Username, req.Email, req.Password);
+            bool success = db.RegisterUser(req.Username, req.Email, req.Password, req.Group);
 
             if (success)
                 return Ok(new { success = true });

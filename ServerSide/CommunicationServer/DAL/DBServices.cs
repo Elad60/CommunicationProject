@@ -159,7 +159,7 @@ namespace CommunicationServer.DAL
             }
         }
 
-        public bool RegisterUser(string username, string email, string password)
+        public bool RegisterUser(string username, string email, string password, char group)
         {
             SqlConnection con = null;
             try
@@ -171,6 +171,7 @@ namespace CommunicationServer.DAL
             { "@Username", username },
             { "@Email", email },
             { "@Password", password },
+            { "@Group", group }
         };
 
                 SqlCommand cmd = CreateCommandWithStoredProcedure("sp_RegisterUser", con, paramDic);
@@ -249,7 +250,8 @@ namespace CommunicationServer.DAL
                         Email = reader["Email"].ToString(),
                         Role = reader["Role"].ToString(),
                         CreatedAt = Convert.ToDateTime(reader["CreatedAt"]),
-                        IsBlocked = Convert.ToBoolean(reader["IsBlocked"])
+                        IsBlocked = Convert.ToBoolean(reader["IsBlocked"]),
+                        Group = Convert.ToChar(reader["Group"])
                     });
                 }
 
