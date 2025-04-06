@@ -32,13 +32,14 @@ const authApi = {
     return response.data;
   },
 
-  register: async (username, password, email) => {
+  register: async (username, password, email,group) => {
     const response = await api.post(
       '/user/register',
       {
         username,
         password,
         email,
+        group,
       },
       {
         headers: {

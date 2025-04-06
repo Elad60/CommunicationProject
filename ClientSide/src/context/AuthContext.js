@@ -26,11 +26,11 @@ export const AuthProvider = ({children}) => {
     loadUser();
   }, []);
 
-  const register = async (username, password, email) => {
+  const register = async (username, password, email, group) => {
     setLoading(true);
     setError('');
     try {
-      const result = await authApi.register(username, password, email);
+      const result = await authApi.register(username, password, email, group);
 
       if (result.success && result.user) {
         await AsyncStorage.setItem('user', JSON.stringify(result.user));
