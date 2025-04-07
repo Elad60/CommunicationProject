@@ -214,6 +214,7 @@ namespace CommunicationServer.DAL
                         Username = reader["Username"].ToString(),
                         Email = reader["Email"].ToString(),
                         Role = reader["Role"].ToString(),
+                        Group = Convert.ToChar(reader["Group"]),
                     };
                 }
 

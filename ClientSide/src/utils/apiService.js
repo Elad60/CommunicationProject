@@ -76,5 +76,12 @@ const adminApi = {
   },
 };
 
+// 👫 Group Users API
+const groupUsersApi = {
+  getUsersByGroup: async groupName => {
+    const response = await api.get(`/user/group/${groupName}`);
+    return response.data;
+  },
+};
 
-export {radioChannelsApi, authApi, adminApi};
+export {radioChannelsApi, authApi, adminApi,groupUsersApi};
