@@ -322,6 +322,50 @@ namespace CommunicationServer.DAL
                 con?.Close();
             }
         }
+        public List<User> GetUsersByGroup(char groupName)
+        {
+            SqlConnection con = null;
+            List<User> users = new List<User>();
+
+            try
+            {
+                con = Connect("myProjDB");
+
+                var parameters = new Dictionary<string, object>
+        {
+            { "@GroupName", groupName }
+        };
+
+                SqlCommand cmd = CreateCommandWithStoredProcedure("GetUsersByGroup", con, parameters);
+                SqlDataReader reader = cmd.ExecuteReader();
+
+                while (reader.Read())
+                {
+                    users.Add(new User
+                    {
+                        Id = Convert.ToInt32(reader["Id"]),
+                        Username = reader["Username"].ToString(),
+                        Email = reader["Email"].ToString(),
+                        Role = reader["Role"].ToString(),
+                        CreatedAt = Convert.ToDateTime(reader["CreatedAt"]),
+                        IsBlocked = Convert.ToBoolean(reader["IsBlocked"]),
+                        Group = Convert.ToChar(reader["Group"])
+                    });
+                }
+
+                reader.Close();
+            }
+            catch (Exception ex)
+            {
+                throw new Exception("Error fetching users by group: " + ex.Message);
+            }
+            finally
+            {
+                con?.Close();
+            }
+
+            return users;
+        }
 
         public bool DeleteUser(int userId)
         {

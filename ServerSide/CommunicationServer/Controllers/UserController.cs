@@ -88,6 +88,20 @@ namespace CommunicationServer.Controllers
                 return BadRequest(new { success = false, message = "Failed to delete user." });
         }
 
+        [HttpGet("group/{groupName}")]
+        public IActionResult GetUsersByGroup(char groupName)
+        {
+            try
+            {
+                DBServices db = new DBServices();
+                List<User> users = db.GetUsersByGroup(groupName);
 
+                return Ok(users);
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(500, new { success = false, message = ex.Message });
+            }
+        }
     }
 }
