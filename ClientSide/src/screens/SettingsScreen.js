@@ -45,8 +45,7 @@ const SettingsScreen = ({ navigation }) => {
       <Text style={[styles.settingLabel, { color: darkMode ? '#fff' : '#000' }]}>{label}</Text>
       <Switch
         trackColor={{ false: '#767577', true: '#0066cc' }}
-        thumbColor={value ? '#fff' : '#f4f3f4'}
-        ios_backgroundColor="#3e3e3e"
+        thumbColor={darkMode ? '#fff' : '#000'}
         onValueChange={onToggle}
         value={value}
       />

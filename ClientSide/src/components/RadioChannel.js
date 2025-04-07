@@ -1,5 +1,6 @@
 import React from 'react';
 import {View, Text, StyleSheet, Image} from 'react-native';
+import { useSettings } from '../context/SettingsContext';
 
 const RadioChannel = ({
   name,
@@ -9,7 +10,18 @@ const RadioChannel = ({
   isSelected,
   channelState,
 }) => {
+  const { darkMode } = useSettings(); // Access dark mode from context
+
+  // Determine background color based on channel state and darkMode
   const getBackgroundColor = () => {
+    if (!isActive) {
+      return darkMode ? '#222' : '#ddd'; // Not active: adjust based on theme
+    }
+
+    if (isSelected) {
+      return '#555';
+    }
+
     switch (channelState) {
       case 'ListenOnly':
         return '#1f3d1f'; // subtle green
@@ -17,10 +29,16 @@ const RadioChannel = ({
         return '#1e2f4d'; // subtle blue
       case 'Idle':
       default:
-        return '#222'; // default dark
+        return darkMode ? '#222' : '#ddd'; // fallback
     }
   };
 
+  // Set text color based on dark mode
+  const getTextColor = () => {
+    return darkMode ? '#fff' : '#000';
+  };
+
+  // Get icons based on channel state
   const getIconPaths = () => {
     switch (channelState) {
       case 'Idle':
@@ -50,9 +68,11 @@ const RadioChannel = ({
 
   return (
     <View style={[styles.container, {backgroundColor: getBackgroundColor()}]}>
-      <Text style={styles.name}>{name}</Text>
-      <Text style={styles.frequency}>{frequency}</Text>
-      <Text style={styles.status}>{isActive ? 'Active' : 'Not used'}</Text>
+      <Text style={[styles.name, {color: getTextColor()}]}>{name}</Text>
+      <Text style={[styles.frequency, {color: getTextColor()}]}>{frequency}</Text>
+      <Text style={[styles.status, {color: getTextColor()}]}>
+        {isActive ? 'Active' : 'Not used'}
+      </Text>
 
       <View style={styles.iconContainer}>
         <Image source={headphones} style={styles.iconImage} />
@@ -81,18 +101,15 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   name: {
-    color: '#fff',
     fontSize: 16,
     fontWeight: 'bold',
     textAlign: 'center',
   },
   frequency: {
-    color: '#ddd',
     fontSize: 14,
     textAlign: 'center',
   },
   status: {
-    color: '#ddd',
     fontSize: 12,
     textAlign: 'center',
   },

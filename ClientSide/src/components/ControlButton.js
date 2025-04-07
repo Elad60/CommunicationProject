@@ -19,7 +19,7 @@ const ControlButton = ({ title, icon, value, onPress, textColor, darkMode }) => 
 
 const styles = StyleSheet.create({
   button: {
-    width: '10%',
+    width: '20%',
     height: '90%',
     borderRadius: 5,
     justifyContent: 'center',
