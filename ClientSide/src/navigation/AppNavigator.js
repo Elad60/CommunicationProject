@@ -14,6 +14,8 @@ import LoginScreen from '../screens/LoginScreen';
 import RegisterScreen from '../screens/RegisterScreen';
 import {useAuth} from '../context/AuthContext';
 import UserManagementScreen from '../screens/UserManagementScreen';
+import PickRadiosScreen from '../screens/PickRadiosScreen';
+
 const Stack = createStackNavigator();
 
 const AppNavigator = () => {
@@ -69,6 +71,7 @@ const AppNavigator = () => {
               component={UserManagementScreen}
             />
           )}
+          <Stack.Screen name="PickRadios" component={PickRadiosScreen} />
         </Stack.Navigator>
       )}
     </NavigationContainer>
