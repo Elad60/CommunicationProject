@@ -348,6 +348,111 @@ namespace CommunicationServer.DAL
                 con?.Close();
             }
         }
+        public void AddRadioChannel(RadioChannel channel)
+        {
+            SqlConnection con = null;
+            try
+            {
+                con = Connect("myProjDB");
+
+                Dictionary<string, object> parameters = new Dictionary<string, object>
+        {
+            { "@Name", channel.Name },
+            { "@Frequency", channel.Frequency },
+            { "@Status", "Active" },
+            { "@Mode", channel.Mode },
+            { "@ChannelState", "Idle" }
+        };
+
+                SqlCommand cmd = CreateCommandWithStoredProcedure("sp_AddRadioChannel", con, parameters);
+                cmd.ExecuteNonQuery();
+            }
+            catch (Exception ex)
+            {
+                throw new Exception("Error adding radio channel: " + ex.Message);
+            }
+            finally
+            {
+                con?.Close();
+            }
+        }
+        public void DeleteRadioChannel(int channelId)
+        {
+            SqlConnection con = null;
+            try
+            {
+                con = Connect("myProjDB");
+
+                Dictionary<string, object> parameters = new Dictionary<string, object>
+        {
+            { "@ChannelId", channelId }
+        };
+
+                SqlCommand cmd = CreateCommandWithStoredProcedure("sp_DeleteRadioChannel", con, parameters);
+                cmd.ExecuteNonQuery();
+            }
+            catch (Exception ex)
+            {
+                throw new Exception("Error deleting radio channel: " + ex.Message);
+            }
+            finally
+            {
+                con?.Close();
+            }
+        }
+        public void AddUserChannel(int userId, int channelId)
+        {
+            SqlConnection con = null;
+            try
+            {
+                con = Connect("myProjDB");
+
+                Dictionary<string, object> parameters = new Dictionary<string, object>
+        {
+            { "@UserId", userId },
+            { "@ChannelId", channelId }
+        };
+
+                SqlCommand cmd = CreateCommandWithStoredProcedure("sp_AddUserChannel", con, parameters);
+                cmd.ExecuteNonQuery();
+            }
+            catch (Exception ex)
+            {
+                throw new Exception("Error adding user channel: " + ex.Message);
+            }
+            finally
+            {
+                con?.Close();
+            }
+        }
+        public void RemoveUserChannel(int userId, int channelId)
+        {
+            SqlConnection con = null;
+            try
+            {
+                con = Connect("myProjDB");
+
+                Dictionary<string, object> parameters = new Dictionary<string, object>
+        {
+            { "@UserId", userId },
+            { "@ChannelId", channelId }
+        };
+
+                SqlCommand cmd = CreateCommandWithStoredProcedure("sp_RemoveUserChannel", con, parameters);
+                cmd.ExecuteNonQuery();
+            }
+            catch (Exception ex)
+            {
+                throw new Exception("Error removing user channel: " + ex.Message);
+            }
+            finally
+            {
+                con?.Close();
+            }
+        }
+
+
+
 
     }
 }

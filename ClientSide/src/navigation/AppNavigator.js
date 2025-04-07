@@ -4,7 +4,7 @@ import {NavigationContainer} from '@react-navigation/native';
 import {createStackNavigator} from '@react-navigation/stack';
 import MainScreen from '../screens/MainScreen';
 import SettingsScreen from '../screens/SettingsScreen';
-import ChannelConfigScreen from '../screens/ChannelConfigScreen';
+import ChannelConfigScreen from '../screens/MoreRadiosScreen';
 import GroupsScreen from '../screens/GroupsScreen';
 import IntercomsScreen from '../screens/IntercomsScreen';
 import PasScreen from '../screens/PasScreen';

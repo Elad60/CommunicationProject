@@ -5,12 +5,19 @@ const api = axios.create({
   timeout: 5000,
 });
 
-// 🛁 Radio Channels
 const radioChannelsApi = {
-  getAllChannels: async userId => {
+  // For Operators – get only their channels
+  getUserChannels: async userId => {
     const response = await api.get(`/radiochannels/user/${userId}`);
     return response.data;
   },
+
+  // For Admin/Technician – get all channels
+  getAllChannels: async () => {
+    const response = await api.get('/radiochannels');
+    return response.data;
+  },
+
   updateChannelState: async (userId, channelId, newState) => {
     await api.post(
       `/radiochannels/user/${userId}/channel/${channelId}/state`,
@@ -20,7 +27,18 @@ const radioChannelsApi = {
       },
     );
   },
+
+  addChannel: async channel => {
+    await api.post('/radiochannels', channel, {
+      headers: {'Content-Type': 'application/json'},
+    });
+  },
+
+  deleteChannel: async channelId => {
+    await api.delete(`/radiochannels/${channelId}`);
+  },
 };
+
 
 // 🔐 Auth API
 const authApi = {
