@@ -57,13 +57,14 @@ const authApi = {
     return response.data;
   },
 
-  register: async (username, password, email) => {
+  register: async (username, password, email,group) => {
     const response = await api.post(
       '/user/register',
       {
         username,
         password,
         email,
+        group,
       },
       {
         headers: {
@@ -99,5 +100,12 @@ const adminApi = {
     await api.delete(`/user/${userId}`);
   },
 };
+// 👫 Group Users API
+const groupUsersApi = {
+  getUsersByGroup: async groupName => {
+    const response = await api.get(`/user/group/${groupName}`);
+    return response.data;
+  },
+};
 
-export {radioChannelsApi, authApi, adminApi};
+export {radioChannelsApi, authApi, adminApi,groupUsersApi};

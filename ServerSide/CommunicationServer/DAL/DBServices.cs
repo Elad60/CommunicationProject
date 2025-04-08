@@ -159,7 +159,7 @@ namespace CommunicationServer.DAL
             }
         }
 
-        public bool RegisterUser(string username, string email, string password)
+        public bool RegisterUser(string username, string email, string password, char group)
         {
             SqlConnection con = null;
             try
@@ -171,6 +171,7 @@ namespace CommunicationServer.DAL
             { "@Username", username },
             { "@Email", email },
             { "@Password", password },
+            { "@Group", group }
         };
 
                 SqlCommand cmd = CreateCommandWithStoredProcedure("sp_RegisterUser", con, paramDic);
@@ -213,6 +214,7 @@ namespace CommunicationServer.DAL
                         Username = reader["Username"].ToString(),
                         Email = reader["Email"].ToString(),
                         Role = reader["Role"].ToString(),
+                        Group = Convert.ToChar(reader["Group"]),
                     };
                 }
 
@@ -249,7 +251,8 @@ namespace CommunicationServer.DAL
                         Email = reader["Email"].ToString(),
                         Role = reader["Role"].ToString(),
                         CreatedAt = Convert.ToDateTime(reader["CreatedAt"]),
-                        IsBlocked = Convert.ToBoolean(reader["IsBlocked"])
+                        IsBlocked = Convert.ToBoolean(reader["IsBlocked"]),
+                        Group = Convert.ToChar(reader["Group"])
                     });
                 }
 
@@ -314,6 +317,78 @@ namespace CommunicationServer.DAL
             {
                 Console.WriteLine("Exception in UpdateUserRole: " + ex.Message);
                 return false;
+            }
+            finally
+            {
+                con?.Close();
+            }
+        }
+        public List<User> GetUsersByGroup(char groupName)
+        {
+            SqlConnection con = null;
+            List<User> users = new List<User>();
+
+            try
+            {
+                con = Connect("myProjDB");
+
+                var parameters = new Dictionary<string, object>
+        {
+            { "@GroupName", groupName }
+        };
+
+                SqlCommand cmd = CreateCommandWithStoredProcedure("GetUsersByGroup", con, parameters);
+                SqlDataReader reader = cmd.ExecuteReader();
+
+                while (reader.Read())
+                {
+                    users.Add(new User
+                    {
+                        Id = Convert.ToInt32(reader["Id"]),
+                        Username = reader["Username"].ToString(),
+                        Email = reader["Email"].ToString(),
+                        Role = reader["Role"].ToString(),
+                        CreatedAt = Convert.ToDateTime(reader["CreatedAt"]),
+                        IsBlocked = Convert.ToBoolean(reader["IsBlocked"]),
+                        Group = Convert.ToChar(reader["Group"])
+                    });
+                }
+
+                reader.Close();
+            }
+            catch (Exception ex)
+            {
+                throw new Exception("Error fetching users by group: " + ex.Message);
+            }
+            finally
+            {
+                con?.Close();
+            }
+
+            return users;
+        }
+
+        public bool ChangeUserGroup(int userId, char newGroup)
+        {
+            SqlConnection con = null;
+            try
+            {
+                con = Connect("myProjDB");
+
+                var parameters = new Dictionary<string, object>
+        {
+            { "@UserId", userId },
+            { "@NewGroup", newGroup }
+        };
+
+                SqlCommand cmd = CreateCommandWithStoredProcedure("ChangeUserGroup", con, parameters);
+                int rowsAffected = cmd.ExecuteNonQuery();
+
+                return rowsAffected > 0;
+            }
+            catch (Exception ex)
+            {
+                throw new Exception("Error updating user group: " + ex.Message);
             }
             finally
             {

@@ -1,98 +1,190 @@
-import React from 'react';
+// src/screens/GroupsScreen.js
+import React, { useState, useEffect } from 'react';
 import {
   View,
   Text,
   StyleSheet,
-  FlatList,
+  ScrollView,
   TouchableOpacity,
+  ActivityIndicator,
 } from 'react-native';
 import AppLayout from '../components/AppLayout';
-import { useSettings } from '../context/SettingsContext'; 
-
-const groupsData = [
-  { id: 1, name: 'Command Group', members: ['HF 1', 'UHF 1', 'H-VHF 1'] },
-  { id: 2, name: 'Field Team', members: ['HF 2', 'UHF 2', 'H-VHF 2'] },
-  { id: 3, name: 'Support Team', members: ['HF 3', 'UHF 3'] },
-  { id: 4, name: 'Operations', members: ['HF 4', 'UHF 4'] },
-  { id: 5, name: 'Tactical Group', members: ['HF 5', 'UHF 5'] },
-];
+import { useAuth } from '../context/AuthContext';
+import { groupUsersApi } from '../utils/apiService';
 
 const GroupsScreen = ({ navigation }) => {
-  const { darkMode } = useSettings(); 
+  const { user } = useAuth();
+  const [groupUsers, setGroupUsers] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
 
-  const renderGroupItem = ({ item }) => (
-    <TouchableOpacity
-      style={[
-        styles.groupItem,
-        {
-          backgroundColor: darkMode ? '#1E1E1E' : '#f2f2f2',
-          borderLeftColor: '#0066cc',
-        },
-      ]}
-    >
-      <Text style={[styles.groupName, { color: darkMode ? '#fff' : '#000' }]}>
-        {item.name}
-      </Text>
-      <Text style={[styles.groupMembers, { color: darkMode ? '#aaa' : '#333' }]}>
-        Members: {item.members.join(', ')}
-      </Text>
-    </TouchableOpacity>
-  );
+  // שליפת משתמשים מהקבוצה
+  const fetchGroupUsers = async () => {
+    try {
+      setLoading(true);
+      const groupName = user?.group;
+      if (!groupName) throw new Error('Group not found');
+
+      const users = await groupUsersApi.getUsersByGroup(groupName);
+      // הוספת מצב התחלתי לכל משתמש
+      const usersWithState = users.map((u) => ({ ...u, state: 'Idle' }));
+      setGroupUsers(usersWithState);
+      setError(null);
+    } catch (err) {
+      console.error('Error fetching group users:', err);
+      setError('Failed to load group users. Please try again later.');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    fetchGroupUsers();
+  }, [user?.group]);
+
+  // שינוי מצב המשתמש
+  const toggleUserState = (userId) => {
+    setGroupUsers((prevUsers) =>
+      prevUsers.map((u) =>
+        u.id === userId ? { ...u, state: getNextState(u.state) } : u
+      )
+    );
+  };
+
+  // קביעת המצב הבא
+  const getNextState = (state) => {
+    switch (state) {
+      case 'Idle':
+        return 'ListenOnly';
+      case 'ListenOnly':
+        return 'ListenAndTalk';
+      case 'ListenAndTalk':
+        return 'Idle';
+      default:
+        return 'Idle';
+    }
+  };
+
+  // קבלת סגנון דינמי לפי מצב
+  const getUserCardStyle = (state) => {
+    switch (state) {
+      case 'Idle':
+        return { backgroundColor: '#1E1E1E', borderLeftColor: '#555' };
+      case 'ListenOnly':
+        return { backgroundColor: '#2E2E2E', borderLeftColor: '#00ccff' };
+      case 'ListenAndTalk':
+        return { backgroundColor: '#3E3E3E', borderLeftColor: '#00ff66' };
+      default:
+        return { backgroundColor: '#1E1E1E', borderLeftColor: '#555' };
+    }
+  };
+
+  if (loading) {
+    return (
+      <AppLayout navigation={navigation} title={`Group: ${user?.group}`}>
+        <View style={styles.centerContainer}>
+          <ActivityIndicator size="large" color="#0000ff" />
+          <Text style={styles.loadingText}>Loading users...</Text>
+        </View>
+      </AppLayout>
+    );
+  }
+
+  if (error) {
+    return (
+      <AppLayout navigation={navigation} title={`Group: ${user?.group}`}>
+        <View style={styles.centerContainer}>
+          <Text style={styles.errorText}>{error}</Text>
+          <TouchableOpacity style={styles.retryButton} onPress={fetchGroupUsers}>
+            <Text style={styles.retryButtonText}>Retry</Text>
+          </TouchableOpacity>
+        </View>
+      </AppLayout>
+    );
+  }
 
   return (
-    <AppLayout navigation={navigation} title="Radio Groups">
-      <View
-        style={[
-          styles.container,
-          { backgroundColor: darkMode ? '#121212' : '#fff' },
-        ]}
-      >
-        <Text
-          style={[
-            styles.sectionTitle,
-            { color: darkMode ? '#fff' : '#000' },
-          ]}
-        >
-          Available Groups
-        </Text>
-        <FlatList
-          data={groupsData}
-          renderItem={renderGroupItem}
-          keyExtractor={(item) => item.id.toString()}
-          contentContainerStyle={styles.list}
-        />
-      </View>
+    <AppLayout navigation={navigation} title={`Group: ${user?.group}`}>
+      <ScrollView style={styles.scrollView}>
+        <View style={styles.mainGrid}>
+          {groupUsers.map((user) => (
+            <TouchableOpacity
+              key={user.id}
+              style={[styles.userCard, getUserCardStyle(user.state)]}
+              onPress={() => toggleUserState(user.id)}
+            >
+              <Text style={styles.username}>{user.username}</Text>
+              <Text style={styles.email}>{user.email}</Text>
+              <Text style={styles.role}>Role: {user.role}</Text>
+              <Text style={styles.state}>State: {user.state}</Text>
+            </TouchableOpacity>
+          ))}
+        </View>
+      </ScrollView>
     </AppLayout>
   );
 };
 
 const styles = StyleSheet.create({
-  container: {
+  scrollView: {
     flex: 1,
-    padding: 10,
   },
-  sectionTitle: {
-    fontSize: 18,
-    fontWeight: 'bold',
-    marginVertical: 10,
-    marginLeft: 5,
+  mainGrid: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    padding: 5,
+    justifyContent: 'flex-start',
   },
-  list: {
-    paddingBottom: 20,
-  },
-  groupItem: {
+  userCard: {
     borderRadius: 8,
     padding: 15,
-    marginVertical: 5,
-    borderLeftWidth: 4,
+    margin: 5,
+    borderLeftWidth: 6,
+    minWidth: '45%',
   },
-  groupName: {
-    fontSize: 16,
+  username: {
+    fontSize: 18,
     fontWeight: 'bold',
-    marginBottom: 5,
+    color: '#fff',
   },
-  groupMembers: {
+  email: {
     fontSize: 14,
+    color: '#aaa',
+  },
+  role: {
+    fontSize: 14,
+    color: '#00ccff',
+  },
+  state: {
+    fontSize: 14,
+    color: '#ffcc00',
+    marginTop: 5,
+  },
+  centerContainer: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    padding: 20,
+  },
+  loadingText: {
+    marginTop: 10,
+    fontSize: 16,
+    color: '#fff',
+  },
+  errorText: {
+    color: 'red',
+    fontSize: 16,
+    textAlign: 'center',
+    marginBottom: 20,
+  },
+  retryButton: {
+    backgroundColor: '#2196F3',
+    padding: 10,
+    borderRadius: 5,
+  },
+  retryButtonText: {
+    color: 'white',
+    fontSize: 16,
   },
 });
 

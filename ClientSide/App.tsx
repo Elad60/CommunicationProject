@@ -34,8 +34,9 @@ const AppContent = () => {
             username: string,
             password: string,
             email: string,
+            group: string,
           ) => {
-            const result = await register(username, password, email);
+            const result = await register(username, password, email, group);
             if (result && result.success) {
               setIsRegistering(false);
               return {success: true};
