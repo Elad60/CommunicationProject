@@ -110,7 +110,5 @@ namespace CommunicationServer.Controllers
             }
         }
 
-
-
     }
 }

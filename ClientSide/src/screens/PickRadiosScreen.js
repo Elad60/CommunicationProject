@@ -15,19 +15,27 @@ const PickRadiosScreen = ({navigation}) => {
   const {user} = useAuth();
   const [allChannels, setAllChannels] = useState([]);
   const [selected, setSelected] = useState([]);
+  const [originalSelection, setOriginalSelection] = useState([]); // ✅
 
   useEffect(() => {
     const loadChannels = async () => {
       try {
-        const data = await radioChannelsApi.getAllChannels();
-        setAllChannels(data);
+        const [all, userSelected] = await Promise.all([
+          radioChannelsApi.getAllChannels(),
+          radioChannelsApi.getUserChannels(user.id),
+        ]);
+
+        setAllChannels(all);
+        const userSelectedIds = userSelected.map(c => c.id);
+        setSelected(userSelectedIds);
+        setOriginalSelection(userSelectedIds); // ✅ Save initial state
       } catch (err) {
         Alert.alert('Error', 'Failed to load channels');
       }
     };
 
     loadChannels();
-  }, []);
+  }, [user.id]);
 
   const toggleSelect = channelId => {
     setSelected(prev =>
@@ -39,8 +47,17 @@ const PickRadiosScreen = ({navigation}) => {
 
   const handleSave = async () => {
     try {
-      // TODO: send selected channels to backend
-      console.log('Saving channels:', selected);
+      const toAdd = selected.filter(id => !originalSelection.includes(id));
+      const toRemove = originalSelection.filter(id => !selected.includes(id));
+
+      for (let id of toAdd) {
+        await radioChannelsApi.addUserChannel(user.id, id);
+      }
+
+      for (let id of toRemove) {
+        await radioChannelsApi.removeUserChannel(user.id, id);
+      }
+
       Alert.alert('Success', 'Channels saved to your list');
       navigation.goBack();
     } catch (err) {

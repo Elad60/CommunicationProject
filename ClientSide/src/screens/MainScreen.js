@@ -25,7 +25,7 @@ const MainScreen = ({navigation}) => {
       const userId = user?.id;
       if (!userId) throw new Error('User ID not found');
 
-      const data = await radioChannelsApi.getAllChannels(userId);
+      const data = await radioChannelsApi.getUserChannels(userId);
       setRadioChannels(data);
       setError(null);
     } catch (err) {

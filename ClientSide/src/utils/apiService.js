@@ -1,18 +1,16 @@
 import axios from 'axios';
 
 const api = axios.create({
-  baseURL: 'http://localhost:5137/api', // replace with your IP for physical devices
+  baseURL: 'http://localhost:5137/api',
   timeout: 5000,
 });
 
 const radioChannelsApi = {
-  // For Operators – get only their channels
   getUserChannels: async userId => {
     const response = await api.get(`/radiochannels/user/${userId}`);
     return response.data;
   },
 
-  // For Admin/Technician – get all channels
   getAllChannels: async () => {
     const response = await api.get('/radiochannels');
     return response.data;
@@ -37,8 +35,17 @@ const radioChannelsApi = {
   deleteChannel: async channelId => {
     await api.delete(`/radiochannels/${channelId}`);
   },
-};
 
+  addUserChannel: async (userId, channelId) => {
+    await api.post(`/radiochannels/user/${userId}/add-channel/${channelId}`);
+  },
+
+  removeUserChannel: async (userId, channelId) => {
+    await api.delete(
+      `/radiochannels/user/${userId}/remove-channel/${channelId}`,
+    );
+  },
+};
 
 // 🔐 Auth API
 const authApi = {
@@ -92,6 +99,5 @@ const adminApi = {
     await api.delete(`/user/${userId}`);
   },
 };
-
 
 export {radioChannelsApi, authApi, adminApi};
