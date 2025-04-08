@@ -106,6 +106,18 @@ const groupUsersApi = {
     const response = await api.get(`/user/group/${groupName}`);
     return response.data;
   },
+  changeUserGroup: async (userId, newGroup) => {
+    try {
+      const response = await api.post(`/user/change-group/${userId}`, JSON.stringify(newGroup), {
+        headers: { 'Content-Type': 'application/json' },
+      });
+      return response.data;
+    } catch (error) {
+      console.error('Error changing user group:', error);
+      throw error;
+    }
+  },
 };
 
-export {radioChannelsApi, authApi, adminApi,groupUsersApi};
+
+export {radioChannelsApi, authApi, adminApi, groupUsersApi};
