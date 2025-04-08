@@ -87,6 +87,24 @@ namespace CommunicationServer.Controllers
             else
                 return BadRequest(new { success = false, message = "Failed to delete user." });
         }
+        [HttpPost("change-group/{userId}")]
+        public IActionResult ChangeUserGroup(int userId, [FromBody] char newGroup)
+        {
+            DBServices db = new DBServices();
+
+            try
+            {
+                bool success = db.ChangeUserGroup(userId, newGroup);
+                if (success)
+                    return Ok(new { success = true, message = "User group updated successfully." });
+                else
+                    return BadRequest(new { success = false, message = "User not found or update failed." });
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(500, new { success = false, message = ex.Message });
+            }
+        }
 
         [HttpGet("group/{groupName}")]
         public IActionResult GetUsersByGroup(char groupName)

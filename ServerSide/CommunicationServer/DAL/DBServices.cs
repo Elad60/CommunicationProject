@@ -368,6 +368,34 @@ namespace CommunicationServer.DAL
             return users;
         }
 
+        public bool ChangeUserGroup(int userId, char newGroup)
+        {
+            SqlConnection con = null;
+            try
+            {
+                con = Connect("myProjDB");
+
+                var parameters = new Dictionary<string, object>
+        {
+            { "@UserId", userId },
+            { "@NewGroup", newGroup }
+        };
+
+                SqlCommand cmd = CreateCommandWithStoredProcedure("ChangeUserGroup", con, parameters);
+                int rowsAffected = cmd.ExecuteNonQuery();
+
+                return rowsAffected > 0;
+            }
+            catch (Exception ex)
+            {
+                throw new Exception("Error updating user group: " + ex.Message);
+            }
+            finally
+            {
+                con?.Close();
+            }
+        }
+
         public bool DeleteUser(int userId)
         {
             SqlConnection con = null;
