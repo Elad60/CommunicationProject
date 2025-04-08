@@ -51,6 +51,64 @@ namespace CommunicationServer.Controllers
                 return StatusCode(500, $"Error updating channel state: {ex.Message}");
             }
         }
+        [HttpPost]
+        public IActionResult AddChannel([FromBody] RadioChannel newChannel)
+        {
+            try
+            {
+                DBServices db = new DBServices();
+                db.AddRadioChannel(newChannel);
+                return Ok(new { success = true });
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(500, new { success = false, message = ex.Message });
+            }
+        }
+
+        [HttpDelete("{id}")]
+        public IActionResult DeleteChannel(int id)
+        {
+            try
+            {
+                DBServices db = new DBServices();
+                db.DeleteRadioChannel(id);
+                return Ok(new { success = true });
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(500, new { success = false, message = ex.Message });
+            }
+        }
+        [HttpPost("user/{userId}/add-channel/{channelId}")]
+        public IActionResult AddUserChannel(int userId, int channelId)
+        {
+            try
+            {
+                DBServices db = new DBServices();
+                db.AddUserChannel(userId, channelId);
+                return Ok(new { success = true });
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(500, new { success = false, message = ex.Message });
+            }
+        }
+
+        [HttpDelete("user/{userId}/remove-channel/{channelId}")]
+        public IActionResult RemoveUserChannel(int userId, int channelId)
+        {
+            try
+            {
+                DBServices db = new DBServices();
+                db.RemoveUserChannel(userId, channelId);
+                return Ok(new { success = true });
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(500, new { success = false, message = ex.Message });
+            }
+        }
 
     }
 }

@@ -10,11 +10,14 @@ const CONTROL_PANEL_HEIGHT = height * 0.1;
 
 // Provider Component
 export const SettingsProvider = ({ children }) => {
-  const [toolBarAdjustment, setToolBarAdjustment] = useState(true); 
-  const [controlBarAdjustment, setControlBarAdjustment] = useState(true); 
+  const [toolBarAdjustment, setToolBarAdjustment] = useState(true);
+  const [controlBarAdjustment, setControlBarAdjustment] = useState(true);
   const [navPanelPosition, setNavPanelPosition] = useState(width - NAV_PANEL_WIDTH);
   const [controlPanelPosition, setControlPanelPosition] = useState(height - CONTROL_PANEL_HEIGHT);
-
+  
+  // Brightness: 0.25 (dark) -> 1 (light)
+  const [brightness, setBrightness] = useState(0.25); 
+  const [darkMode, setDarkMode] = useState(true);
   return (
     <SettingsContext.Provider
       value={{
@@ -26,6 +29,10 @@ export const SettingsProvider = ({ children }) => {
         setNavPanelPosition,
         controlPanelPosition,
         setControlPanelPosition,
+        brightness,
+        setBrightness,
+        darkMode,
+        setDarkMode, 
       }}
     >
       {children}
@@ -33,7 +40,6 @@ export const SettingsProvider = ({ children }) => {
   );
 };
 
-// Custom Hook for Easy Access
 export const useSettings = () => {
   const context = useContext(SettingsContext);
   if (!context) {

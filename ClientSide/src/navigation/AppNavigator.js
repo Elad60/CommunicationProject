@@ -4,7 +4,7 @@ import {NavigationContainer} from '@react-navigation/native';
 import {createStackNavigator} from '@react-navigation/stack';
 import MainScreen from '../screens/MainScreen';
 import SettingsScreen from '../screens/SettingsScreen';
-import ChannelConfigScreen from '../screens/ChannelConfigScreen';
+import ChannelConfigScreen from '../screens/MoreRadiosScreen';
 import GroupsScreen from '../screens/GroupsScreen';
 import IntercomsScreen from '../screens/IntercomsScreen';
 import PasScreen from '../screens/PasScreen';
@@ -14,6 +14,8 @@ import LoginScreen from '../screens/LoginScreen';
 import RegisterScreen from '../screens/RegisterScreen';
 import {useAuth} from '../context/AuthContext';
 import UserManagementScreen from '../screens/UserManagementScreen';
+import PickRadiosScreen from '../screens/PickRadiosScreen';
+
 const Stack = createStackNavigator();
 
 const AppNavigator = () => {
@@ -69,6 +71,7 @@ const AppNavigator = () => {
               component={UserManagementScreen}
             />
           )}
+          <Stack.Screen name="PickRadios" component={PickRadiosScreen} />
         </Stack.Navigator>
       )}
     </NavigationContainer>

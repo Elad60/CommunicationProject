@@ -1,59 +1,79 @@
 import React, { useState } from 'react';
-import { View, Text, StyleSheet, TouchableOpacity, Dimensions } from 'react-native';
+import { View, Text, StyleSheet, TouchableOpacity, Dimensions, StatusBar } from 'react-native';
 import { useAuth } from '../context/AuthContext';
 import ControlPanel from './ControlPanel';
 import NavPanel from './NavPanel';
-import { useSettings } from '../context/SettingsContext'; 
+import { useSettings } from '../context/SettingsContext';
 
 const { height, width } = Dimensions.get('window');
 
 const AppLayout = ({ children, navigation, title, showControls = true, showNavPanel = true }) => {
   const [speakerVolume, setSpeakerVolume] = useState(40);
-  const [brightness, setBrightness] = useState(0);
   const [activeNav, setActiveNav] = useState('radios');
-  const { user, logout } = useAuth();
-  const { controlBarAdjustment, toolBarAdjustment } = useSettings();  // Get control and toolbar adjustment values
 
-  // Handle navigation between screens
-  const handleNavigation = screen => {
+  const { user, logout } = useAuth();
+
+  const { controlBarAdjustment, toolBarAdjustment, brightness, darkMode } = useSettings();
+
+  const handleNavigation = (screen) => {
     setActiveNav(screen);
     navigation.navigate(screen);
   };
 
   const contentContainerStyle = {
-    marginTop: controlBarAdjustment ? 0 : height * 0.1, 
-    marginLeft: toolBarAdjustment ? 0 : width * 0.08,  
+    marginTop: controlBarAdjustment ? 0 : height * 0.1,
+    marginLeft: toolBarAdjustment ? 0 : width * 0.08,
   };
 
+  const backgroundColor = darkMode ? '#000' : '#fff';
+  const textColor = darkMode ? '#fff' : '#000';
+
   return (
-    <View style={styles.container}>
-      {/* Top header section */}
-      <View style={styles.header}>
-        <Text style={styles.headerText}>{title || 'Communication System'}</Text>
-        {user && <Text style={styles.userInfo}>Logged in as: {user.username}</Text>}
+    <View style={[styles.container, { backgroundColor }]}>
+      <StatusBar
+        barStyle={darkMode ? 'light-content' : 'dark-content'}
+        backgroundColor={backgroundColor}
+      />
+
+      {/* Header */}
+      <View style={[styles.header, { backgroundColor }]}>
+        <Text style={[styles.headerText, { color: textColor }]}>
+          {title || 'Communication System'}
+        </Text>
+        {user && <Text style={[styles.userInfo, { color: textColor }]}>Logged in as: {user.username}</Text>}
         <TouchableOpacity style={styles.logoutButton} onPress={logout}>
           <Text style={styles.logoutText}>Logout</Text>
         </TouchableOpacity>
       </View>
 
-      {/* Main content area */}
+      {/* Main content */}
       <View style={[styles.contentContainer, contentContainerStyle]}>
         {children}
-
-        {/* Right navigation panel */}
-        {showNavPanel && <NavPanel activeNav={activeNav} handleNavigation={handleNavigation} />}
+        {showNavPanel && <NavPanel activeNav={activeNav} handleNavigation={handleNavigation} darkMode={darkMode} />}
       </View>
 
-      {/* Bottom control panel */}
+      {/* Control Panel */}
       {showControls && (
         <ControlPanel
           speakerVolume={speakerVolume}
           setSpeakerVolume={setSpeakerVolume}
           brightness={brightness}
-          setBrightness={setBrightness}
+          setBrightness={brightness}
+          darkMode={darkMode}
           navigation={navigation}
         />
       )}
+
+      {/* Global Brightness Overlay */}
+      <View
+        pointerEvents="none"
+        style={[
+          StyleSheet.absoluteFill,
+          {
+            backgroundColor: `rgba(0, 0, 0, ${1 - (brightness * 0.75 + 0.25)})`,
+          },
+        ]}
+      />
     </View>
   );
 };
@@ -61,11 +81,9 @@ const AppLayout = ({ children, navigation, title, showControls = true, showNavPa
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#000',
   },
   header: {
     height: height * 0.05,
-    backgroundColor: '#111',
     borderBottomWidth: 1,
     borderBottomColor: '#333',
     flexDirection: 'row',
@@ -74,12 +92,10 @@ const styles = StyleSheet.create({
     paddingHorizontal: 15,
   },
   headerText: {
-    color: '#fff',
     fontSize: 20,
     fontWeight: 'bold',
   },
   userInfo: {
-    color: '#aaa',
     fontSize: 14,
   },
   logoutButton: {

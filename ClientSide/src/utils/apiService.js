@@ -1,16 +1,21 @@
 import axios from 'axios';
 
 const api = axios.create({
-  baseURL: 'http://localhost:5137/api', // replace with your IP for physical devices
+  baseURL: 'http://localhost:5137/api',
   timeout: 5000,
 });
 
-// 🛁 Radio Channels
 const radioChannelsApi = {
-  getAllChannels: async userId => {
+  getUserChannels: async userId => {
     const response = await api.get(`/radiochannels/user/${userId}`);
     return response.data;
   },
+
+  getAllChannels: async () => {
+    const response = await api.get('/radiochannels');
+    return response.data;
+  },
+
   updateChannelState: async (userId, channelId, newState) => {
     await api.post(
       `/radiochannels/user/${userId}/channel/${channelId}/state`,
@@ -18,6 +23,26 @@ const radioChannelsApi = {
       {
         headers: {'Content-Type': 'application/json'},
       },
+    );
+  },
+
+  addChannel: async channel => {
+    await api.post('/radiochannels', channel, {
+      headers: {'Content-Type': 'application/json'},
+    });
+  },
+
+  deleteChannel: async channelId => {
+    await api.delete(`/radiochannels/${channelId}`);
+  },
+
+  addUserChannel: async (userId, channelId) => {
+    await api.post(`/radiochannels/user/${userId}/add-channel/${channelId}`);
+  },
+
+  removeUserChannel: async (userId, channelId) => {
+    await api.delete(
+      `/radiochannels/user/${userId}/remove-channel/${channelId}`,
     );
   },
 };
