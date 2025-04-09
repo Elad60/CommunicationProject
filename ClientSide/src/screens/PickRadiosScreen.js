@@ -2,6 +2,7 @@ import React, {useEffect, useState} from 'react';
 import {
   View,
   Text,
+  TextInput,
   TouchableOpacity,
   ScrollView,
   StyleSheet,
@@ -14,8 +15,10 @@ import {useAuth} from '../context/AuthContext';
 const PickRadiosScreen = ({navigation}) => {
   const {user} = useAuth();
   const [allChannels, setAllChannels] = useState([]);
+  const [filteredChannels, setFilteredChannels] = useState([]);
   const [selected, setSelected] = useState([]);
-  const [originalSelection, setOriginalSelection] = useState([]); // ✅
+  const [originalSelection, setOriginalSelection] = useState([]);
+  const [search, setSearch] = useState('');
 
   useEffect(() => {
     const loadChannels = async () => {
@@ -26,9 +29,10 @@ const PickRadiosScreen = ({navigation}) => {
         ]);
 
         setAllChannels(all);
+        setFilteredChannels(all);
         const userSelectedIds = userSelected.map(c => c.id);
         setSelected(userSelectedIds);
-        setOriginalSelection(userSelectedIds); // ✅ Save initial state
+        setOriginalSelection(userSelectedIds);
       } catch (err) {
         Alert.alert('Error', 'Failed to load channels');
       }
@@ -36,6 +40,17 @@ const PickRadiosScreen = ({navigation}) => {
 
     loadChannels();
   }, [user.id]);
+
+  useEffect(() => {
+    const lowerSearch = search.toLowerCase();
+    const filtered = allChannels.filter(
+      c =>
+        c.name.toLowerCase().includes(lowerSearch) ||
+        c.frequency.toLowerCase().includes(lowerSearch) ||
+        c.mode.toLowerCase().includes(lowerSearch),
+    );
+    setFilteredChannels(filtered);
+  }, [search, allChannels]);
 
   const toggleSelect = channelId => {
     setSelected(prev =>
@@ -68,28 +83,46 @@ const PickRadiosScreen = ({navigation}) => {
   return (
     <AppLayout navigation={navigation} title="Pick Radios">
       <ScrollView contentContainerStyle={styles.container}>
-        {allChannels.map(c => {
-          const isSelected = selected.includes(c.id);
-          return (
-            <TouchableOpacity
-              key={c.id}
-              onPress={() => toggleSelect(c.id)}
-              style={[styles.card, isSelected && styles.cardSelected]}>
-              <View style={styles.cardContent}>
-                <View>
-                  <Text style={styles.channelName}>{c.name}</Text>
-                  <Text style={styles.channelFreq}>{c.frequency}</Text>
-                  <Text style={styles.channelMode}>Mode: {c.mode}</Text>
-                </View>
-                <Text style={styles.checkIcon}>{isSelected ? '✅' : '＋'}</Text>
-              </View>
-            </TouchableOpacity>
-          );
-        })}
+        <View style={styles.sectionCard}>
+          <Text style={styles.title}>🎧 Select Your Channels</Text>
 
-        <TouchableOpacity style={styles.saveButton} onPress={handleSave}>
-          <Text style={styles.saveButtonText}>💾 Save Selection</Text>
-        </TouchableOpacity>
+          <TextInput
+            style={styles.input}
+            placeholder="🔍 Search by name / frequency / mode"
+            placeholderTextColor="#aaa"
+            value={search}
+            onChangeText={setSearch}
+          />
+
+          {filteredChannels.length === 0 && (
+            <Text style={styles.noResults}>No matching channels found.</Text>
+          )}
+
+          {filteredChannels.map(c => {
+            const isSelected = selected.includes(c.id);
+            return (
+              <TouchableOpacity
+                key={c.id}
+                onPress={() => toggleSelect(c.id)}
+                style={[styles.card, isSelected && styles.cardSelected]}>
+                <View style={styles.cardContent}>
+                  <View>
+                    <Text style={styles.channelName}>{c.name}</Text>
+                    <Text style={styles.channelFreq}>{c.frequency}</Text>
+                    <Text style={styles.channelMode}>Mode: {c.mode}</Text>
+                  </View>
+                  <Text style={styles.checkIcon}>
+                    {isSelected ? '✅' : '＋'}
+                  </Text>
+                </View>
+              </TouchableOpacity>
+            );
+          })}
+
+          <TouchableOpacity style={styles.saveButton} onPress={handleSave}>
+            <Text style={styles.saveButtonText}>💾 Save Selection</Text>
+          </TouchableOpacity>
+        </View>
       </ScrollView>
     </AppLayout>
   );
@@ -97,8 +130,39 @@ const PickRadiosScreen = ({navigation}) => {
 
 const styles = StyleSheet.create({
   container: {
-    padding: 16,
-    paddingBottom: 60,
+    padding: 20,
+    alignItems: 'center',
+  },
+  sectionCard: {
+    backgroundColor: '#2a2a2a',
+    padding: 15,
+    borderRadius: 10,
+    marginBottom: 25,
+    width: '100%',
+    borderWidth: 1,
+    borderColor: '#444',
+  },
+  title: {
+    color: '#fff',
+    fontSize: 20,
+    fontWeight: 'bold',
+    marginBottom: 15,
+  },
+  input: {
+    backgroundColor: '#222',
+    color: '#fff',
+    padding: 10,
+    marginBottom: 15,
+    borderRadius: 8,
+    width: '100%',
+    borderWidth: 1,
+    borderColor: '#444',
+  },
+  noResults: {
+    color: '#888',
+    fontStyle: 'italic',
+    marginBottom: 15,
+    textAlign: 'center',
   },
   card: {
     backgroundColor: '#1c1c1e',

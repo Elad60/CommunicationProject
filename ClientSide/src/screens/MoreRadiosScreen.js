@@ -15,6 +15,9 @@ import {radioChannelsApi} from '../utils/apiService';
 const MoreRadiosScreen = ({navigation}) => {
   const {user} = useAuth();
   const [channels, setChannels] = useState([]);
+  const [filteredChannels, setFilteredChannels] = useState([]);
+  const [search, setSearch] = useState('');
+
   const [name, setName] = useState('');
   const [frequency, setFrequency] = useState('');
   const [mode, setMode] = useState('');
@@ -23,6 +26,7 @@ const MoreRadiosScreen = ({navigation}) => {
     try {
       const data = await radioChannelsApi.getAllChannels();
       setChannels(data);
+      setFilteredChannels(data);
     } catch (err) {
       Alert.alert('Error', 'Failed to load channels');
     }
@@ -67,54 +71,83 @@ const MoreRadiosScreen = ({navigation}) => {
   };
 
   useEffect(() => {
-    if (user?.role === 'Technician' || user?.role === 'Admin') {
-      loadChannels();
-    } else {
-      Alert.alert('Access Denied', 'You are not allowed here.');
-      navigation.goBack();
-    }
-  }, [navigation, user?.role]);
+    loadChannels();
+  }, []);
+
+  useEffect(() => {
+    const lowerSearch = search.toLowerCase();
+    const filtered = channels.filter(
+      c =>
+        c.name.toLowerCase().includes(lowerSearch) ||
+        c.frequency.toLowerCase().includes(lowerSearch) ||
+        c.mode.toLowerCase().includes(lowerSearch),
+    );
+    setFilteredChannels(filtered);
+  }, [search, channels]);
 
   return (
     <AppLayout navigation={navigation} title="More Radios">
       <ScrollView contentContainerStyle={styles.container}>
-        <Text style={styles.title}>Add New Channel</Text>
-        <TextInput
-          style={styles.input}
-          placeholder="Channel Name"
-          placeholderTextColor="#aaa"
-          value={name}
-          onChangeText={setName}
-        />
-        <TextInput
-          style={styles.input}
-          placeholder="Frequency"
-          placeholderTextColor="#aaa"
-          value={frequency}
-          onChangeText={setFrequency}
-        />
-        <TextInput
-          style={styles.input}
-          placeholder="Mode"
-          placeholderTextColor="#aaa"
-          value={mode}
-          onChangeText={setMode}
-        />
-        <TouchableOpacity style={styles.button} onPress={handleAddChannel}>
-          <Text style={styles.buttonText}>Create Channel</Text>
-        </TouchableOpacity>
+        {/* Add Channel Section */}
+        <View style={styles.sectionCard}>
+          <Text style={styles.title}>Add New Channel</Text>
+          <TextInput
+            style={styles.input}
+            placeholder="🔤 Channel Name"
+            placeholderTextColor="#aaa"
+            value={name}
+            onChangeText={setName}
+          />
+          <TextInput
+            style={styles.input}
+            placeholder="📶 Frequency"
+            placeholderTextColor="#aaa"
+            value={frequency}
+            onChangeText={setFrequency}
+          />
+          <TextInput
+            style={styles.input}
+            placeholder="🛠️ Mode"
+            placeholderTextColor="#aaa"
+            value={mode}
+            onChangeText={setMode}
+          />
+          <TouchableOpacity style={styles.button} onPress={handleAddChannel}>
+            <Text style={styles.buttonText}>Create Channel</Text>
+          </TouchableOpacity>
+        </View>
 
-        <Text style={styles.title}>Existing Channels</Text>
-        {channels.map(c => (
-          <View key={c.id} style={styles.channelRow}>
-            <Text style={styles.channelText}>
-              {c.name} ({c.frequency}) - {c.mode}
+        {/* Search + List Section */}
+        <View style={styles.sectionCard}>
+          <Text style={styles.title}>Existing Channels</Text>
+          <TextInput
+            style={styles.input}
+            placeholder="🔍 Search by name / frequency / mode"
+            placeholderTextColor="#aaa"
+            value={search}
+            onChangeText={setSearch}
+          />
+
+          {filteredChannels.length === 0 && (
+            <Text style={styles.noResultsText}>
+              No matching channels found.
             </Text>
-            <TouchableOpacity onPress={() => handleDelete(c.id)}>
-              <Text style={styles.deleteText}>🗑️</Text>
-            </TouchableOpacity>
-          </View>
-        ))}
+          )}
+
+          {filteredChannels.map(c => (
+            <View key={c.id} style={styles.channelRow}>
+              <View>
+                <Text style={styles.channelName}>{c.name}</Text>
+                <Text style={styles.channelDetails}>
+                  {c.frequency} • {c.mode}
+                </Text>
+              </View>
+              <TouchableOpacity onPress={() => handleDelete(c.id)}>
+                <Text style={styles.deleteText}>🗑️</Text>
+              </TouchableOpacity>
+            </View>
+          ))}
+        </View>
       </ScrollView>
     </AppLayout>
   );
@@ -123,13 +156,22 @@ const MoreRadiosScreen = ({navigation}) => {
 const styles = StyleSheet.create({
   container: {
     padding: 20,
-    alignItems: 'flex-start',
+    alignItems: 'center',
+  },
+  sectionCard: {
+    backgroundColor: '#2a2a2a',
+    padding: 15,
+    borderRadius: 10,
+    marginBottom: 25,
+    width: '100%',
+    borderWidth: 1,
+    borderColor: '#444',
   },
   title: {
     color: '#fff',
     fontSize: 20,
     fontWeight: 'bold',
-    marginVertical: 15,
+    marginBottom: 15,
   },
   input: {
     backgroundColor: '#222',
@@ -137,8 +179,7 @@ const styles = StyleSheet.create({
     padding: 10,
     marginBottom: 10,
     borderRadius: 8,
-    width: '85%',
-    alignSelf: 'flex-start',
+    width: '100%',
     borderWidth: 1,
     borderColor: '#444',
   },
@@ -147,9 +188,8 @@ const styles = StyleSheet.create({
     padding: 12,
     borderRadius: 5,
     alignItems: 'center',
-    marginBottom: 20,
-    width: '85%',
-    alignSelf: 'flex-start',
+    marginTop: 5,
+    marginBottom: 10,
   },
   buttonText: {
     color: '#fff',
@@ -158,21 +198,32 @@ const styles = StyleSheet.create({
   channelRow: {
     flexDirection: 'row',
     justifyContent: 'space-between',
+    alignItems: 'center',
     backgroundColor: '#1e1e1e',
-    padding: 10,
-    borderRadius: 6,
-    marginBottom: 8,
+    padding: 12,
+    borderRadius: 8,
+    marginBottom: 10,
     borderWidth: 1,
     borderColor: '#333',
-    width: '100%',
   },
-  channelText: {
+  channelName: {
     color: '#fff',
-    fontSize: 14,
+    fontSize: 16,
+    fontWeight: 'bold',
+  },
+  channelDetails: {
+    color: '#ccc',
+    fontSize: 13,
   },
   deleteText: {
     color: '#ff4d4d',
-    fontSize: 18,
+    fontSize: 20,
+  },
+  noResultsText: {
+    color: '#888',
+    fontStyle: 'italic',
+    marginTop: 10,
+    textAlign: 'center',
   },
 });
 
