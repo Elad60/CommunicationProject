@@ -57,7 +57,13 @@ const NavPanel = ({activeNav, handleNavigation, darkMode}) => {
           screen: 'ChannelConfig',
           roles: ['Technician', 'Admin'],
         },
-        {title: 'Relay', icon: '🔄', screen: 'Relay'},
+        {
+          title: 'Admin Panel',
+          icon: '👥',
+          screen: 'UserManagement',
+          roles: ['Admin'],
+        },
+
         {title: 'Control', icon: '🎛️', screen: 'Control'},
       ].map(({title, icon, screen, roles}) => {
         const allowed = !roles || roles.includes(user?.role);
