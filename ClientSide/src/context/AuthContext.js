@@ -1,5 +1,5 @@
 import React, {createContext, useState, useEffect, useContext} from 'react';
-import {authApi} from '../utils/apiService';
+import {authApi,groupUsersApi} from '../utils/apiService';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 
 const AuthContext = createContext();
@@ -26,11 +26,11 @@ export const AuthProvider = ({children}) => {
     loadUser();
   }, []);
 
-  const register = async (username, password, email) => {
+  const register = async (username, password, email, group) => {
     setLoading(true);
     setError('');
     try {
-      const result = await authApi.register(username, password, email);
+      const result = await authApi.register(username, password, email, group);
 
       if (result.success && result.user) {
         await AsyncStorage.setItem('user', JSON.stringify(result.user));
@@ -84,11 +84,27 @@ const logout = async () => {
     setLoading(false);
   }
 };
+const changeGroup = async (newGroup) => {
+  try {
+    const response = await groupUsersApi.changeUserGroup(user.id, newGroup);
+    if (response.success) {
+      const updatedUser = { ...user, group: newGroup };
+      setUser(updatedUser); // עדכון המשתמש בקונטקסט
+      await AsyncStorage.setItem('user', JSON.stringify(updatedUser));
+      console.log('Group changed successfully to:', newGroup);
+    } else {
+      console.error('Failed to change group:', response.message);
+    }
+  // eslint-disable-next-line no-catch-shadow, no-shadow
+  } catch (error) {
+    console.error('Error changing group:', error);
+  }
+};
 
 
   return (
     <AuthContext.Provider
-      value={{user, loading, error, login, register, logout}}>
+      value={{user, loading, error, login, register, logout, changeGroup}}>
       {children}
     </AuthContext.Provider>
   );

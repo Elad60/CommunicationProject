@@ -25,7 +25,7 @@ const MainScreen = ({navigation}) => {
       const userId = user?.id;
       if (!userId) throw new Error('User ID not found');
 
-      const data = await radioChannelsApi.getAllChannels(userId);
+      const data = await radioChannelsApi.getUserChannels(userId);
       setRadioChannels(data);
       setError(null);
     } catch (err) {
@@ -40,7 +40,6 @@ const MainScreen = ({navigation}) => {
     if (user?.id) {
       fetchRadioChannels();
     }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [user]);
 
   const handleChannelSelect = id => {
@@ -78,6 +77,11 @@ const MainScreen = ({navigation}) => {
     }
   };
 
+  const handleAddChannel = () => {
+    navigation.navigate('PickRadios');
+    console.log('Add channel button pressed');
+  };
+
   if (loading) {
     return (
       <AppLayout navigation={navigation} title={user?.role}>
@@ -106,40 +110,41 @@ const MainScreen = ({navigation}) => {
 
   return (
     <AppLayout navigation={navigation} title={user?.role}>
-      <ScrollView style={styles.scrollView}>
-        {user?.role === 'Admin' && (
-          <TouchableOpacity
-            style={styles.adminButton}
-            onPress={() => navigation.navigate('UserManagement')}>
-            <Text style={styles.adminButtonText}>👥 Manage Users</Text>
-          </TouchableOpacity>
-        )}
+      <View style={styles.container}>
+        <ScrollView style={styles.scrollView}>
+          <View style={styles.mainGrid}>
+            {radioChannels.map(channel => (
+              <TouchableOpacity
+                key={channel.id}
+                onPress={() => {
+                  handleChannelSelect(channel.id);
+                  handleToggleChannelState(channel.id);
+                }}>
+                <RadioChannel
+                  name={channel.name}
+                  frequency={channel.frequency}
+                  isActive={channel.status === 'Active'}
+                  mode={channel.mode}
+                  isSelected={selectedChannel === channel.id}
+                  channelState={channel.channelState}
+                />
+              </TouchableOpacity>
+            ))}
+          </View>
+        </ScrollView>
 
-        <View style={styles.mainGrid}>
-          {radioChannels.map(channel => (
-            <TouchableOpacity
-              key={channel.id}
-              onPress={() => {
-                handleChannelSelect(channel.id);
-                handleToggleChannelState(channel.id);
-              }}>
-              <RadioChannel
-                name={channel.name}
-                frequency={channel.frequency}
-                isActive={channel.status === 'Active'}
-                mode={channel.mode}
-                isSelected={selectedChannel === channel.id}
-                channelState={channel.channelState}
-              />
-            </TouchableOpacity>
-          ))}
-        </View>
-      </ScrollView>
+        <TouchableOpacity style={styles.addButton} onPress={handleAddChannel}>
+          <Text style={styles.addButtonText}>+</Text>
+        </TouchableOpacity>
+      </View>
     </AppLayout>
   );
 };
 
 const styles = StyleSheet.create({
+  container: {
+    flex: 1,
+  },
   scrollView: {
     flex: 1,
   },
@@ -174,17 +179,31 @@ const styles = StyleSheet.create({
     color: 'white',
     fontSize: 16,
   },
-  adminButton: {
-    backgroundColor: '#0066cc',
-    padding: 10,
-    borderRadius: 8,
-    margin: 10,
-    alignSelf: 'center',
+  addButton: {
+    position: 'absolute',
+    right: 20,
+    bottom: 30,
+    backgroundColor: '#1DB954',
+    width: 50,
+    height: 50,
+    borderRadius: 25,
+    justifyContent: 'center',
+    alignItems: 'center',
+    elevation: 5,
+    shadowColor: '#000',
+    shadowOffset: {
+      width: 0,
+      height: 3,
+    },
+    shadowOpacity: 0.3,
+    shadowRadius: 4.65,
+    zIndex: 1000,
   },
-  adminButtonText: {
+  addButtonText: {
     color: '#fff',
+    fontSize: 30,
     fontWeight: 'bold',
-    fontSize: 16,
+    lineHeight: 30,
   },
 });
 

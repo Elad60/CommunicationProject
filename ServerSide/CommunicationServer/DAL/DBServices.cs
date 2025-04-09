@@ -159,7 +159,7 @@ namespace CommunicationServer.DAL
             }
         }
 
-        public bool RegisterUser(string username, string email, string password)
+        public bool RegisterUser(string username, string email, string password, char group)
         {
             SqlConnection con = null;
             try
@@ -171,6 +171,7 @@ namespace CommunicationServer.DAL
             { "@Username", username },
             { "@Email", email },
             { "@Password", password },
+            { "@Group", group }
         };
 
                 SqlCommand cmd = CreateCommandWithStoredProcedure("sp_RegisterUser", con, paramDic);
@@ -213,6 +214,7 @@ namespace CommunicationServer.DAL
                         Username = reader["Username"].ToString(),
                         Email = reader["Email"].ToString(),
                         Role = reader["Role"].ToString(),
+                        Group = Convert.ToChar(reader["Group"]),
                     };
                 }
 
@@ -249,7 +251,8 @@ namespace CommunicationServer.DAL
                         Email = reader["Email"].ToString(),
                         Role = reader["Role"].ToString(),
                         CreatedAt = Convert.ToDateTime(reader["CreatedAt"]),
-                        IsBlocked = Convert.ToBoolean(reader["IsBlocked"])
+                        IsBlocked = Convert.ToBoolean(reader["IsBlocked"]),
+                        Group = Convert.ToChar(reader["Group"])
                     });
                 }
 
@@ -320,6 +323,78 @@ namespace CommunicationServer.DAL
                 con?.Close();
             }
         }
+        public List<User> GetUsersByGroup(char groupName)
+        {
+            SqlConnection con = null;
+            List<User> users = new List<User>();
+
+            try
+            {
+                con = Connect("myProjDB");
+
+                var parameters = new Dictionary<string, object>
+        {
+            { "@GroupName", groupName }
+        };
+
+                SqlCommand cmd = CreateCommandWithStoredProcedure("GetUsersByGroup", con, parameters);
+                SqlDataReader reader = cmd.ExecuteReader();
+
+                while (reader.Read())
+                {
+                    users.Add(new User
+                    {
+                        Id = Convert.ToInt32(reader["Id"]),
+                        Username = reader["Username"].ToString(),
+                        Email = reader["Email"].ToString(),
+                        Role = reader["Role"].ToString(),
+                        CreatedAt = Convert.ToDateTime(reader["CreatedAt"]),
+                        IsBlocked = Convert.ToBoolean(reader["IsBlocked"]),
+                        Group = Convert.ToChar(reader["Group"])
+                    });
+                }
+
+                reader.Close();
+            }
+            catch (Exception ex)
+            {
+                throw new Exception("Error fetching users by group: " + ex.Message);
+            }
+            finally
+            {
+                con?.Close();
+            }
+
+            return users;
+        }
+
+        public bool ChangeUserGroup(int userId, char newGroup)
+        {
+            SqlConnection con = null;
+            try
+            {
+                con = Connect("myProjDB");
+
+                var parameters = new Dictionary<string, object>
+        {
+            { "@UserId", userId },
+            { "@NewGroup", newGroup }
+        };
+
+                SqlCommand cmd = CreateCommandWithStoredProcedure("ChangeUserGroup", con, parameters);
+                int rowsAffected = cmd.ExecuteNonQuery();
+
+                return rowsAffected > 0;
+            }
+            catch (Exception ex)
+            {
+                throw new Exception("Error updating user group: " + ex.Message);
+            }
+            finally
+            {
+                con?.Close();
+            }
+        }
 
         public bool DeleteUser(int userId)
         {
@@ -348,6 +423,112 @@ namespace CommunicationServer.DAL
                 con?.Close();
             }
         }
+        public void AddRadioChannel(RadioChannel channel)
+        {
+            SqlConnection con = null;
+            try
+            {
+                con = Connect("myProjDB");
+
+                Dictionary<string, object> parameters = new Dictionary<string, object>
+        {
+            { "@Name", channel.Name },
+            { "@Frequency", channel.Frequency },
+            { "@Status", "Active" },
+            { "@Mode", channel.Mode },
+            { "@ChannelState", "Idle" }
+        };
+
+                SqlCommand cmd = CreateCommandWithStoredProcedure("sp_AddRadioChannel", con, parameters);
+                cmd.ExecuteNonQuery();
+            }
+            catch (Exception ex)
+            {
+                throw new Exception("Error adding radio channel: " + ex.Message);
+            }
+            finally
+            {
+                con?.Close();
+            }
+        }
+        public void DeleteRadioChannel(int channelId)
+        {
+            SqlConnection con = null;
+            try
+            {
+                con = Connect("myProjDB");
+
+                Dictionary<string, object> parameters = new Dictionary<string, object>
+        {
+            { "@ChannelId", channelId }
+        };
+
+                SqlCommand cmd = CreateCommandWithStoredProcedure("sp_DeleteRadioChannel", con, parameters);
+                cmd.ExecuteNonQuery();
+            }
+            catch (Exception ex)
+            {
+                throw new Exception("Error deleting radio channel: " + ex.Message);
+            }
+            finally
+            {
+                con?.Close();
+            }
+        }
+        public void AddUserChannel(int userId, int channelId)
+        {
+            SqlConnection con = null;
+            try
+            {
+                con = Connect("myProjDB");
+
+                Dictionary<string, object> parameters = new Dictionary<string, object>
+        {
+            { "@UserId", userId },
+            { "@ChannelId", channelId }
+        };
+
+                SqlCommand cmd = CreateCommandWithStoredProcedure("sp_AddUserChannel", con, parameters);
+                cmd.ExecuteNonQuery();
+            }
+            catch (Exception ex)
+            {
+                throw new Exception("Error adding user channel: " + ex.Message);
+            }
+            finally
+            {
+                con?.Close();
+            }
+        }
+        public void RemoveUserChannel(int userId, int channelId)
+        {
+            SqlConnection con = null;
+            try
+            {
+                con = Connect("myProjDB");
+
+                Dictionary<string, object> parameters = new Dictionary<string, object>
+        {
+            { "@UserId", userId },
+            { "@ChannelId", channelId }
+        };
+
+                SqlCommand cmd = CreateCommandWithStoredProcedure("sp_RemoveUserChannel", con, parameters);
+                cmd.ExecuteNonQuery();
+            }
+            catch (Exception ex)
+            {
+                throw new Exception("Error removing user channel: " + ex.Message);
+            }
+            finally
+            {
+                con?.Close();
+            }
+        }
+
+
+
+
 
     }
 }

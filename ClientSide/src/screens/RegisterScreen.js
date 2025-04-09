@@ -17,10 +17,16 @@ const RegisterScreen = ({onRegister, onNavigateToLogin}) => {
   const [confirmPassword, setConfirmPassword] = useState('');
   const [email, setEmail] = useState('');
   const [error, setError] = useState('');
-
+  const [group, setGroup] = useState('');
   const validateForm = () => {
     // Required fields check
-    if (!username || !password || !confirmPassword || !email) {
+    if (
+      !username ||
+      !password ||
+      !confirmPassword ||
+      !email ||
+      !group
+    ) {
       setError('Please fill in all fields');
       return false;
     }
@@ -78,7 +84,7 @@ const RegisterScreen = ({onRegister, onNavigateToLogin}) => {
 
     try {
       // Call the register function passed from parent
-      const result = await onRegister(username, password, email);
+      const result = await onRegister(username, password, email, group);
 
       // Check if result exists before accessing its properties
       if (result && !result.success) {
@@ -114,7 +120,7 @@ const RegisterScreen = ({onRegister, onNavigateToLogin}) => {
     if (strength < 4) return {text: 'Medium', color: '#faad14'};
     return {text: 'Strong', color: '#52c41a'};
   };
-
+  const letters = ['A', 'B', 'C', 'D', 'E', 'F'];
   const passwordStrength = getPasswordStrength();
 
   return (
@@ -193,6 +199,26 @@ const RegisterScreen = ({onRegister, onNavigateToLogin}) => {
               <Text style={styles.requirementItem}>
                 • One special character
               </Text>
+            </View>
+            <Text style={styles.label}>Select Group</Text>
+            <View style={styles.letterContainer}>
+              {letters.map(letter => (
+                <TouchableOpacity
+                  key={letter}
+                  style={[
+                    styles.letterButton,
+                    group === letter && styles.letterButtonSelected,
+                  ]}
+                  onPress={() => setGroup(letter)}>
+                  <Text
+                    style={[
+                      styles.letterText,
+                      group === letter && styles.letterTextSelected,
+                    ]}>
+                    {letter}
+                  </Text>
+                </TouchableOpacity>
+              ))}
             </View>
 
             <TouchableOpacity style={styles.button} onPress={handleRegister}>
@@ -307,6 +333,41 @@ const styles = StyleSheet.create({
   errorText: {
     color: '#ff6b6b',
     marginBottom: 10,
+  },
+  label: {
+    color: '#fff',
+    fontSize: 16,
+    alignSelf: 'center',
+    marginBottom: 10,
+    marginTop: 15,
+  },
+  letterContainer: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    width: '100%',
+    marginBottom: 15,
+  },
+  letterButton: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    backgroundColor: '#333',
+    justifyContent: 'center',
+    alignItems: 'center',
+    borderWidth: 1,
+    borderColor: '#555',
+  },
+  letterButtonSelected: {
+    backgroundColor: '#0066cc',
+    borderColor: '#0066cc',
+  },
+  letterText: {
+    color: '#fff',
+    fontSize: 18,
+    fontWeight: 'bold',
+  },
+  letterTextSelected: {
+    color: '#fff',
   },
 });
 

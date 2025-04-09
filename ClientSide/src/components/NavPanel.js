@@ -1,15 +1,22 @@
 import React, {useEffect, useRef} from 'react';
-import {Animated, Dimensions} from 'react-native';
+import {Alert, Animated, Dimensions} from 'react-native';
 import NavButton from './NavButton';
 import {useSettings} from '../context/SettingsContext';
+import {useAuth} from '../context/AuthContext';
 
 const {width, height} = Dimensions.get('window');
 const NAV_PANEL_WIDTH = width * 0.08;
 const NAV_PANEL_HEIGHT = height * 0.95;
 
-const NavPanel = ({ activeNav, handleNavigation, darkMode }) => {
-  const { toolBarAdjustment, controlBarAdjustment } = useSettings();
-  const positionX = useRef(new Animated.Value(toolBarAdjustment ? width - NAV_PANEL_WIDTH : -NAV_PANEL_WIDTH)).current;
+const NavPanel = ({activeNav, handleNavigation, darkMode}) => {
+  const {toolBarAdjustment, controlBarAdjustment} = useSettings();
+  const positionX = useRef(
+    new Animated.Value(
+      toolBarAdjustment ? width - NAV_PANEL_WIDTH : -NAV_PANEL_WIDTH,
+    ),
+  ).current;
+
+  const {user} = useAuth();
 
   const navPanelStyle = {
     bottom: controlBarAdjustment ? -height * 0.1 : 0,
@@ -35,7 +42,7 @@ const NavPanel = ({ activeNav, handleNavigation, darkMode }) => {
           backgroundColor,
           alignItems: 'center',
           justifyContent: 'space-around',
-          transform: [{ translateX: positionX }],
+          transform: [{translateX: positionX}],
         },
         navPanelStyle,
       ]}>
@@ -44,18 +51,43 @@ const NavPanel = ({ activeNav, handleNavigation, darkMode }) => {
         {title: 'Groups', icon: '👥', screen: 'Groups'},
         {title: 'Intercoms', icon: '🔊', screen: 'Intercoms'},
         {title: 'PAS', icon: '📢', screen: 'Pas'},
-        {title: 'More Radios', icon: '📻', screen: 'ChannelConfig'},
-        {title: 'Relay', icon: '🔄', screen: 'Relay'},
+        {
+          title: 'More Radios',
+          icon: '📻',
+          screen: 'ChannelConfig',
+          roles: ['Technician', 'Admin'],
+        },
+        {
+          title: 'Admin Panel',
+          icon: '👥',
+          screen: 'UserManagement',
+          roles: ['Admin'],
+        },
+
         {title: 'Control', icon: '🎛️', screen: 'Control'},
-      ].map(({title, icon, screen}) => (
-        <NavButton
-          title={title}
-          icon={icon}
-          onPress={() => handleNavigation(screen)}
-          isActive={activeNav === screen}
-          darkMode={darkMode}
-        />
-      ))}
+      ].map(({title, icon, screen, roles}) => {
+        const allowed = !roles || roles.includes(user?.role);
+
+        return (
+          <NavButton
+            key={screen}
+            title={title}
+            icon={icon}
+            onPress={() => {
+              if (allowed) {
+                handleNavigation(screen);
+              } else {
+                Alert.alert(
+                  'Access Denied',
+                  'You are not authorized to access this section.',
+                );
+              }
+            }}
+            isActive={activeNav === screen}
+            darkMode={darkMode}
+          />
+        );
+      })}
     </Animated.View>
   );
 };

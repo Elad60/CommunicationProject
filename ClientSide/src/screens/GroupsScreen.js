@@ -1,99 +1,124 @@
-import React from 'react';
+// src/screens/GroupsScreen.js
+import React, { useState, useEffect } from 'react';
 import {
   View,
   Text,
   StyleSheet,
-  FlatList,
+  ScrollView,
   TouchableOpacity,
+  ActivityIndicator,
 } from 'react-native';
 import AppLayout from '../components/AppLayout';
-import { useSettings } from '../context/SettingsContext'; 
-
-const groupsData = [
-  { id: 1, name: 'Command Group', members: ['HF 1', 'UHF 1', 'H-VHF 1'] },
-  { id: 2, name: 'Field Team', members: ['HF 2', 'UHF 2', 'H-VHF 2'] },
-  { id: 3, name: 'Support Team', members: ['HF 3', 'UHF 3'] },
-  { id: 4, name: 'Operations', members: ['HF 4', 'UHF 4'] },
-  { id: 5, name: 'Tactical Group', members: ['HF 5', 'UHF 5'] },
-];
+import { useAuth } from '../context/AuthContext';
+import { groupUsersApi } from '../utils/apiService';
 
 const GroupsScreen = ({ navigation }) => {
-  const { darkMode } = useSettings(); 
+  const { user, changeGroup } = useAuth();
+  const [groupUsers, setGroupUsers] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
+  const letters = ['A', 'B', 'C', 'D', 'E', 'F'];
 
-  const renderGroupItem = ({ item }) => (
-    <TouchableOpacity
-      style={[
-        styles.groupItem,
-        {
-          backgroundColor: darkMode ? '#1E1E1E' : '#f2f2f2',
-          borderLeftColor: '#0066cc',
-        },
-      ]}
-    >
-      <Text style={[styles.groupName, { color: darkMode ? '#fff' : '#000' }]}>
-        {item.name}
-      </Text>
-      <Text style={[styles.groupMembers, { color: darkMode ? '#aaa' : '#333' }]}>
-        Members: {item.members.join(', ')}
-      </Text>
-    </TouchableOpacity>
-  );
+  // שליפת משתמשים מהקבוצה
+  const fetchGroupUsers = async () => {
+    try {
+      setLoading(true);
+      const groupName = user?.group;
+      if (!groupName) throw new Error('Group not found');
+
+      const users = await groupUsersApi.getUsersByGroup(groupName);
+      setGroupUsers(users);
+      setError(null);
+    } catch (err) {
+      console.error('Error fetching group users:', err);
+      setError('Failed to load group users.');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  // מאזין לשינוי בקבוצה
+  useEffect(() => {
+    if (user?.group) {
+      fetchGroupUsers();
+    }
+  }, [user?.group]);
+
+  // שינוי קבוצה
+  const handleGroupChange = (newGroup) => {
+    changeGroup(newGroup);
+  };
+
+  if (loading) {
+    return (
+      <AppLayout navigation={navigation} title={`Group: ${user?.group}`}>
+        <View style={styles.centerContainer}>
+          <ActivityIndicator size="large" color="#0000ff" />
+          <Text style={styles.loadingText}>Loading users...</Text>
+        </View>
+      </AppLayout>
+    );
+  }
 
   return (
-    <AppLayout navigation={navigation} title="Radio Groups">
-      <View
-        style={[
-          styles.container,
-          { backgroundColor: darkMode ? '#121212' : '#fff' },
-        ]}
-      >
-        <Text
-          style={[
-            styles.sectionTitle,
-            { color: darkMode ? '#fff' : '#000' },
-          ]}
-        >
-          Available Groups
-        </Text>
-        <FlatList
-          data={groupsData}
-          renderItem={renderGroupItem}
-          keyExtractor={(item) => item.id.toString()}
-          contentContainerStyle={styles.list}
-        />
-      </View>
+    <AppLayout navigation={navigation} title={`Group: ${user?.group}`}>
+      <ScrollView style={styles.scrollView}>
+        <View style={styles.mainGrid}>
+          {groupUsers.map((user) => (
+            <TouchableOpacity key={user.id} style={styles.userCard}>
+              <Text style={styles.username}>{user.username}</Text>
+              <Text style={styles.email}>{user.email}</Text>
+              <Text style={styles.role}>Role: {user.role}</Text>
+            </TouchableOpacity>
+          ))}
+        </View>
+        
+        <Text style={styles.label}>Change Your Group:</Text>
+        <View style={styles.letterContainer}>
+          {letters.map((letter) => (
+            <TouchableOpacity
+              key={letter}
+              style={[
+                styles.letterButton,
+                user?.group === letter && styles.letterButtonSelected,
+              ]}
+              onPress={() => handleGroupChange(letter)}
+            >
+              <Text style={styles.letterText}>{letter}</Text>
+            </TouchableOpacity>
+          ))}
+        </View>
+      </ScrollView>
     </AppLayout>
   );
 };
 
 const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    padding: 10,
-  },
-  sectionTitle: {
-    fontSize: 18,
-    fontWeight: 'bold',
-    marginVertical: 10,
-    marginLeft: 5,
-  },
-  list: {
-    paddingBottom: 20,
-  },
-  groupItem: {
+  scrollView: { flex: 1 },
+  mainGrid: { flexDirection: 'row', flexWrap: 'wrap', padding: 5 },
+  userCard: {
+    backgroundColor: '#1E1E1E',
     borderRadius: 8,
     padding: 15,
-    marginVertical: 5,
-    borderLeftWidth: 4,
+    margin: 5,
   },
-  groupName: {
-    fontSize: 16,
-    fontWeight: 'bold',
-    marginBottom: 5,
+  username: { fontSize: 18, color: '#fff' },
+  email: { fontSize: 14, color: '#aaa' },
+  role: { fontSize: 14, color: '#00ccff' },
+  label: { fontSize: 18, color: '#fff', margin: 10, textAlign: 'center' },
+  letterContainer: { flexDirection: 'row', justifyContent: 'center' },
+  letterButton: {
+    backgroundColor: '#333',
+    padding: 10,
+    margin: 5,
+    borderRadius: 5,
   },
-  groupMembers: {
-    fontSize: 14,
+  letterButtonSelected: {
+    backgroundColor: '#0066cc',
   },
+  letterText: { color: '#fff', fontSize: 18 },
+  centerContainer: { flex: 1, justifyContent: 'center', alignItems: 'center' },
+  loadingText: { color: '#fff' },
 });
 
 export default GroupsScreen;

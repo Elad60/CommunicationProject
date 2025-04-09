@@ -11,19 +11,25 @@ import {
 } from 'react-native';
 import AppLayout from '../components/AppLayout';
 import {adminApi} from '../utils/apiService';
+import {useAuth} from '../context/AuthContext';
 
 const UserManagementScreen = ({navigation}) => {
   const [users, setUsers] = useState([]);
   const [filteredUsers, setFilteredUsers] = useState([]);
   const [searchQuery, setSearchQuery] = useState('');
   const [loading, setLoading] = useState(true);
+  const {user: currentUser} = useAuth();
 
   const loadUsers = async () => {
     try {
       setLoading(true);
       const data = await adminApi.getAllUsers();
-      setUsers(data);
-      setFilteredUsers(data);
+
+      // Exclude the logged-in user
+      const filtered = data.filter(u => u.id !== currentUser?.id);
+
+      setUsers(filtered);
+      setFilteredUsers(filtered);
     } catch (err) {
       console.error('Error loading users:', err);
       Alert.alert('Error', 'Failed to load users.');
@@ -31,7 +37,7 @@ const UserManagementScreen = ({navigation}) => {
       setLoading(false);
     }
   };
-
+  
   useEffect(() => {
     loadUsers();
   }, []);
