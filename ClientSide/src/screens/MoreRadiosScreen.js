@@ -11,9 +11,11 @@ import {
 import {useAuth} from '../context/AuthContext';
 import AppLayout from '../components/AppLayout';
 import {radioChannelsApi} from '../utils/apiService';
+import { useSettings } from '../context/SettingsContext';
 
 const MoreRadiosScreen = ({navigation}) => {
   const {user} = useAuth();
+  const {darkMode} = useSettings();
   const [channels, setChannels] = useState([]);
   const [filteredChannels, setFilteredChannels] = useState([]);
   const [search, setSearch] = useState('');
@@ -84,6 +86,7 @@ const MoreRadiosScreen = ({navigation}) => {
     );
     setFilteredChannels(filtered);
   }, [search, channels]);
+  const styles = getStyles(darkMode);
 
   return (
     <AppLayout navigation={navigation} title="More Radios">
@@ -153,78 +156,79 @@ const MoreRadiosScreen = ({navigation}) => {
   );
 };
 
-const styles = StyleSheet.create({
-  container: {
-    padding: 20,
-    alignItems: 'center',
-  },
-  sectionCard: {
-    backgroundColor: '#2a2a2a',
-    padding: 15,
-    borderRadius: 10,
-    marginBottom: 25,
-    width: '100%',
-    borderWidth: 1,
-    borderColor: '#444',
-  },
-  title: {
-    color: '#fff',
-    fontSize: 20,
-    fontWeight: 'bold',
-    marginBottom: 15,
-  },
-  input: {
-    backgroundColor: '#222',
-    color: '#fff',
-    padding: 10,
-    marginBottom: 10,
-    borderRadius: 8,
-    width: '100%',
-    borderWidth: 1,
-    borderColor: '#444',
-  },
-  button: {
-    backgroundColor: '#0066cc',
-    padding: 12,
-    borderRadius: 5,
-    alignItems: 'center',
-    marginTop: 5,
-    marginBottom: 10,
-  },
-  buttonText: {
-    color: '#fff',
-    fontWeight: 'bold',
-  },
-  channelRow: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    backgroundColor: '#1e1e1e',
-    padding: 12,
-    borderRadius: 8,
-    marginBottom: 10,
-    borderWidth: 1,
-    borderColor: '#333',
-  },
-  channelName: {
-    color: '#fff',
-    fontSize: 16,
-    fontWeight: 'bold',
-  },
-  channelDetails: {
-    color: '#ccc',
-    fontSize: 13,
-  },
-  deleteText: {
-    color: '#ff4d4d',
-    fontSize: 20,
-  },
-  noResultsText: {
-    color: '#888',
-    fontStyle: 'italic',
-    marginTop: 10,
-    textAlign: 'center',
-  },
-});
+const getStyles = (darkMode) =>
+  StyleSheet.create({
+    container: {
+      padding: 20,
+      alignItems: 'center',
+    },
+    sectionCard: {
+      backgroundColor: darkMode ? '#2a2a2a' : '#f0f0f0',
+      padding: 15,
+      borderRadius: 10,
+      marginBottom: 25,
+      width: '100%',
+      borderWidth: 1,
+      borderColor: darkMode ? '#444' : '#ccc',
+    },
+    title: {
+      color: darkMode ? '#fff' : '#000',
+      fontSize: 20,
+      fontWeight: 'bold',
+      marginBottom: 15,
+    },
+    input: {
+      backgroundColor: darkMode ? '#222' : '#fff',
+      color: darkMode ? '#fff' : '#000',
+      padding: 10,
+      marginBottom: 10,
+      borderRadius: 8,
+      width: '100%',
+      borderWidth: 1,
+      borderColor: darkMode ? '#444' : '#ccc',
+    },
+    button: {
+      backgroundColor: darkMode ? '#0066cc' : '#91aad4',
+      padding: 12,
+      borderRadius: 5,
+      alignItems: 'center',
+      marginTop: 5,
+      marginBottom: 10,
+    },
+    buttonText: {
+      color: darkMode ? '#fff' : '#000',
+      fontWeight: 'bold',
+    },
+    channelRow: {
+      flexDirection: 'row',
+      justifyContent: 'space-between',
+      alignItems: 'center',
+      backgroundColor: darkMode ? '#1e1e1e' : '#e0e0e0',
+      padding: 12,
+      borderRadius: 8,
+      marginBottom: 10,
+      borderWidth: 1,
+      borderColor: darkMode ? '#333' : '#bbb',
+    },
+    channelName: {
+      color: darkMode ? '#fff' : '#000',
+      fontSize: 16,
+      fontWeight: 'bold',
+    },
+    channelDetails: {
+      color: darkMode ? '#ccc' : '#444',
+      fontSize: 13,
+    },
+    deleteText: {
+      color: '#ff4d4d',
+      fontSize: 20,
+    },
+    noResultsText: {
+      color: darkMode ? '#888' : '#666',
+      fontStyle: 'italic',
+      marginTop: 10,
+      textAlign: 'center',
+    },
+  });
 
 export default MoreRadiosScreen;

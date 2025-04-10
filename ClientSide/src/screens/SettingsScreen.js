@@ -40,19 +40,23 @@ const SettingsScreen = ({ navigation }) => {
     });
   };
 
+  const textColor = darkMode ? '#fff' : '#000';
+  const buttonColor = darkMode ? '#0066cc' : '#91aad4';
+
   const renderSettingItem = (label, key, value, onToggle) => (
     <View style={styles.settingItem}>
-      <Text style={[styles.settingLabel, { color: darkMode ? '#fff' : '#000' }]}>{label}</Text>
+      <Text style={[styles.settingLabel, { color: textColor }]}>{label}</Text>
       <Switch
-        trackColor={{ false: '#767577', true: '#0066cc' }}
+        trackColor={{
+            false: darkMode ? '#444' : '#767577', 
+            true: buttonColor, 
+        }}
         thumbColor={darkMode ? '#fff' : '#000'}
         onValueChange={onToggle}
         value={value}
       />
     </View>
   );
-
-  const textColor = darkMode ? '#fff' : '#000';
 
   return (
     <AppLayout navigation={navigation} title="Settings">
@@ -83,16 +87,16 @@ const SettingsScreen = ({ navigation }) => {
 
           <View style={styles.section}>
             <Text style={[styles.sectionTitle, { color: textColor }]}>System</Text>
-            <TouchableOpacity style={styles.button}>
-              <Text style={styles.buttonText}>Reset All Settings</Text>
+            <TouchableOpacity style={[styles.button, { backgroundColor: buttonColor }]}>
+              <Text style={[styles.buttonText, { color: textColor }]}>Reset All Settings</Text>
             </TouchableOpacity>
 
-            <TouchableOpacity style={styles.button}>
-              <Text style={styles.buttonText}>Clear Saved Transmissions</Text>
+            <TouchableOpacity style={[styles.button, { backgroundColor: buttonColor }]}>
+              <Text style={[styles.buttonText, { color: textColor }]}>Clear Saved Transmissions</Text>
             </TouchableOpacity>
 
-            <TouchableOpacity style={styles.button}>
-              <Text style={styles.buttonText}>Check for Updates</Text>
+            <TouchableOpacity style={[styles.button, { backgroundColor: buttonColor }]}>
+              <Text style={[styles.buttonText, { color: textColor }]}>Check for Updates</Text>
             </TouchableOpacity>
           </View>
 
@@ -135,14 +139,12 @@ const styles = StyleSheet.create({
     fontSize: 16,
   },
   button: {
-    backgroundColor: '#0066cc',
     padding: 12,
     borderRadius: 5,
     marginVertical: 8,
     alignItems: 'center',
   },
   buttonText: {
-    color: '#fff',
     fontSize: 16,
     fontWeight: '500',
   },

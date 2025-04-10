@@ -10,35 +10,19 @@ const RadioChannel = ({
   isSelected,
   channelState,
 }) => {
-  const { darkMode } = useSettings(); // Access dark mode from context
-
-  // Determine background color based on channel state and darkMode
+  const { darkMode } = useSettings();
   const getBackgroundColor = () => {
-    if (!isActive) {
-      return darkMode ? '#222' : '#ddd'; // Not active: adjust based on theme
-    }
-
-    if (isSelected) {
-      return '#555';
-    }
-
     switch (channelState) {
       case 'ListenOnly':
-        return '#1f3d1f'; // subtle green
+        return darkMode ? '#1f3d1f' : '#99cc99'; //  green
       case 'ListenAndTalk':
-        return '#1e2f4d'; // subtle blue
+        return darkMode ? '#1e2f4d' : '#91aad4'; //  blue
       case 'Idle':
       default:
-        return darkMode ? '#222' : '#ddd'; // fallback
+        return  darkMode ? '#222' : '#ddd'; // default 
     }
   };
 
-  // Set text color based on dark mode
-  const getTextColor = () => {
-    return darkMode ? '#fff' : '#000';
-  };
-
-  // Get icons based on channel state
   const getIconPaths = () => {
     switch (channelState) {
       case 'Idle':
@@ -68,13 +52,10 @@ const RadioChannel = ({
 
   return (
     <View style={[styles.container, {backgroundColor: getBackgroundColor()}]}>
-      <Text style={[styles.name, {color: getTextColor()}]}>{name}</Text>
-      <Text style={[styles.frequency, {color: getTextColor()}]}>{frequency}</Text>
-      <Text style={[styles.status, {color: getTextColor()}]}>
-        {isActive ? 'Active' : 'Not used'}
-      </Text>
-
-      <View style={styles.iconContainer}>
+      <Text style={[styles.name, { color: darkMode ? '#fff' : '#000' }]}>{name}</Text>
+      <Text style={[styles.frequency, { color: darkMode ? '#fff' : '#000' }]}>{frequency}</Text>
+      <Text style={[styles.status, { color: darkMode ? '#fff' : '#000' }]}>{isActive ? 'Active' : 'Not used'}</Text>
+    <View style={styles.iconContainer}>
         <Image source={headphones} style={styles.iconImage} />
         <View
           style={[

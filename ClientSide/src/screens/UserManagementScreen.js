@@ -12,8 +12,10 @@ import {
 import AppLayout from '../components/AppLayout';
 import {adminApi} from '../utils/apiService';
 import {useAuth} from '../context/AuthContext';
+import { useSettings } from '../context/SettingsContext';
 
 const UserManagementScreen = ({navigation}) => {
+  const {darkMode} = useSettings();
   const [users, setUsers] = useState([]);
   const [filteredUsers, setFilteredUsers] = useState([]);
   const [searchQuery, setSearchQuery] = useState('');
@@ -97,6 +99,7 @@ const UserManagementScreen = ({navigation}) => {
       ],
     );
   };
+  const styles = getStyles(darkMode);
 
   return (
     <AppLayout navigation={navigation} title="User Management">
@@ -159,59 +162,60 @@ const UserManagementScreen = ({navigation}) => {
   );
 };
 
-const styles = StyleSheet.create({
-  searchInput: {
-    backgroundColor: '#2a2a2a',
-    color: '#fff',
-    padding: 10,
-    margin: 10,
-    borderRadius: 8,
-    borderWidth: 1,
-    borderColor: '#555',
-  },
-  userCard: {
-    backgroundColor: '#1e1e1e',
-    marginHorizontal: 10,
-    marginVertical: 5,
-    padding: 15,
-    borderRadius: 10,
-    borderColor: '#444',
-    borderWidth: 1,
-  },
-  username: {
-    fontSize: 18,
-    fontWeight: 'bold',
-    color: '#fff',
-  },
-  details: {
-    fontSize: 14,
-    color: '#ccc',
-    marginVertical: 2,
-  },
-  buttonRow: {
-    flexDirection: 'row',
-    marginTop: 10,
-    justifyContent: 'space-between',
-  },
-  button: {
-    backgroundColor: '#0066cc',
-    padding: 8,
-    borderRadius: 5,
-    flex: 1,
-    marginRight: 5,
-  },
-  deleteButton: {
-    backgroundColor: '#cc0000',
-    padding: 8,
-    borderRadius: 5,
-    flex: 1,
-    marginLeft: 5,
-  },
-  buttonText: {
-    color: '#fff',
-    fontSize: 13,
-    textAlign: 'center',
-  },
-});
+const getStyles = (darkMode) =>
+  StyleSheet.create({
+    searchInput: {
+      backgroundColor: darkMode ? '#2a2a2a' : '#fff',
+      color: darkMode ? '#fff' : '#000',
+      padding: 10,
+      margin: 10,
+      borderRadius: 8,
+      borderWidth: 1,
+      borderColor: darkMode ? '#555' : '#ccc',
+    },
+    userCard: {
+      backgroundColor: darkMode ? '#1e1e1e' : '#f0f0f0',
+      marginHorizontal: 10,
+      marginVertical: 5,
+      padding: 15,
+      borderRadius: 10,
+      borderColor: darkMode ? '#444' : '#ddd',
+      borderWidth: 1,
+    },
+    username: {
+      fontSize: 18,
+      fontWeight: 'bold',
+      color: darkMode ? '#fff' : '#000',
+    },
+    details: {
+      fontSize: 14,
+      color: darkMode ? '#ccc' : '#555',
+      marginVertical: 2,
+    },
+    buttonRow: {
+      flexDirection: 'row',
+      marginTop: 10,
+      justifyContent: 'space-between',
+    },
+    button: {
+      backgroundColor: darkMode ? '#0066cc' : '#91aad4',
+      padding: 8,
+      borderRadius: 5,
+      flex: 1,
+      marginRight: 5,
+    },
+    deleteButton: {
+      backgroundColor: darkMode ?'#cc0000' : '#ff6666',
+      padding: 8,
+      borderRadius: 5,
+      flex: 1,
+      marginLeft: 5,
+    },
+    buttonText: {
+      color: darkMode ? '#fff' : '#000',
+      fontSize: 13,
+      textAlign: 'center',
+    },
+  });
 
 export default UserManagementScreen;
