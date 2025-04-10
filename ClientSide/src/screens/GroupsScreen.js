@@ -42,6 +42,7 @@ const GroupsScreen = ({ navigation }) => {
     if (user?.group) {
       fetchGroupUsers();
     }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [user?.group]);
 
   // שינוי קבוצה
