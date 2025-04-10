@@ -215,6 +215,7 @@ namespace CommunicationServer.DAL
                         Email = reader["Email"].ToString(),
                         Role = reader["Role"].ToString(),
                         Group = Convert.ToChar(reader["Group"]),
+                        IsActive = Convert.ToBoolean(reader["IsActive"])
                     };
                 }
 
@@ -230,6 +231,7 @@ namespace CommunicationServer.DAL
                 con?.Close();
             }
         }
+
 
         public List<User> GetAllUsers()
         {
@@ -252,7 +254,9 @@ namespace CommunicationServer.DAL
                         Role = reader["Role"].ToString(),
                         CreatedAt = Convert.ToDateTime(reader["CreatedAt"]),
                         IsBlocked = Convert.ToBoolean(reader["IsBlocked"]),
-                        Group = Convert.ToChar(reader["Group"])
+                        Group = Convert.ToChar(reader["Group"]),
+                        IsActive = Convert.ToBoolean(reader["IsActive"]) 
+
                     });
                 }
 
@@ -296,6 +300,36 @@ namespace CommunicationServer.DAL
                 con?.Close();
             }
         }
+
+        public bool LogoutUser(int userId)
+        {
+            SqlConnection con = null;
+            try
+            {
+                con = Connect("myProjDB");
+
+                var parameters = new Dictionary<string, object>
+        {
+            { "@UserId", userId }
+        };
+
+                SqlCommand cmd = CreateCommandWithStoredProcedure("sp_LogoutUser", con, parameters);
+                cmd.ExecuteNonQuery();
+
+                return true; // לא נבדוק rowsAffected, כי זה עלול להיות 0 גם אם הצליח
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine("Logout error: " + ex.Message);
+                return false;
+            }
+            finally
+            {
+                con?.Close();
+            }
+        }
+
+
         public bool UpdateUserRole(int userId, string newRole)
         {
             SqlConnection con = null;

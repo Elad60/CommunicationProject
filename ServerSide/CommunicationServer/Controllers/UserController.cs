@@ -32,6 +32,18 @@ namespace CommunicationServer.Controllers
             else
                 return Unauthorized(new { success = false, message = "Invalid username or password" });
         }
+        [HttpPost("logout/{userId}")]
+        public IActionResult Logout(int userId)
+        {
+            DBServices db = new DBServices();
+            bool success = db.LogoutUser(userId);
+
+            if (success)
+                return Ok(new { success = true, message = "User logged out successfully." });
+            else
+                return BadRequest(new { success = false, message = "Logout failed." });
+        }
+
         [HttpGet("all")]
         public IActionResult GetAllUsers()
         {
