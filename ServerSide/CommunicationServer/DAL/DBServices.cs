@@ -221,10 +221,13 @@ namespace CommunicationServer.DAL
 
                 return null;
             }
-            catch (Exception ex)
+            catch (SqlException ex)
             {
-                Console.WriteLine("Login error: " + ex.Message);
-                return null;
+                // אם המשתמש כבר מחובר — נזהה לפי הודעת השגיאה
+                if (ex.Message.Contains("User already logged in"))
+                    throw new Exception("User already logged in on another device.");
+                else
+                    throw new Exception("Login failed: " + ex.Message);
             }
             finally
             {

@@ -56,6 +56,11 @@ const authApi = {
     });
     return response.data;
   },
+  
+  logout: async userId => {
+    const response = await api.post(`/user/logout/${userId}`);
+    return response.data;
+  },
 
   register: async (username, password, email,group) => {
     const response = await api.post(

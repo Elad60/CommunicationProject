@@ -23,6 +23,7 @@ const NavPanel = ({ activeNav, handleNavigation, darkMode }) => {
       toValue: toolBarAdjustment ? width - NAV_PANEL_WIDTH : -NAV_PANEL_WIDTH,
       useNativeDriver: false,
     }).start();
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [toolBarAdjustment]);
 
   return (
