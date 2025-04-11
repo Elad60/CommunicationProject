@@ -106,6 +106,23 @@ const adminApi = {
   },
 };
 
+// 📢 Announcements API
+const announcementsApi = {
+  getAll: async () => {
+    const response = await api.get('/Announcement/announcements');
+    return response.data;
+  },
+
+  add: async (title, content, userName) => {
+    const response = await api.post('/Announcement/announcement', {
+      title,
+      content,
+      userName,
+    });
+    return response.data;
+  },
+};
+
 // 👫 Group Users API
 const groupUsersApi = {
   getUsersByGroup: async groupName => {
@@ -126,4 +143,4 @@ const groupUsersApi = {
 };
 
 
-export {radioChannelsApi, authApi, adminApi, groupUsersApi};
+export {radioChannelsApi, authApi, adminApi, groupUsersApi, announcementsApi};

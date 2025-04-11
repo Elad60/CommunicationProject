@@ -563,7 +563,71 @@ namespace CommunicationServer.DAL
             }
         }
 
+        //announcements
 
+        public bool AddAnnouncement(string title, string content, string userName)
+        {
+            SqlConnection con = null;
+            try
+            {
+                con = Connect("myProjDB");
+                var parameters = new Dictionary<string, object>
+        {
+            { "@Title", title },
+            { "@Content", content },
+            { "@UserName", userName }
+        };
+
+                SqlCommand cmd = CreateCommandWithStoredProcedure("sp_AddAnnouncement", con, parameters);
+                cmd.ExecuteNonQuery();
+                return true;
+            }
+            catch (Exception ex)
+            {
+                throw new Exception("Error adding announcement: " + ex.Message);
+            }
+            finally
+            {
+                con?.Close();
+            }
+        }
+
+        public List<Announcement> GetAllAnnouncements()
+        {
+            SqlConnection con = null;
+            List<Announcement> announcements = new List<Announcement>();
+
+            try
+            {
+                con = Connect("myProjDB");
+                SqlCommand cmd = CreateCommandWithStoredProcedure("sp_GetAllAnnouncements", con, null);
+                SqlDataReader reader = cmd.ExecuteReader();
+
+                while (reader.Read())
+                {
+                    announcements.Add(new Announcement
+                    {
+                        Id = Convert.ToInt32(reader["Id"]),
+                        Title = reader["Title"].ToString(),
+                        Content = reader["Content"].ToString(),
+                        UserName = reader["UserName"].ToString(),
+                        CreatedAt = Convert.ToDateTime(reader["CreatedAt"])
+                    });
+                }
+
+                reader.Close();
+            }
+            catch (Exception ex)
+            {
+                throw new Exception("Error fetching announcements: " + ex.Message);
+            }
+            finally
+            {
+                con?.Close();
+            }
+
+            return announcements;
+        }
 
 
 

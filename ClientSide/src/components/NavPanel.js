@@ -43,7 +43,7 @@ const NavPanel = ({ activeNav, handleNavigation, darkMode }) => {
       {[
         {title: 'Radios', icon: '📻', screen: 'Main'},
         {title: 'Groups', icon: '👥', screen: 'Groups'},
-        {title: 'Intercoms', icon: '🔊', screen: 'Intercoms'},
+        { title: 'Announcements', icon: '📋', screen: 'Announcements' },
         {title: 'PAS', icon: '📢', screen: 'Pas'},
         {title: 'More Radios', icon: '📻', screen: 'ChannelConfig'},
         {title: 'Relay', icon: '🔄', screen: 'Relay'},
