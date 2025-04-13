@@ -99,10 +99,8 @@ ScaffoldingReadMe.txt
 # Logs
 *.log
 
-# Ignore platform version and project output files
-**/windows/FinalProject/FinalProject.csproj
-**/windows/FinalProject/FinalProject.vcxproj
-**/windows/Package.appxmanifest
+# Build outputs
 **/windows/*/bin/
 **/windows/*/obj/
+
 
