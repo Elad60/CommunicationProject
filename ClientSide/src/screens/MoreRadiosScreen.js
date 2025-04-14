@@ -11,10 +11,15 @@ import {
 import {useAuth} from '../context/AuthContext';
 import AppLayout from '../components/AppLayout';
 import {radioChannelsApi} from '../utils/apiService';
+import { useSettings } from '../context/SettingsContext';
 
 const MoreRadiosScreen = ({navigation}) => {
   const {user} = useAuth();
+  const {darkMode} = useSettings();
   const [channels, setChannels] = useState([]);
+  const [filteredChannels, setFilteredChannels] = useState([]);
+  const [search, setSearch] = useState('');
+
   const [name, setName] = useState('');
   const [frequency, setFrequency] = useState('');
   const [mode, setMode] = useState('');
@@ -23,6 +28,7 @@ const MoreRadiosScreen = ({navigation}) => {
     try {
       const data = await radioChannelsApi.getAllChannels();
       setChannels(data);
+      setFilteredChannels(data);
     } catch (err) {
       Alert.alert('Error', 'Failed to load channels');
     }
@@ -67,113 +73,162 @@ const MoreRadiosScreen = ({navigation}) => {
   };
 
   useEffect(() => {
-    if (user?.role === 'Technician' || user?.role === 'Admin') {
-      loadChannels();
-    } else {
-      Alert.alert('Access Denied', 'You are not allowed here.');
-      navigation.goBack();
-    }
-  }, [navigation, user?.role]);
+    loadChannels();
+  }, []);
+
+  useEffect(() => {
+    const lowerSearch = search.toLowerCase();
+    const filtered = channels.filter(
+      c =>
+        c.name.toLowerCase().includes(lowerSearch) ||
+        c.frequency.toLowerCase().includes(lowerSearch) ||
+        c.mode.toLowerCase().includes(lowerSearch),
+    );
+    setFilteredChannels(filtered);
+  }, [search, channels]);
+  const styles = getStyles(darkMode);
 
   return (
     <AppLayout navigation={navigation} title="More Radios">
       <ScrollView contentContainerStyle={styles.container}>
-        <Text style={styles.title}>Add New Channel</Text>
-        <TextInput
-          style={styles.input}
-          placeholder="Channel Name"
-          placeholderTextColor="#aaa"
-          value={name}
-          onChangeText={setName}
-        />
-        <TextInput
-          style={styles.input}
-          placeholder="Frequency"
-          placeholderTextColor="#aaa"
-          value={frequency}
-          onChangeText={setFrequency}
-        />
-        <TextInput
-          style={styles.input}
-          placeholder="Mode"
-          placeholderTextColor="#aaa"
-          value={mode}
-          onChangeText={setMode}
-        />
-        <TouchableOpacity style={styles.button} onPress={handleAddChannel}>
-          <Text style={styles.buttonText}>Create Channel</Text>
-        </TouchableOpacity>
+        {/* Add Channel Section */}
+        <View style={styles.sectionCard}>
+          <Text style={styles.title}>Add New Channel</Text>
+          <TextInput
+            style={styles.input}
+            placeholder="🔤 Channel Name"
+            placeholderTextColor="#aaa"
+            value={name}
+            onChangeText={setName}
+          />
+          <TextInput
+            style={styles.input}
+            placeholder="📶 Frequency"
+            placeholderTextColor="#aaa"
+            value={frequency}
+            onChangeText={setFrequency}
+          />
+          <TextInput
+            style={styles.input}
+            placeholder="🛠️ Mode"
+            placeholderTextColor="#aaa"
+            value={mode}
+            onChangeText={setMode}
+          />
+          <TouchableOpacity style={styles.button} onPress={handleAddChannel}>
+            <Text style={styles.buttonText}>Create Channel</Text>
+          </TouchableOpacity>
+        </View>
 
-        <Text style={styles.title}>Existing Channels</Text>
-        {channels.map(c => (
-          <View key={c.id} style={styles.channelRow}>
-            <Text style={styles.channelText}>
-              {c.name} ({c.frequency}) - {c.mode}
+        {/* Search + List Section */}
+        <View style={styles.sectionCard}>
+          <Text style={styles.title}>Existing Channels</Text>
+          <TextInput
+            style={styles.input}
+            placeholder="🔍 Search by name / frequency / mode"
+            placeholderTextColor="#aaa"
+            value={search}
+            onChangeText={setSearch}
+          />
+
+          {filteredChannels.length === 0 && (
+            <Text style={styles.noResultsText}>
+              No matching channels found.
             </Text>
-            <TouchableOpacity onPress={() => handleDelete(c.id)}>
-              <Text style={styles.deleteText}>🗑️</Text>
-            </TouchableOpacity>
-          </View>
-        ))}
+          )}
+
+          {filteredChannels.map(c => (
+            <View key={c.id} style={styles.channelRow}>
+              <View>
+                <Text style={styles.channelName}>{c.name}</Text>
+                <Text style={styles.channelDetails}>
+                  {c.frequency} • {c.mode}
+                </Text>
+              </View>
+              <TouchableOpacity onPress={() => handleDelete(c.id)}>
+                <Text style={styles.deleteText}>🗑️</Text>
+              </TouchableOpacity>
+            </View>
+          ))}
+        </View>
       </ScrollView>
     </AppLayout>
   );
 };
 
-const styles = StyleSheet.create({
-  container: {
-    padding: 20,
-    alignItems: 'flex-start',
-  },
-  title: {
-    color: '#fff',
-    fontSize: 20,
-    fontWeight: 'bold',
-    marginVertical: 15,
-  },
-  input: {
-    backgroundColor: '#222',
-    color: '#fff',
-    padding: 10,
-    marginBottom: 10,
-    borderRadius: 8,
-    width: '85%',
-    alignSelf: 'flex-start',
-    borderWidth: 1,
-    borderColor: '#444',
-  },
-  button: {
-    backgroundColor: '#0066cc',
-    padding: 12,
-    borderRadius: 5,
-    alignItems: 'center',
-    marginBottom: 20,
-    width: '85%',
-    alignSelf: 'flex-start',
-  },
-  buttonText: {
-    color: '#fff',
-    fontWeight: 'bold',
-  },
-  channelRow: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    backgroundColor: '#1e1e1e',
-    padding: 10,
-    borderRadius: 6,
-    marginBottom: 8,
-    borderWidth: 1,
-    borderColor: '#333',
-    width: '100%',
-  },
-  channelText: {
-    color: '#fff',
-    fontSize: 14,
-  },
-  deleteText: {
-    color: '#ff4d4d',
-    fontSize: 18,
-  },
-});
+const getStyles = (darkMode) =>
+  StyleSheet.create({
+    container: {
+      padding: 20,
+      alignItems: 'center',
+    },
+    sectionCard: {
+      backgroundColor: darkMode ? '#2a2a2a' : '#f0f0f0',
+      padding: 15,
+      borderRadius: 10,
+      marginBottom: 25,
+      width: '100%',
+      borderWidth: 1,
+      borderColor: darkMode ? '#444' : '#ccc',
+    },
+    title: {
+      color: darkMode ? '#fff' : '#000',
+      fontSize: 20,
+      fontWeight: 'bold',
+      marginBottom: 15,
+    },
+    input: {
+      backgroundColor: darkMode ? '#222' : '#fff',
+      color: darkMode ? '#fff' : '#000',
+      padding: 10,
+      marginBottom: 10,
+      borderRadius: 8,
+      width: '100%',
+      borderWidth: 1,
+      borderColor: darkMode ? '#444' : '#ccc',
+    },
+    button: {
+      backgroundColor: darkMode ? '#0066cc' : '#91aad4',
+      padding: 12,
+      borderRadius: 5,
+      alignItems: 'center',
+      marginTop: 5,
+      marginBottom: 10,
+    },
+    buttonText: {
+      color: darkMode ? '#fff' : '#000',
+      fontWeight: 'bold',
+    },
+    channelRow: {
+      flexDirection: 'row',
+      justifyContent: 'space-between',
+      alignItems: 'center',
+      backgroundColor: darkMode ? '#1e1e1e' : '#e0e0e0',
+      padding: 12,
+      borderRadius: 8,
+      marginBottom: 10,
+      borderWidth: 1,
+      borderColor: darkMode ? '#333' : '#bbb',
+    },
+    channelName: {
+      color: darkMode ? '#fff' : '#000',
+      fontSize: 16,
+      fontWeight: 'bold',
+    },
+    channelDetails: {
+      color: darkMode ? '#ccc' : '#444',
+      fontSize: 13,
+    },
+    deleteText: {
+      color: '#ff4d4d',
+      fontSize: 20,
+    },
+    noResultsText: {
+      color: darkMode ? '#888' : '#666',
+      fontStyle: 'italic',
+      marginTop: 10,
+      textAlign: 'center',
+    },
+  });
 
 export default MoreRadiosScreen;

@@ -4,7 +4,8 @@ import ControlButton from './ControlButton';
 import {useSettings} from '../context/SettingsContext';
 
 const {height, width} = Dimensions.get('window');
-const CONTROL_PANEL_HEIGHT = 80;
+const CONTROL_PANEL_HEIGHT = height * 0.1;
+const CONTROL_PANEL_WIDTH = width * 0.92;
 
 const ControlPanel = ({
   speakerVolume,
@@ -47,12 +48,15 @@ const ControlPanel = ({
       style={[ 
         {
           position: 'absolute',
-          width: width,
+          width: CONTROL_PANEL_WIDTH,
           height: CONTROL_PANEL_HEIGHT,
           backgroundColor,
           flexDirection: 'row',
-          bottom: 0,
+          justifyContent: 'space-around',
+          alignItems: 'center',
+          transform: [{ translateY: position }],
         },
+        controlPanelStyle,
       ]}>
       <ControlButton
         title="Speaker"

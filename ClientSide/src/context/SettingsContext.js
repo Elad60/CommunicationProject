@@ -15,8 +15,8 @@ export const SettingsProvider = ({ children }) => {
   const [navPanelPosition, setNavPanelPosition] = useState(width - NAV_PANEL_WIDTH);
   const [controlPanelPosition, setControlPanelPosition] = useState(height - CONTROL_PANEL_HEIGHT);
   
-  // Brightness: 0.25 (dark) -> 1 (light)
-  const [brightness, setBrightness] = useState(0.25); 
+  // Brightness: 0 (dark) -> 1 (light)
+  const [brightness, setBrightness] = useState(1); 
   const [darkMode, setDarkMode] = useState(true);
   return (
     <SettingsContext.Provider

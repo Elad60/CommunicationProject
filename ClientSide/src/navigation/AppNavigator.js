@@ -65,12 +65,7 @@ const AppNavigator = () => {
           <Stack.Screen name="Pas" component={PasScreen} />
           <Stack.Screen name="Relay" component={RelayScreen} />
           <Stack.Screen name="Control" component={ControlScreen} />
-          {user?.role === 'Admin' && (
-            <Stack.Screen
-              name="UserManagement"
-              component={UserManagementScreen}
-            />
-          )}
+          <Stack.Screen name="UserManagement" component={UserManagementScreen}/>
           <Stack.Screen name="PickRadios" component={PickRadiosScreen} />
         </Stack.Navigator>
       )}

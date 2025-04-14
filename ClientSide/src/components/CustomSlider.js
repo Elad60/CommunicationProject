@@ -46,9 +46,23 @@ const CustomSlider = ({ value = 0.5, onValueChange = () => {}, label = 'Brightne
     <View style={styles.container}>
       <Text style={[styles.label, { color: darkMode ? '#fff' : '#000' }]}>{label}</Text>
       <View style={styles.trackContainer}>
-        <View style={[styles.track, { width: trackWidth }]}>
+        <View
+          style={[
+            styles.track,
+            {
+              width: trackWidth,
+              backgroundColor: darkMode ? '#0066cc' : '#91aad4', 
+            },
+          ]}
+        >
           <Animated.View
-            style={[styles.thumb, { transform: [{ translateX: animatedX }] }]}
+            style={[
+              styles.thumb,
+              {
+                transform: [{ translateX: animatedX }],
+                backgroundColor: darkMode ? '#fff' : '#000', 
+              },
+            ]}
             {...panResponder.panHandlers}
           />
         </View>

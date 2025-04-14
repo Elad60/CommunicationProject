@@ -40,7 +40,6 @@ const MainScreen = ({navigation}) => {
     if (user?.id) {
       fetchRadioChannels();
     }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [user]);
 
   const handleChannelSelect = id => {
@@ -112,16 +111,6 @@ const MainScreen = ({navigation}) => {
   return (
     <AppLayout navigation={navigation} title={user?.role}>
       <View style={styles.container}>
-        <View style={styles.headerContainer}>
-          {user?.role === 'Admin' && (
-            <TouchableOpacity
-              style={styles.adminButton}
-              onPress={() => navigation.navigate('UserManagement')}>
-              <Text style={styles.adminButtonText}>👥 Manage Users</Text>
-            </TouchableOpacity>
-          )}
-        </View>
-
         <ScrollView style={styles.scrollView}>
           <View style={styles.mainGrid}>
             {radioChannels.map(channel => (
@@ -156,13 +145,6 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
   },
-  headerContainer: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    paddingHorizontal: 10,
-    paddingVertical: 5,
-  },
   scrollView: {
     flex: 1,
   },
@@ -195,16 +177,6 @@ const styles = StyleSheet.create({
   },
   retryButtonText: {
     color: 'white',
-    fontSize: 16,
-  },
-  adminButton: {
-    backgroundColor: '#0066cc',
-    padding: 10,
-    borderRadius: 8,
-  },
-  adminButtonText: {
-    color: '#fff',
-    fontWeight: 'bold',
     fontSize: 16,
   },
   addButton: {

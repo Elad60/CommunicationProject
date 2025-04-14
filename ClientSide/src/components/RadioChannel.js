@@ -1,5 +1,6 @@
 import React from 'react';
 import {View, Text, StyleSheet, Image} from 'react-native';
+import { useSettings } from '../context/SettingsContext';
 
 const RadioChannel = ({
   name,
@@ -9,15 +10,16 @@ const RadioChannel = ({
   isSelected,
   channelState,
 }) => {
+  const { darkMode } = useSettings();
   const getBackgroundColor = () => {
     switch (channelState) {
       case 'ListenOnly':
-        return '#1f3d1f'; // subtle green
+        return darkMode ? '#1f3d1f' : '#99cc99'; //  green
       case 'ListenAndTalk':
-        return '#1e2f4d'; // subtle blue
+        return darkMode ? '#1e2f4d' : '#91aad4'; //  blue
       case 'Idle':
       default:
-        return '#222'; // default dark
+        return  darkMode ? '#222' : '#ddd'; // default 
     }
   };
 
@@ -50,11 +52,10 @@ const RadioChannel = ({
 
   return (
     <View style={[styles.container, {backgroundColor: getBackgroundColor()}]}>
-      <Text style={styles.name}>{name}</Text>
-      <Text style={styles.frequency}>{frequency}</Text>
-      <Text style={styles.status}>{isActive ? 'Active' : 'Not used'}</Text>
-
-      <View style={styles.iconContainer}>
+      <Text style={[styles.name, { color: darkMode ? '#fff' : '#000' }]}>{name}</Text>
+      <Text style={[styles.frequency, { color: darkMode ? '#fff' : '#000' }]}>{frequency}</Text>
+      <Text style={[styles.status, { color: darkMode ? '#fff' : '#000' }]}>{isActive ? 'Active' : 'Not used'}</Text>
+    <View style={styles.iconContainer}>
         <Image source={headphones} style={styles.iconImage} />
         <View
           style={[
@@ -81,18 +82,15 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   name: {
-    color: '#fff',
     fontSize: 16,
     fontWeight: 'bold',
     textAlign: 'center',
   },
   frequency: {
-    color: '#ddd',
     fontSize: 14,
     textAlign: 'center',
   },
   status: {
-    color: '#ddd',
     fontSize: 12,
     textAlign: 'center',
   },

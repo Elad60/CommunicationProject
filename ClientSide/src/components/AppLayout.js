@@ -25,7 +25,7 @@ const AppLayout = ({ children, navigation, title, showControls = true, showNavPa
     marginLeft: toolBarAdjustment ? 0 : width * 0.08,
   };
 
-  const backgroundColor = darkMode ? '#000' : '#fff';
+  const backgroundColor = darkMode ? '#000' : '#d9d9d9';
   const textColor = darkMode ? '#fff' : '#000';
 
   return (
