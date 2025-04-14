@@ -8,18 +8,33 @@ namespace CommunicationServer.Controllers
     [ApiController]
     public class UserController : ControllerBase
     {
-
         [HttpPost("register")]
         public IActionResult Register([FromBody] UserRegistrationRequest req)
         {
             DBServices db = new DBServices();
 
+            // Try to register the user
             bool success = db.RegisterUser(req.Username, req.Email, req.Password, req.Group);
 
             if (success)
-                return Ok(new { success = true });
+            {
+                // If registration is successful, also retrieve user data to return
+                try
+                {
+                    // Get the user data by trying to log them in automatically
+                    User user = db.LoginUser(req.Username, req.Password).User;
+                    return Ok(new { success = true, user = user });
+                }
+                catch
+                {
+                    // If login fails after registration, still return success but without user data
+                    return Ok(new { success = true });
+                }
+            }
             else
+            {
                 return BadRequest(new { success = false, message = "Username or email already exists." });
+            }
         }
         [HttpPost("login")]
         public IActionResult Login([FromBody] UserLoginRequest req)
@@ -27,17 +42,40 @@ namespace CommunicationServer.Controllers
             try
             {
                 DBServices db = new DBServices();
-                User user = db.LoginUser(req.Username, req.Password);
+                LoginResponse response = db.LoginUser(req.Username, req.Password);
 
-                if (user != null)
-                    return Ok(new { success = true, user });
+                if (response.Success)
+                {
+                    return Ok(response); // Return 200 OK with user data
+                }
                 else
-                    return Unauthorized(new { success = false, message = "Invalid username or password" });
+                {
+                    // Return appropriate status code based on error
+                    switch (response.ErrorCode)
+                    {
+                        case "USER_NOT_FOUND":
+                        case "INVALID_PASSWORD":
+                            return Unauthorized(response); // 401 Unauthorized
+
+                        case "ALREADY_LOGGED_IN":
+                            return Conflict(response); // 409 Conflict
+
+                        case "USER_BLOCKED":
+                            return StatusCode(403, response); // 403 Forbidden
+
+                        default:
+                            return StatusCode(500, response); // 500 Internal Server Error
+                    }
+                }
             }
             catch (Exception ex)
             {
-                // נחזיר את הודעת השגיאה מה-SP אם נזרקה
-                return StatusCode(500, new { success = false, message = ex.Message });
+                return StatusCode(500, new LoginResponse
+                {
+                    Success = false,
+                    ErrorCode = "SERVER_ERROR",
+                    Message = "An unexpected error occurred: " + ex.Message
+                });
             }
         }
 
