@@ -48,24 +48,33 @@ const NavPanel = ({activeNav, handleNavigation, darkMode}) => {
         navPanelStyle,
       ]}>
       {[
-        {title: 'Radios', icon: '📻', screen: 'Main'},
-        {title: 'Groups', icon: '👥', screen: 'Groups'},
-        { title: 'Announcements', icon: '📋', screen: 'Announcements' },
-        {title: 'PAS', icon: '📢', screen: 'Pas'},
+        {
+          title: 'Radios',
+          icon: require('../../assets/logos/radio.png'),
+          screen: 'Main',
+        },
+        {
+          title: 'Groups',
+          icon: require('../../assets/logos/groups.png'),
+          screen: 'Groups',
+        },
+        {
+          title: 'Announcements',
+          icon: require('../../assets/logos/announcement.png'),
+          screen: 'Announcements',
+        },
         {
           title: 'More Radios',
-          icon: '📻',
+          icon: require('../../assets/logos/radio-plus.png'),
           screen: 'ChannelConfig',
           roles: ['Technician', 'Admin'],
         },
         {
           title: 'Admin Panel',
-          icon: '👥',
+          icon: require('../../assets/logos/admin-panel.png'),
           screen: 'UserManagement',
           roles: ['Admin'],
         },
-
-        {title: 'Control', icon: '🎛️', screen: 'Control'},
       ].map(({title, icon, screen, roles}) => {
         const allowed = !roles || roles.includes(user?.role);
 
