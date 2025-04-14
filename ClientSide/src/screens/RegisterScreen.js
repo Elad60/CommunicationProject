@@ -6,8 +6,9 @@ import {
   TouchableOpacity,
   StyleSheet,
   ScrollView,
-  Alert,
   ImageBackground,
+  Alert,
+  ActivityIndicator,
 } from 'react-native';
 import authBackgroundPic from '../../assets/images/tank.jpg';
 
@@ -18,106 +19,140 @@ const RegisterScreen = ({onRegister, onNavigateToLogin}) => {
   const [email, setEmail] = useState('');
   const [error, setError] = useState('');
   const [group, setGroup] = useState('');
+  const [isLoading, setIsLoading] = useState(false);
+  const [fieldErrors, setFieldErrors] = useState({
+    username: '',
+    email: '',
+    password: '',
+    confirmPassword: '',
+    group: '',
+  });
+
+  const validateField = (field, value) => {
+    switch (field) {
+      case 'username':
+        if (!value) return 'Username is required';
+        if (value.length < 4) return 'Username must be at least 4 characters';
+        if (!/^[a-zA-Z0-9_]+$/.test(value)) return 'Username can only contain letters, numbers, and underscores';
+        return '';
+      case 'email':
+        if (!value) return 'Email is required';
+        if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(value)) return 'Please enter a valid email address';
+        return '';
+      case 'password':
+        if (!value) return 'Password is required';
+        if (value.length < 8) return 'Password must be at least 8 characters';
+        if (!/[A-Z]/.test(value)) return 'Password must contain at least one uppercase letter';
+        if (!/[a-z]/.test(value)) return 'Password must contain at least one lowercase letter';
+        if (!/\d/.test(value)) return 'Password must contain at least one number';
+        if (!/[!@#$%^&*(),.?":{}|<>]/.test(value)) return 'Password must contain at least one special character';
+        return '';
+      case 'confirmPassword':
+        if (!value) return 'Please confirm your password';
+        if (value !== password) return 'Passwords do not match';
+        return '';
+      case 'group':
+        if (!value) return 'Please select a group';
+        return '';
+      default:
+        return '';
+    }
+  };
+
+  const handleFieldChange = (field, value) => {
+    switch (field) {
+      case 'username':
+        setUsername(value);
+        break;
+      case 'email':
+        setEmail(value);
+        break;
+      case 'password':
+        setPassword(value);
+        break;
+      case 'confirmPassword':
+        setConfirmPassword(value);
+        break;
+      case 'group':
+        setGroup(value);
+        break;
+    }
+    setFieldErrors(prev => ({
+      ...prev,
+      [field]: validateField(field, value)
+    }));
+  };
+
   const validateForm = () => {
-    // Required fields check
-    if (
-      !username ||
-      !password ||
-      !confirmPassword ||
-      !email ||
-      !group
-    ) {
-      setError('Please fill in all fields');
-      return false;
-    }
-
-    // Username validation
-    if (username.length < 4) {
-      setError('Username must be at least 4 characters long');
-      return false;
-    }
-
-    if (!/^[a-zA-Z0-9_]+$/.test(username)) {
-      setError('Username can only contain letters, numbers, and underscores');
-      return false;
-    }
-
-    // Password validation
-    if (password.length < 8) {
-      setError('Password must be at least 8 characters long');
-      return false;
-    }
-
-    // Strong password check
-    const hasUpperCase = /[A-Z]/.test(password);
-    const hasLowerCase = /[a-z]/.test(password);
-    const hasNumbers = /\d/.test(password);
-    const hasSpecialChar = /[!@#$%^&*(),.?":{}|<>]/.test(password);
-
-    if (!(hasUpperCase && hasLowerCase && hasNumbers && hasSpecialChar)) {
-      setError(
-        'Password must contain at least one uppercase letter, one lowercase letter, one number, and one special character',
-      );
-      return false;
-    }
-
-    // Passwords match
-    if (password !== confirmPassword) {
-      setError('Passwords do not match');
-      return false;
-    }
-
-    // Email validation
-    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-    if (!emailRegex.test(email)) {
-      setError('Please enter a valid email address');
-      return false;
-    }
-
-    return true;
+    const newFieldErrors = {
+      username: validateField('username', username),
+      email: validateField('email', email),
+      password: validateField('password', password),
+      confirmPassword: validateField('confirmPassword', confirmPassword),
+      group: validateField('group', group),
+    };
+    
+    setFieldErrors(newFieldErrors);
+    
+    return !Object.values(newFieldErrors).some(error => error !== '');
   };
 
   const handleRegister = async () => {
     if (!validateForm()) {
       return;
     }
-
+  
+    setIsLoading(true);
+    setError('');
+  
     try {
       // Call the register function passed from parent
       const result = await onRegister(username, password, email, group);
-
-      // Check if result exists before accessing its properties
-      if (result && !result.success) {
-        setError(result.message || 'Registration failed');
-      } else if (!result) {
-        // Handle case where result is undefined
-        setError('Registration failed: No response from server');
-      } else {
-        // Registration success
+      console.log('Register result in component:', result);
+  
+      if (result && result.success) {
+        // Show success message
         Alert.alert(
           'Registration Successful',
-          'Your account has been created successfully!',
-          [{text: 'OK', onPress: () => onNavigateToLogin()}],
+          result.message || 'Your account has been created successfully!',
+          [
+            { 
+              text: 'Continue', 
+              onPress: () => {
+                // Just navigate to login screen
+                onNavigateToLogin();
+              }
+            }
+          ],
+          { cancelable: false }
+        );
+      } else {
+        // Show error message if registration failed
+        setError(result?.message || 'Registration failed');
+        Alert.alert(
+          'Registration Failed',
+          result?.message || 'Registration failed. Please try again.'
         );
       }
     } catch (err) {
-      setError('An error occurred during registration');
-      console.error(err);
+      // Error handling...
+    } finally {
+      setIsLoading(false);
     }
   };
 
   const getPasswordStrength = () => {
-    if (!password) return null;
+    if (!password) {return null;}
 
     let strength = 0;
-    if (password.length >= 8) strength += 1;
-    if (/[A-Z]/.test(password)) strength += 1;
-    if (/[a-z]/.test(password)) strength += 1;
-    if (/\d/.test(password)) strength += 1;
-    if (/[!@#$%^&*(),.?":{}|<>]/.test(password)) strength += 1;
+    if (password.length >= 8) {strength += 1;}
+    if (/[A-Z]/.test(password)) {strength += 1;}
+    if (/[a-z]/.test(password)) {strength += 1;}
+    if (/\d/.test(password)) {strength += 1;}
+    if (/[!@#$%^&*(),.?":{}|<>]/.test(password)) {strength += 1;}
 
-    if (strength < 2) return {text: 'Weak', color: '#ff4d4f'};
-    if (strength < 4) return {text: 'Medium', color: '#faad14'};
+    if (strength < 2) {return {text: 'Weak', color: '#ff4d4f'};}
+    if (strength < 4) {return {text: 'Medium', color: '#faad14'};}
     return {text: 'Strong', color: '#52c41a'};
   };
   const letters = ['A', 'B', 'C', 'D', 'E', 'F'];
@@ -139,52 +174,46 @@ const RegisterScreen = ({onRegister, onNavigateToLogin}) => {
             {error ? <Text style={styles.errorText}>{error}</Text> : null}
 
             <TextInput
-              style={styles.input}
+              style={[styles.input, fieldErrors.username ? styles.inputError : null]}
               placeholder="Username (min. 4 characters)"
               placeholderTextColor="#888"
               value={username}
-              onChangeText={setUsername}
+              onChangeText={(value) => handleFieldChange('username', value)}
               autoCapitalize="none"
               maxLength={20}
             />
+            {fieldErrors.username ? <Text style={styles.fieldError}>{fieldErrors.username}</Text> : null}
 
             <TextInput
-              style={styles.input}
+              style={[styles.input, fieldErrors.email ? styles.inputError : null]}
               placeholder="Email address"
               placeholderTextColor="#888"
               keyboardType="email-address"
               value={email}
-              onChangeText={setEmail}
+              onChangeText={(value) => handleFieldChange('email', value)}
               autoCapitalize="none"
             />
+            {fieldErrors.email ? <Text style={styles.fieldError}>{fieldErrors.email}</Text> : null}
 
             <TextInput
-              style={styles.input}
+              style={[styles.input, fieldErrors.password ? styles.inputError : null]}
               placeholder="Password (min. 8 characters)"
               placeholderTextColor="#888"
               secureTextEntry
               value={password}
-              onChangeText={setPassword}
+              onChangeText={(value) => handleFieldChange('password', value)}
             />
-
-            {passwordStrength && (
-              <Text
-                style={[
-                  styles.passwordStrength,
-                  {color: passwordStrength.color},
-                ]}>
-                Password strength: {passwordStrength.text}
-              </Text>
-            )}
+            {fieldErrors.password ? <Text style={styles.fieldError}>{fieldErrors.password}</Text> : null}
 
             <TextInput
-              style={styles.input}
+              style={[styles.input, fieldErrors.confirmPassword ? styles.inputError : null]}
               placeholder="Confirm Password"
               placeholderTextColor="#888"
               secureTextEntry
               value={confirmPassword}
-              onChangeText={setConfirmPassword}
+              onChangeText={(value) => handleFieldChange('confirmPassword', value)}
             />
+            {fieldErrors.confirmPassword ? <Text style={styles.fieldError}>{fieldErrors.confirmPassword}</Text> : null}
 
             <View style={styles.passwordRequirements}>
               <Text style={styles.requirementsTitle}>
@@ -209,7 +238,7 @@ const RegisterScreen = ({onRegister, onNavigateToLogin}) => {
                     styles.letterButton,
                     group === letter && styles.letterButtonSelected,
                   ]}
-                  onPress={() => setGroup(letter)}>
+                  onPress={() => handleFieldChange('group', letter)}>
                   <Text
                     style={[
                       styles.letterText,
@@ -221,8 +250,15 @@ const RegisterScreen = ({onRegister, onNavigateToLogin}) => {
               ))}
             </View>
 
-            <TouchableOpacity style={styles.button} onPress={handleRegister}>
-              <Text style={styles.buttonText}>Register</Text>
+            <TouchableOpacity 
+              style={[styles.button, isLoading && styles.buttonDisabled]} 
+              onPress={handleRegister}
+              disabled={isLoading}>
+              {isLoading ? (
+                <ActivityIndicator color="#fff" />
+              ) : (
+                <Text style={styles.buttonText}>Register</Text>
+              )}
             </TouchableOpacity>
 
             <TouchableOpacity onPress={onNavigateToLogin}>
@@ -368,6 +404,21 @@ const styles = StyleSheet.create({
   },
   letterTextSelected: {
     color: '#fff',
+  },
+  buttonDisabled: {
+    backgroundColor: '#004d99',
+    opacity: 0.7,
+  },
+  inputError: {
+    borderWidth: 1,
+    borderColor: '#ff6b6b',
+  },
+  fieldError: {
+    color: '#ff6b6b',
+    fontSize: 12,
+    alignSelf: 'flex-start',
+    marginTop: -10,
+    marginBottom: 10,
   },
 });
 

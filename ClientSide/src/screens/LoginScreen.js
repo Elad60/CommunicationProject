@@ -4,6 +4,7 @@ import {
   Text,
   TextInput,
   TouchableOpacity,
+  ActivityIndicator,
   StyleSheet,
   Image,
   Alert,
@@ -16,32 +17,48 @@ const LoginScreen = ({onLogin, onNavigateToRegister}) => {
   const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
   const [error, setError] = useState('');
+  const [isLoading, setIsLoading] = useState(false);
 
   const handleLogin = async () => {
+    // Reset previous errors
+    setError('');
+
+    // Input validation
     if (!username || !password) {
       setError('Please enter both username and password');
       return;
     }
-
+  
+    setIsLoading(true);
+    
     try {
       // Call the login function passed from parent
       const result = await onLogin(username, password);
       console.log('Login result:', result);
-      if (result && !result.success) {
-        setError(result.message || 'Login failed');
+      
+      if (!result || !result.success) {
+        // Display the specific error message from the server
+        setError(result?.message || 'Login failed');
+        
+        // Show alert with specific error message
         Alert.alert(
           'Login Failed',
-          'Invalid username/password. Please try again.',
+          result?.message || 'An error occurred during login.',
+          [{ text: 'OK' }]
         );
-      } else if (!result) {
-        setError('Login failed: No response from server');
       }
     } catch (err) {
       setError('An error occurred during login');
+      Alert.alert(
+        'Login Error',
+        'An error occurred during login. Please try again.',
+        [{ text: 'OK' }]
+      );
       console.error(err);
+    } finally {
+      setIsLoading(false);
     }
   };
-
   return (
     <ImageBackground
       source={authBackgroundPic}
@@ -79,9 +96,18 @@ const LoginScreen = ({onLogin, onNavigateToRegister}) => {
             onChangeText={setPassword}
           />
 
-          <TouchableOpacity style={styles.button} onPress={handleLogin}>
-            <Text style={styles.buttonText}>Login</Text>
+<TouchableOpacity 
+            style={[styles.button, isLoading && styles.buttonDisabled]} 
+            onPress={handleLogin}
+            disabled={isLoading}
+          >
+            {isLoading ? (
+              <ActivityIndicator color="#fff" />
+            ) : (
+              <Text style={styles.buttonText}>Login</Text>
+            )}
           </TouchableOpacity>
+
 
           <TouchableOpacity onPress={onNavigateToRegister}>
             <Text style={styles.registerText}>

@@ -31,19 +31,27 @@ export const AuthProvider = ({children}) => {
     setError('');
     try {
       const result = await authApi.register(username, password, email, group);
-
-      if (result.success && result.user) {
-        await AsyncStorage.setItem('user', JSON.stringify(result.user));
-        setUser(result.user);
-        return {success: true};
+      console.log('Register result:', result);
+  
+      if (result.success) {
+        if (result.user) {
+          // If the server returned user data, store it and set the user
+          await AsyncStorage.setItem('user', JSON.stringify(result.user));
+          setUser(result.user);
+          return { success: true, user: result.user };
+        } else {
+          // If server didn't return user data but registration was successful,
+          // we'll need to do a separate login
+          return { success: true };
+        }
       } else {
         setError(result.message || 'Registration failed');
-        return {success: false, message: result.message};
+        return { success: false, message: result.message || 'Registration failed' };
       }
     } catch (err) {
-      console.error(err);
+      console.error('Registration error:', err);
       setError('Registration failed');
-      return {success: false, message: 'Registration failed'};
+      return { success: false, message: 'Registration failed' };
     } finally {
       setLoading(false);
     }
@@ -54,7 +62,7 @@ export const AuthProvider = ({children}) => {
     setError('');
     try {
       const result = await authApi.login(username, password);
-  
+
       if (result.success && result.user) {
         await AsyncStorage.setItem('user', JSON.stringify(result.user));
         setUser(result.user);
@@ -62,31 +70,54 @@ export const AuthProvider = ({children}) => {
       } else {
         const message = result.message || 'Login failed';
         setError(message);
-        return { success: false, message };
+        return {
+          success: false,
+          message,
+          errorCode: result.errorCode        };
       }
     } catch (err) {
-      console.error('Login error:', err);
-  
-      // 🧠 שליפת הודעת שגיאה מהשרת אם קיימת
-      const serverMessage = err?.response?.data?.message;
-  
-      if (serverMessage?.includes('already logged in')) {
-        setError('This user is already logged in on another device.');
-        return { success: false, message: serverMessage };
+      // Extract error information from the response
+      const errorResponse = err?.response?.data;
+      // Handle different error types
+      if (errorResponse) {
+        const { message, errorCode } = errorResponse;
+        // Set user-friendly error message based on error code
+        let userMessage = message || 'Login failed';
+        // Create more user-friendly messages
+        switch(errorCode) {
+          case 'USER_NOT_FOUND':
+            userMessage = 'User not found. Please check your username.';
+            break;
+          case 'INVALID_PASSWORD':
+            userMessage = 'Incorrect password. Please try again.';
+            break;
+          case 'ALREADY_LOGGED_IN':
+            userMessage = 'This account is already logged in on another device.';
+            break;
+          case 'USER_BLOCKED':
+            userMessage = 'Your account has been blocked. Please contact support.';
+            break;
+        }
+
+        setError(userMessage);
+        return {
+          success: false,
+          message: userMessage,
+          errorCode      };
       }
-  
-      if (serverMessage?.includes('Invalid username') || serverMessage?.includes('password')) {
-        setError(serverMessage);
-        return { success: false, message: serverMessage };
-      }
-  
-      setError('Login failed');
-      return { success: false, message: 'Login failed' };
+
+      // Fallback for network or other errors
+      setError('Unable to connect to the server. Please try again later.');
+      return {
+        success: false,
+        message: 'Unable to connect to the server. Please try again later.',
+        errorCode: 'NETWORK_ERROR'      };
     } finally {
       setLoading(false);
     }
   };
-  
+
+
 
   const logout = async () => {
     setLoading(true);
