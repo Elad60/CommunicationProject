@@ -18,7 +18,7 @@ const NavButton = ({title, icon, onPress, isActive, darkMode}) => {
 
 const styles = StyleSheet.create({
   button: {
-    width: '85%',
+    width: '92%',
     height: 110,
     borderRadius: 8,
     justifyContent: 'center',
