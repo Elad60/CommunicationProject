@@ -416,7 +416,8 @@ namespace CommunicationServer.DAL
                         Role = reader["Role"].ToString(),
                         CreatedAt = Convert.ToDateTime(reader["CreatedAt"]),
                         IsBlocked = Convert.ToBoolean(reader["IsBlocked"]),
-                        Group = Convert.ToChar(reader["Group"])
+                        Group = Convert.ToChar(reader["Group"]),
+                        IsActive = Convert.ToBoolean(reader["IsActive"])
                     });
                 }
 

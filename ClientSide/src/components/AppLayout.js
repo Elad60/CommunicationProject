@@ -11,7 +11,7 @@ const AppLayout = ({ children, navigation, title, showControls = true, showNavPa
   const [speakerVolume, setSpeakerVolume] = useState(40);
   const [activeNav, setActiveNav] = useState('radios');
 
-  const { user, logout } = useAuth();
+  const { user, logout, changeGroup } = useAuth();
 
   const { controlBarAdjustment, toolBarAdjustment, brightness, darkMode } = useSettings();
 
@@ -41,7 +41,12 @@ const AppLayout = ({ children, navigation, title, showControls = true, showNavPa
           {title || 'Communication System'}
         </Text>
         {user && <Text style={[styles.userInfo, { color: textColor }]}>Logged in as: {user.username}</Text>}
-        <TouchableOpacity style={styles.logoutButton} onPress={() => logout(user.id)}>
+        <TouchableOpacity style={styles.logoutButton} onPress={async () => {
+  if (user?.group !== 'A') {
+    await changeGroup('A');
+  }
+  logout(user.id);
+}}>
         <Text style={styles.logoutText}>Logout</Text>
         </TouchableOpacity>
       </View>
