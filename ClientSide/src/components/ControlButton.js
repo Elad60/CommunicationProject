@@ -1,18 +1,18 @@
 import React from 'react';
-import { TouchableOpacity, Text, StyleSheet } from 'react-native';
+import {TouchableOpacity, Text, StyleSheet, Image} from 'react-native';
 
-const ControlButton = ({ title, icon, value, onPress, textColor, darkMode }) => {
-  // Set button background color based on darkMode
-  const buttonBackgroundColor = darkMode ? '#222' : '#bbb'; // Light gray when darkMode is off
+const ControlButton = ({title, icon, value, onPress, textColor, darkMode}) => {
+  const buttonBackgroundColor = darkMode ? '#222' : '#bbb';
 
   return (
     <TouchableOpacity
-      style={[styles.button, { backgroundColor: buttonBackgroundColor }]}
-      onPress={onPress}
-    >
-      <Text style={[styles.icon, { color: textColor }]}>{icon}</Text>
-      {value !== undefined && <Text style={[styles.value, { color: textColor }]}>{value}%</Text>}
-      <Text style={[styles.title, { color: textColor }]}>{title}</Text>
+      style={[styles.button, {backgroundColor: buttonBackgroundColor}]}
+      onPress={onPress}>
+      <Image source={icon} style={styles.icon} resizeMode="contain" />
+      {value !== undefined && (
+        <Text style={[styles.value, {color: textColor}]}>{value}%</Text>
+      )}
+      <Text style={[styles.title, {color: textColor}]}>{title}</Text>
     </TouchableOpacity>
   );
 };
@@ -26,16 +26,18 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   icon: {
-    fontSize: '50%',
+    width: 30,
+    height: 30,
+    marginBottom: 4,
   },
   value: {
-    fontSize: '7%',
+    fontSize: 12,
     textAlign: 'center',
     width: '80%',
     flexWrap: 'wrap',
   },
   title: {
-    fontSize: '5%',
+    fontSize: 12,
     textAlign: 'center',
     width: '80%',
     flexWrap: 'wrap',

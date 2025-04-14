@@ -215,21 +215,26 @@ namespace CommunicationServer.DAL
                         Email = reader["Email"].ToString(),
                         Role = reader["Role"].ToString(),
                         Group = Convert.ToChar(reader["Group"]),
+                        IsActive = Convert.ToBoolean(reader["IsActive"])
                     };
                 }
 
                 return null;
             }
-            catch (Exception ex)
+            catch (SqlException ex)
             {
-                Console.WriteLine("Login error: " + ex.Message);
-                return null;
+                // אם המשתמש כבר מחובר — נזהה לפי הודעת השגיאה
+                if (ex.Message.Contains("User already logged in"))
+                    throw new Exception("User already logged in on another device.");
+                else
+                    throw new Exception("Login failed: " + ex.Message);
             }
             finally
             {
                 con?.Close();
             }
         }
+
 
         public List<User> GetAllUsers()
         {
@@ -252,7 +257,9 @@ namespace CommunicationServer.DAL
                         Role = reader["Role"].ToString(),
                         CreatedAt = Convert.ToDateTime(reader["CreatedAt"]),
                         IsBlocked = Convert.ToBoolean(reader["IsBlocked"]),
-                        Group = Convert.ToChar(reader["Group"])
+                        Group = Convert.ToChar(reader["Group"]),
+                        IsActive = Convert.ToBoolean(reader["IsActive"]) 
+
                     });
                 }
 
@@ -296,6 +303,36 @@ namespace CommunicationServer.DAL
                 con?.Close();
             }
         }
+
+        public bool LogoutUser(int userId)
+        {
+            SqlConnection con = null;
+            try
+            {
+                con = Connect("myProjDB");
+
+                var parameters = new Dictionary<string, object>
+        {
+            { "@UserId", userId }
+        };
+
+                SqlCommand cmd = CreateCommandWithStoredProcedure("sp_LogoutUser", con, parameters);
+                cmd.ExecuteNonQuery();
+
+                return true; // לא נבדוק rowsAffected, כי זה עלול להיות 0 גם אם הצליח
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine("Logout error: " + ex.Message);
+                return false;
+            }
+            finally
+            {
+                con?.Close();
+            }
+        }
+
+
         public bool UpdateUserRole(int userId, string newRole)
         {
             SqlConnection con = null;
@@ -526,7 +563,71 @@ namespace CommunicationServer.DAL
             }
         }
 
+        //announcements
 
+        public bool AddAnnouncement(string title, string content, string userName)
+        {
+            SqlConnection con = null;
+            try
+            {
+                con = Connect("myProjDB");
+                var parameters = new Dictionary<string, object>
+        {
+            { "@Title", title },
+            { "@Content", content },
+            { "@UserName", userName }
+        };
+
+                SqlCommand cmd = CreateCommandWithStoredProcedure("sp_AddAnnouncement", con, parameters);
+                cmd.ExecuteNonQuery();
+                return true;
+            }
+            catch (Exception ex)
+            {
+                throw new Exception("Error adding announcement: " + ex.Message);
+            }
+            finally
+            {
+                con?.Close();
+            }
+        }
+
+        public List<Announcement> GetAllAnnouncements()
+        {
+            SqlConnection con = null;
+            List<Announcement> announcements = new List<Announcement>();
+
+            try
+            {
+                con = Connect("myProjDB");
+                SqlCommand cmd = CreateCommandWithStoredProcedure("sp_GetAllAnnouncements", con, null);
+                SqlDataReader reader = cmd.ExecuteReader();
+
+                while (reader.Read())
+                {
+                    announcements.Add(new Announcement
+                    {
+                        Id = Convert.ToInt32(reader["Id"]),
+                        Title = reader["Title"].ToString(),
+                        Content = reader["Content"].ToString(),
+                        UserName = reader["UserName"].ToString(),
+                        CreatedAt = Convert.ToDateTime(reader["CreatedAt"])
+                    });
+                }
+
+                reader.Close();
+            }
+            catch (Exception ex)
+            {
+                throw new Exception("Error fetching announcements: " + ex.Message);
+            }
+            finally
+            {
+                con?.Close();
+            }
+
+            return announcements;
+        }
 
 
 

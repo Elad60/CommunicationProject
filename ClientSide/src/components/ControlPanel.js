@@ -2,7 +2,6 @@ import React, {useRef, useEffect} from 'react';
 import {Animated, Dimensions} from 'react-native';
 import ControlButton from './ControlButton';
 import {useSettings} from '../context/SettingsContext';
-
 const {height, width} = Dimensions.get('window');
 const CONTROL_PANEL_HEIGHT = height * 0.1;
 const CONTROL_PANEL_WIDTH = width * 0.92;
@@ -45,7 +44,7 @@ const ControlPanel = ({
 
   return (
     <Animated.View
-      style={[ 
+      style={[
         {
           position: 'absolute',
           width: CONTROL_PANEL_WIDTH,
@@ -54,22 +53,22 @@ const ControlPanel = ({
           flexDirection: 'row',
           justifyContent: 'space-around',
           alignItems: 'center',
-          transform: [{ translateY: position }],
+          transform: [{translateY: position}],
         },
         controlPanelStyle,
       ]}>
       <ControlButton
         title="Speaker"
-        icon="🔊"
+        icon={require('../../assets/logos/speaker.png')}
         value={speakerVolume}
-        textColor={buttonTextColor}  // Pass textColor to ControlButton
+        textColor={buttonTextColor} // Pass textColor to ControlButton
         darkMode={darkMode}
         onPress={() => setSpeakerVolume((speakerVolume + 10) % 110)}
       />
       <ControlButton
         title="Ch Vol"
-        icon="🎚️"
-        textColor={buttonTextColor}  // Pass textColor to ControlButton
+        icon={require('../../assets/logos/volume-adjustment.png')}
+        textColor={buttonTextColor} // Pass textColor to ControlButton
         darkMode={darkMode}
         onPress={() =>
           selectedChannel
@@ -79,15 +78,15 @@ const ControlPanel = ({
       />
       <ControlButton
         title="Mute All"
-        icon="🔇"
-        textColor={buttonTextColor}  // Pass textColor to ControlButton
+        icon={require('../../assets/logos/mute.png')}
+        textColor={buttonTextColor} // Pass textColor to ControlButton
         darkMode={darkMode}
         onPress={() => setSpeakerVolume(0)}
       />
       <ControlButton
         title="Settings"
-        icon="⚙️"
-        textColor={buttonTextColor}  // Pass textColor to ControlButton
+        icon={require('../../assets/logos/settings.png')}
+        textColor={buttonTextColor} // Pass textColor to ControlButton
         darkMode={darkMode}
         onPress={() => navigation.navigate('Settings')}
       />

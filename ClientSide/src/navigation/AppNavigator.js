@@ -6,7 +6,7 @@ import MainScreen from '../screens/MainScreen';
 import SettingsScreen from '../screens/SettingsScreen';
 import ChannelConfigScreen from '../screens/MoreRadiosScreen';
 import GroupsScreen from '../screens/GroupsScreen';
-import IntercomsScreen from '../screens/IntercomsScreen';
+import AnnouncementsScreen from '../screens/AnnouncementsScreen';
 import PasScreen from '../screens/PasScreen';
 import RelayScreen from '../screens/RelayScreen';
 import ControlScreen from '../screens/ControlScreen';
@@ -61,7 +61,7 @@ const AppNavigator = () => {
           <Stack.Screen name="Settings" component={SettingsScreen} />
           <Stack.Screen name="ChannelConfig" component={ChannelConfigScreen} />
           <Stack.Screen name="Groups" component={GroupsScreen} />
-          <Stack.Screen name="Intercoms" component={IntercomsScreen} />
+          <Stack.Screen name="Announcements" component={AnnouncementsScreen} />
           <Stack.Screen name="Pas" component={PasScreen} />
           <Stack.Screen name="Relay" component={RelayScreen} />
           <Stack.Screen name="Control" component={ControlScreen} />

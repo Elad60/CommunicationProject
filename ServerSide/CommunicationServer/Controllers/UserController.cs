@@ -24,14 +24,35 @@ namespace CommunicationServer.Controllers
         [HttpPost("login")]
         public IActionResult Login([FromBody] UserLoginRequest req)
         {
-            DBServices db = new DBServices();
-            User user = db.LoginUser(req.Username, req.Password);
+            try
+            {
+                DBServices db = new DBServices();
+                User user = db.LoginUser(req.Username, req.Password);
 
-            if (user != null)
-                return Ok(new { success = true, user });
-            else
-                return Unauthorized(new { success = false, message = "Invalid username or password" });
+                if (user != null)
+                    return Ok(new { success = true, user });
+                else
+                    return Unauthorized(new { success = false, message = "Invalid username or password" });
+            }
+            catch (Exception ex)
+            {
+                // נחזיר את הודעת השגיאה מה-SP אם נזרקה
+                return StatusCode(500, new { success = false, message = ex.Message });
+            }
         }
+
+        [HttpPost("logout/{userId}")]
+        public IActionResult Logout(int userId)
+        {
+            DBServices db = new DBServices();
+            bool success = db.LogoutUser(userId);
+
+            if (success)
+                return Ok(new { success = true, message = "User logged out successfully." });
+            else
+                return BadRequest(new { success = false, message = "Logout failed." });
+        }
+
         [HttpGet("all")]
         public IActionResult GetAllUsers()
         {

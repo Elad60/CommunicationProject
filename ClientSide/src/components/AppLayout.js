@@ -41,8 +41,8 @@ const AppLayout = ({ children, navigation, title, showControls = true, showNavPa
           {title || 'Communication System'}
         </Text>
         {user && <Text style={[styles.userInfo, { color: textColor }]}>Logged in as: {user.username}</Text>}
-        <TouchableOpacity style={styles.logoutButton} onPress={logout}>
-          <Text style={styles.logoutText}>Logout</Text>
+        <TouchableOpacity style={styles.logoutButton} onPress={() => logout(user.id)}>
+        <Text style={styles.logoutText}>Logout</Text>
         </TouchableOpacity>
       </View>
 

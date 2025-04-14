@@ -9,6 +9,7 @@
         public DateTime CreatedAt { get; set; } 
         public bool IsBlocked { get; set; }
         public char Group { get; set; }
+        public bool IsActive{ get; set; }
 
     }
 }

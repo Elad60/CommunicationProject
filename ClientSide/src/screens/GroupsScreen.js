@@ -1,4 +1,3 @@
-// src/screens/GroupsScreen.js
 import React, { useState, useEffect } from 'react';
 import {
   View,
@@ -19,7 +18,6 @@ const GroupsScreen = ({ navigation }) => {
   const [error, setError] = useState(null);
   const letters = ['A', 'B', 'C', 'D', 'E', 'F'];
 
-  // שליפת משתמשים מהקבוצה
   const fetchGroupUsers = async () => {
     try {
       setLoading(true);
@@ -27,7 +25,8 @@ const GroupsScreen = ({ navigation }) => {
       if (!groupName) throw new Error('Group not found');
 
       const users = await groupUsersApi.getUsersByGroup(groupName);
-      setGroupUsers(users);
+      const filtered = users.filter(u => u.id !== user.id); // 🔥 סינון המשתמש הנוכחי
+      setGroupUsers(filtered);
       setError(null);
     } catch (err) {
       console.error('Error fetching group users:', err);
@@ -37,14 +36,13 @@ const GroupsScreen = ({ navigation }) => {
     }
   };
 
-  // מאזין לשינוי בקבוצה
   useEffect(() => {
     if (user?.group) {
       fetchGroupUsers();
     }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [user?.group]);
 
-  // שינוי קבוצה
   const handleGroupChange = (newGroup) => {
     changeGroup(newGroup);
   };
@@ -64,15 +62,29 @@ const GroupsScreen = ({ navigation }) => {
     <AppLayout navigation={navigation} title={`Group: ${user?.group}`}>
       <ScrollView style={styles.scrollView}>
         <View style={styles.mainGrid}>
-          {groupUsers.map((user) => (
-            <TouchableOpacity key={user.id} style={styles.userCard}>
-              <Text style={styles.username}>{user.username}</Text>
+          {groupUsers.length > 0 ? (
+            groupUsers.map((user) => (
+              <TouchableOpacity key={user.id} style={styles.userCard}>
+              <View style={styles.headerRow}>
+                <Text style={styles.username}>{user.username}</Text>
+                <View
+                  style={[
+                    styles.statusDot,
+                    // eslint-disable-next-line react-native/no-inline-styles
+                    { backgroundColor: user.isActive ? '#00ff66' : '#555' },
+                  ]}
+                />
+              </View>
               <Text style={styles.email}>{user.email}</Text>
               <Text style={styles.role}>Role: {user.role}</Text>
             </TouchableOpacity>
-          ))}
+            
+            ))
+          ) : (
+            <Text style={styles.noUsersText}>No other users in this group.</Text>
+          )}
         </View>
-        
+
         <Text style={styles.label}>Change Your Group:</Text>
         <View style={styles.letterContainer}>
           {letters.map((letter) => (
@@ -119,6 +131,26 @@ const styles = StyleSheet.create({
   letterText: { color: '#fff', fontSize: 18 },
   centerContainer: { flex: 1, justifyContent: 'center', alignItems: 'center' },
   loadingText: { color: '#fff' },
+  noUsersText: {
+    color: '#aaa',
+    fontSize: 16,
+    textAlign: 'center',
+    marginTop: 20,
+    width: '100%',
+  },
+  headerRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+  },
+  
+  statusDot: {
+    width: 12,
+    height: 12,
+    borderRadius: 6,
+    marginLeft: 10,
+  },
+  
 });
 
 export default GroupsScreen;
