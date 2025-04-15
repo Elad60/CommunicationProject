@@ -21,7 +21,7 @@ DerivedData
 *.ipa
 *.xcuserstate
 **/.xcode.env.local
-
+windows/
 # Android/IntelliJ
 #
 build/
@@ -106,3 +106,5 @@ ScaffoldingReadMe.txt
 **/windows/*/bin/
 **/windows/*/obj/
 
+ClientSide/msbuild.binlog
+ClientSide/msbuild.binlog
