@@ -12,16 +12,20 @@ import AppLayout from '../components/AppLayout';
 import { useSettings } from '../context/SettingsContext';
 
 const SettingsScreen = ({ navigation }) => {
-  const {
-    toolBarAdjustment,
-    setToolBarAdjustment,
-    controlBarAdjustment,
-    setControlBarAdjustment,
-    brightness,
-    setBrightness,
-    darkMode,
-    setDarkMode,
-  } = useSettings();
+const {
+  toolBarAdjustment,
+  setToolBarAdjustment,
+  controlBarAdjustment,
+  setControlBarAdjustment,
+  brightness,
+  setBrightness,
+  darkMode,
+  setDarkMode,
+  showFrequency, 
+  setShowFrequency,
+  showStatus,
+  setShowStatus,
+} = useSettings();
 
   const [settings, setSettings] = useState({
     darkMode: true,
@@ -64,8 +68,9 @@ const SettingsScreen = ({ navigation }) => {
         <ScrollView style={styles.container}>
           <View style={styles.section}>
             <Text style={[styles.sectionTitle, { color: textColor }]}>Display Settings</Text>
-            {renderSettingItem('Show Frequency', 'showFrequency', settings.showFrequency, () => toggleSetting('showFrequency'))}
-            {renderSettingItem('Show Status', 'showStatus', settings.showStatus, () => toggleSetting('showStatus'))}
+             {renderSettingItem('Show Frequency', 'showFrequency', showFrequency, () => setShowFrequency(!showFrequency))}
+             {renderSettingItem('Show Status', 'showStatus', showStatus, () => setShowStatus(!showStatus))}
+
           </View>
 
           <View style={styles.section}>

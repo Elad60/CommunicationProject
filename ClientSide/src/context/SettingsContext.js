@@ -1,22 +1,28 @@
 // Updated SettingsContext.js
-import React, { createContext, useContext, useState } from 'react';
-import { Dimensions } from 'react-native';
+import React, {createContext, useContext, useState} from 'react';
+import {Dimensions} from 'react-native';
 
 // Create Context
 const SettingsContext = createContext();
-const { width, height } = Dimensions.get('window');
+const {width, height} = Dimensions.get('window');
 const NAV_PANEL_WIDTH = width * 0.08;
 const CONTROL_PANEL_HEIGHT = height * 0.1;
 
 // Provider Component
-export const SettingsProvider = ({ children }) => {
+export const SettingsProvider = ({children}) => {
   const [toolBarAdjustment, setToolBarAdjustment] = useState(true);
   const [controlBarAdjustment, setControlBarAdjustment] = useState(true);
-  const [navPanelPosition, setNavPanelPosition] = useState(width - NAV_PANEL_WIDTH);
-  const [controlPanelPosition, setControlPanelPosition] = useState(height - CONTROL_PANEL_HEIGHT);
-  
+  const [navPanelPosition, setNavPanelPosition] = useState(
+    width - NAV_PANEL_WIDTH,
+  );
+  const [controlPanelPosition, setControlPanelPosition] = useState(
+    height - CONTROL_PANEL_HEIGHT,
+  );
+  const [showFrequency, setShowFrequency] = useState(true);
+  const [showStatus, setShowStatus] = useState(true);
+
   // Brightness: 0 (dark) -> 1 (light)
-  const [brightness, setBrightness] = useState(1); 
+  const [brightness, setBrightness] = useState(1);
   const [darkMode, setDarkMode] = useState(true);
   return (
     <SettingsContext.Provider
@@ -32,9 +38,12 @@ export const SettingsProvider = ({ children }) => {
         brightness,
         setBrightness,
         darkMode,
-        setDarkMode, 
-      }}
-    >
+        setDarkMode,
+        showFrequency,
+        setShowFrequency,
+        showStatus,
+        setShowStatus,
+      }}>
       {children}
     </SettingsContext.Provider>
   );

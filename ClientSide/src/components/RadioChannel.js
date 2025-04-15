@@ -1,6 +1,6 @@
 import React from 'react';
 import {View, Text, StyleSheet, Image} from 'react-native';
-import { useSettings } from '../context/SettingsContext';
+import {useSettings} from '../context/SettingsContext';
 
 const RadioChannel = ({
   name,
@@ -9,8 +9,10 @@ const RadioChannel = ({
   mode,
   isSelected,
   channelState,
+  showFrequency = true,
+  showStatus = true,
 }) => {
-  const { darkMode } = useSettings();
+  const {darkMode} = useSettings();
   const getBackgroundColor = () => {
     switch (channelState) {
       case 'ListenOnly':
@@ -19,7 +21,7 @@ const RadioChannel = ({
         return darkMode ? '#1e2f4d' : '#91aad4'; //  blue
       case 'Idle':
       default:
-        return  darkMode ? '#222' : '#ddd'; // default 
+        return darkMode ? '#222' : '#ddd'; // default
     }
   };
 
@@ -52,10 +54,21 @@ const RadioChannel = ({
 
   return (
     <View style={[styles.container, {backgroundColor: getBackgroundColor()}]}>
-      <Text style={[styles.name, { color: darkMode ? '#fff' : '#000' }]}>{name}</Text>
-      <Text style={[styles.frequency, { color: darkMode ? '#fff' : '#000' }]}>{frequency}</Text>
-      <Text style={[styles.status, { color: darkMode ? '#fff' : '#000' }]}>{isActive ? 'Active' : 'Not used'}</Text>
-    <View style={styles.iconContainer}>
+      <Text style={[styles.name, {color: darkMode ? '#fff' : '#000'}]}>
+        {name}
+      </Text>
+      {showFrequency && (
+        <Text style={[styles.frequency, {color: darkMode ? '#fff' : '#000'}]}>
+          {frequency}
+        </Text>
+      )}
+
+      {showStatus && (
+        <Text style={[styles.status, {color: darkMode ? '#fff' : '#000'}]}>
+          {isActive ? 'Active' : 'Not used'}
+        </Text>
+      )}
+      <View style={styles.iconContainer}>
         <Image source={headphones} style={styles.iconImage} />
         <View
           style={[

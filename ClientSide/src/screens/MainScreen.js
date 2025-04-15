@@ -11,6 +11,8 @@ import RadioChannel from '../components/RadioChannel';
 import AppLayout from '../components/AppLayout';
 import {useAuth} from '../context/AuthContext';
 import {radioChannelsApi} from '../utils/apiService';
+import {useSettings} from '../context/SettingsContext';
+
 
 const MainScreen = ({navigation}) => {
   const [selectedChannel, setSelectedChannel] = useState(null);
@@ -18,6 +20,8 @@ const MainScreen = ({navigation}) => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const {user} = useAuth();
+  const {showFrequency, showStatus} = useSettings();
+
 
   const fetchRadioChannels = async () => {
     try {
@@ -128,6 +132,8 @@ const MainScreen = ({navigation}) => {
                   mode={channel.mode}
                   isSelected={selectedChannel === channel.id}
                   channelState={channel.channelState}
+                  showFrequency={showFrequency} 
+                  showStatus={showStatus} 
                 />
               </TouchableOpacity>
             ))}
