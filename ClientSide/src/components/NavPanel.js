@@ -1,83 +1,85 @@
 import React, {useEffect, useRef} from 'react';
 import {Alert, Animated, Dimensions} from 'react-native';
+import {useRoute} from '@react-navigation/native'; // NEW
 import NavButton from './NavButton';
 import {useSettings} from '../context/SettingsContext';
 import {useAuth} from '../context/AuthContext';
 
 const {width, height} = Dimensions.get('window');
-const NAV_PANEL_WIDTH = width * 0.08;
-const NAV_PANEL_HEIGHT = height * 0.95;
+const PANEL_WIDTH = width * 0.08;
+const PANEL_HEIGHT = height * 0.9;
 
-const NavPanel = ({activeNav, handleNavigation, darkMode}) => {
+const NavPanel = ({handleNavigation, darkMode}) => {
   const {toolBarAdjustment, controlBarAdjustment} = useSettings();
-  const positionX = useRef(
-    new Animated.Value(
-      toolBarAdjustment ? width - NAV_PANEL_WIDTH : -NAV_PANEL_WIDTH,
-    ),
-  ).current;
-
   const {user} = useAuth();
+  const route = useRoute(); // NEW
+  const currentScreen = route.name; // NEW
 
-  const navPanelStyle = {
-    bottom: controlBarAdjustment ? -height * 0.1 : 0,
-  };
-
-  const backgroundColor = darkMode ? '#333' : '#e0e0e0'; // Dark mode background color
-  const textColor = darkMode ? '#fff' : '#000'; // Dark mode text/icon color
+  const positionX = useRef(
+    new Animated.Value(toolBarAdjustment ? width - PANEL_WIDTH : -PANEL_WIDTH),
+  ).current;
 
   useEffect(() => {
     Animated.spring(positionX, {
-      toValue: toolBarAdjustment ? width - NAV_PANEL_WIDTH : -NAV_PANEL_WIDTH,
+      toValue: toolBarAdjustment ? width - PANEL_WIDTH : -PANEL_WIDTH,
       useNativeDriver: false,
     }).start();
-  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [toolBarAdjustment]);
 
-  return (
-    <Animated.View
-      style={[
-        {
-          position: 'absolute',
-          height: NAV_PANEL_HEIGHT,
-          width: NAV_PANEL_WIDTH,
-          backgroundColor,
-          alignItems: 'center',
-          justifyContent: 'space-around',
-          transform: [{translateX: positionX}],
-        },
-        navPanelStyle,
-      ]}>
-      {[
-        {
-          title: 'Radios',
-          icon: require('../../assets/logos/radio.png'),
-          screen: 'Main',
-        },
-        {
-          title: 'Groups',
-          icon: require('../../assets/logos/groups.png'),
-          screen: 'Groups',
-        },
-        {
-          title: 'Announcements',
-          icon: require('../../assets/logos/announcement.png'),
-          screen: 'Announcements',
-        },
-        {
-          title: 'More Radios',
-          icon: require('../../assets/logos/radio-plus.png'),
-          screen: 'ChannelConfig',
-          roles: ['Technician', 'Admin'],
-        },
-        {
-          title: 'Admin Panel',
-          icon: require('../../assets/logos/admin-panel.png'),
-          screen: 'UserManagement',
-          roles: ['Admin'],
-        },
-      ].map(({title, icon, screen, roles}) => {
-        const allowed = !roles || roles.includes(user?.role);
+  const panelStyle = {
+    position: 'absolute',
+    top: 0,
+    bottom: controlBarAdjustment ? -height * 0.1 : 0,
+    width: PANEL_WIDTH,
+    height: height-30,
+    backgroundColor: darkMode ? '#1a1a1a' : '#fff',
+    borderRadius: 20,
+    paddingVertical: 16,
+    paddingHorizontal: 6,
+    alignItems: 'center',
+    justifyContent: 'space-evenly',
+    shadowColor: '#000',
+    shadowOpacity: 0.1,
+    shadowOffset: {width: 0, height: 2},
+    shadowRadius: 8,
+    elevation: 6,
+    transform: [{translateX: positionX}],
+  };
 
+  const buttons = [
+    {
+      title: 'Radios',
+      icon: require('../../assets/logos/radio.png'),
+      screen: 'Main',
+    },
+    {
+      title: 'Groups',
+      icon: require('../../assets/logos/groups.png'),
+      screen: 'Groups',
+    },
+    {
+      title: 'Announcements',
+      icon: require('../../assets/logos/announcement.png'),
+      screen: 'Announcements',
+    },
+    {
+      title: 'More Radios',
+      icon: require('../../assets/logos/radio-plus.png'),
+      screen: 'ChannelConfig',
+      roles: ['Technician', 'Admin'],
+    },
+    {
+      title: 'Admin Panel',
+      icon: require('../../assets/logos/admin-panel.png'),
+      screen: 'UserManagement',
+      roles: ['Admin'],
+    },
+  ];
+
+  return (
+    <Animated.View style={panelStyle}>
+      {buttons.map(({title, icon, screen, roles}) => {
+        const allowed = !roles || roles.includes(user?.role);
         return (
           <NavButton
             key={screen}
@@ -93,7 +95,7 @@ const NavPanel = ({activeNav, handleNavigation, darkMode}) => {
                 );
               }
             }}
-            isActive={activeNav === screen}
+            isActive={currentScreen === screen}
             darkMode={darkMode}
           />
         );
