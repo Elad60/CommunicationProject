@@ -1,113 +1,81 @@
-// ControlButton.js
-import React from 'react';
-import {TouchableOpacity, Text, StyleSheet, Image, View} from 'react-native';
+import React, {useRef} from 'react';
+import {Animated, Text, StyleSheet, Image, Pressable} from 'react-native';
 
-const ControlButton = ({
-  title,
-  icon,
-  value,
-  onPress,
-  textColor,
-  darkMode,
-  isSelected,
-  isFirst,
-  isLast,
-}) => {
-  const buttonStyles = [
-    styles.button,
-    isFirst && styles.first,
-    isLast && styles.last,
-    isSelected && styles.selected,
-  ];
+const ControlButton = ({title, icon, value, onPress, darkMode, isSelected}) => {
+  const scale = useRef(new Animated.Value(1)).current;
 
-  const overlayStyles = [styles.overlay, isSelected && styles.overlaySelected];
+  const handleHoverIn = () => {
+    Animated.spring(scale, {
+      toValue: 1.1,
+      useNativeDriver: true,
+    }).start();
+  };
+
+  const handleHoverOut = () => {
+    Animated.spring(scale, {
+      toValue: 1,
+      useNativeDriver: true,
+    }).start();
+  };
+
+  const backgroundColor = darkMode ? '#2b2b2b' : '#f8f8f8';
+  const borderColor = isSelected ? '#3b82f6' : darkMode ? '#555' : '#ccc';
+  const textColor = darkMode ? '#fff' : '#000';
 
   return (
-    <TouchableOpacity style={buttonStyles} onPress={onPress}>
-      <View style={overlayStyles} />
-      <Image source={icon} style={styles.icon} resizeMode="contain" />
-      {value !== undefined && (
-        <Text style={[styles.value, {color: textColor}]}>{value}%</Text>
-      )}
-      <Text style={[styles.title, isSelected && styles.selectedText]}>
-        {title}
-      </Text>
-    </TouchableOpacity>
+    <Pressable
+      onPress={onPress}
+      onHoverIn={handleHoverIn}
+      onHoverOut={handleHoverOut}
+      style={{marginHorizontal: 8}}>
+      <Animated.View
+        style={[
+          styles.button,
+          {
+            backgroundColor,
+            borderColor,
+            borderWidth: isSelected ? 2 : 1,
+            transform: [{scale}],
+            shadowColor: isSelected ? '#3b82f6' : '#000',
+            shadowOpacity: isSelected ? 0.3 : 0.1,
+            elevation: isSelected ? 6 : 3,
+          },
+        ]}>
+        <Image source={icon} style={styles.icon} resizeMode="contain" />
+        {value !== undefined && (
+          <Text style={[styles.value, {color: textColor}]}>{value}%</Text>
+        )}
+        <Text style={[styles.title, {color: textColor}]}>{title}</Text>
+      </Animated.View>
+    </Pressable>
   );
 };
 
 const styles = StyleSheet.create({
   button: {
-    width: 90,
-    height: 60,
-    backgroundColor: 'gray',
-    justifyContent: 'center',
+    width: 80,
+    height: 80,
+    borderRadius: 20,
     alignItems: 'center',
-    padding: 8,
-    marginHorizontal: 1,
-    borderTopWidth: 1,
-    borderTopColor: '#4e4d4d',
-    position: 'relative',
+    justifyContent: 'center',
+    padding: 12,
+    shadowOffset: {width: 0, height: 2},
+    shadowRadius: 6,
     overflow: 'hidden',
-    borderRadius: 0,
-    elevation: 5,
-  },
-  selected: {
-    backgroundColor: '#1d1d1d',
-    borderTopWidth: 0,
-    elevation: 0,
-  },
-  first: {
-    borderTopLeftRadius: 6,
-    borderBottomLeftRadius: 6,
-  },
-  last: {
-    borderTopRightRadius: 6,
-    borderBottomRightRadius: 6,
-  },
-  overlay: {
-    position: 'absolute',
-    top: '50%',
-    left: '50%',
-    width: '103%',
-    height: '100%',
-    borderRadius: 10,
-    transform: [{translateX: -46.35}, {translateY: -30}],
-    backgroundColor: 'transparent',
-    zIndex: -1,
-  },
-  overlaySelected: {
-    backgroundColor: 'rgba(202, 226, 253, 0.3)',
   },
   icon: {
     width: 26,
     height: 26,
     marginBottom: 4,
-    zIndex: 1,
   },
   value: {
     fontSize: 12,
-    textAlign: 'center',
-    width: '80%',
-    flexWrap: 'wrap',
-    zIndex: 1,
+    marginBottom: 2,
   },
   title: {
-    fontSize: 12,
-    fontWeight: '800',
-    color: 'white',
-    textTransform: 'uppercase',
+    fontSize: 10,
+    fontWeight: 'bold',
     textAlign: 'center',
-    textShadowColor: 'rgba(0,0,0,0.3)',
-    textShadowOffset: {width: 0, height: 2},
-    textShadowRadius: 3,
-    zIndex: 1,
-  },
-  selectedText: {
-    color: 'rgb(202, 226, 253)',
-    textShadowColor: '#cae2fd',
-    textShadowOffset: {width: 0, height: 0},
-    textShadowRadius: 12,
   },
 });
 

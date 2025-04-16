@@ -1,12 +1,11 @@
-// ControlPanel.js
 import React, {useRef, useEffect, useState} from 'react';
 import {Animated, Dimensions} from 'react-native';
 import ControlButton from './ControlButton';
 import {useSettings} from '../context/SettingsContext';
 
 const {height, width} = Dimensions.get('window');
-const CONTROL_PANEL_HEIGHT = height * 0.1;
-const CONTROL_PANEL_WIDTH = width * 0.92;
+const CONTROL_PANEL_HEIGHT = height * 0.13;
+const CONTROL_PANEL_WIDTH = width * 0.32;
 
 const ControlPanel = ({
   speakerVolume,
@@ -26,11 +25,11 @@ const ControlPanel = ({
   const position = useRef(new Animated.Value(controlPanelPosition)).current;
 
   const controlPanelStyle = {
-    marginLeft: toolBarAdjustment ? 0 : width * 0.08,
+    left: (width - CONTROL_PANEL_WIDTH) / 2-10,
   };
 
-  const backgroundColor = 'black';
-  const buttonTextColor = darkMode ? '#fff' : '#fff';
+  const backgroundColor = darkMode ? '#1a1a1a' : '#fff';
+  const buttonTextColor = darkMode ? '#fff' : '#000';
 
   useEffect(() => {
     const targetPosition = controlBarAdjustment
@@ -90,8 +89,18 @@ const ControlPanel = ({
           width: CONTROL_PANEL_WIDTH,
           height: CONTROL_PANEL_HEIGHT,
           flexDirection: 'row',
-          justifyContent: 'center',
+          justifyContent: 'center', // ✅ Center buttons
           alignItems: 'center',
+          backgroundColor,
+          borderRadius: 20,
+          shadowColor: '#000',
+          shadowOpacity: 0.1,
+          shadowOffset: {width: 0, height: 2},
+          shadowRadius: 6,
+          elevation: 6,
+          paddingHorizontal: 10,
+          paddingVertical: 10,
+          overflow: 'visible',
           transform: [{translateY: position}],
         },
         controlPanelStyle,
@@ -105,8 +114,6 @@ const ControlPanel = ({
           darkMode={darkMode}
           textColor={buttonTextColor}
           isSelected={selectedButton === btn.title}
-          isFirst={index === 0}
-          isLast={index === buttons.length - 1}
         />
       ))}
     </Animated.View>
