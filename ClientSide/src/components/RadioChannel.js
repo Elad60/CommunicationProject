@@ -1,5 +1,5 @@
 import React from 'react';
-import {View, Text, StyleSheet, Image} from 'react-native';
+import { View, Text, StyleSheet, Image } from 'react-native';
 import { useSettings } from '../context/SettingsContext';
 
 const RadioChannel = ({
@@ -10,16 +10,17 @@ const RadioChannel = ({
   isSelected,
   channelState,
 }) => {
-  const { darkMode } = useSettings();
+  const { darkMode, showFrequency, showStatus } = useSettings();
+
   const getBackgroundColor = () => {
     switch (channelState) {
       case 'ListenOnly':
-        return darkMode ? '#1f3d1f' : '#99cc99'; //  green
+        return darkMode ? '#1f3d1f' : '#99cc99'; // green
       case 'ListenAndTalk':
-        return darkMode ? '#1e2f4d' : '#91aad4'; //  blue
+        return darkMode ? '#1e2f4d' : '#91aad4'; // blue
       case 'Idle':
       default:
-        return  darkMode ? '#222' : '#ddd'; // default 
+        return darkMode ? '#222' : '#ddd'; // default
     }
   };
 
@@ -48,19 +49,25 @@ const RadioChannel = ({
     }
   };
 
-  const {headphones, mic} = getIconPaths();
+  const { headphones, mic } = getIconPaths();
 
   return (
-    <View style={[styles.container, {backgroundColor: getBackgroundColor()}]}>
+    <View style={[styles.container, { backgroundColor: getBackgroundColor() }]}>
       <Text style={[styles.name, { color: darkMode ? '#fff' : '#000' }]}>{name}</Text>
-      <Text style={[styles.frequency, { color: darkMode ? '#fff' : '#000' }]}>{frequency}</Text>
-      <Text style={[styles.status, { color: darkMode ? '#fff' : '#000' }]}>{isActive ? 'Active' : 'Not used'}</Text>
-    <View style={styles.iconContainer}>
+      {showFrequency && (
+        <Text style={[styles.frequency, { color: darkMode ? '#fff' : '#000' }]}>{frequency}</Text>
+      )}
+      {showStatus && (
+        <Text style={[styles.status, { color: darkMode ? '#fff' : '#000' }]}>
+          {isActive ? 'Active' : 'Not used'}
+        </Text>
+      )}
+      <View style={styles.iconContainer}>
         <Image source={headphones} style={styles.iconImage} />
         <View
           style={[
             styles.statusIndicator,
-            {backgroundColor: isActive ? '#00cc00' : '#555'},
+            { backgroundColor: isActive ? '#00cc00' : '#555' },
           ]}
         />
         <Image source={mic} style={styles.iconImage} />

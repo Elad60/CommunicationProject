@@ -10,6 +10,8 @@ const CONTROL_PANEL_HEIGHT = height * 0.1;
 
 // Provider Component
 export const SettingsProvider = ({ children }) => {
+  const [showFrequency, setShowFrequency] = useState(true);
+  const [showStatus, setShowStatus] = useState(true);
   const [toolBarAdjustment, setToolBarAdjustment] = useState(true);
   const [controlBarAdjustment, setControlBarAdjustment] = useState(true);
   const [navPanelPosition, setNavPanelPosition] = useState(width - NAV_PANEL_WIDTH);
@@ -21,6 +23,10 @@ export const SettingsProvider = ({ children }) => {
   return (
     <SettingsContext.Provider
       value={{
+        showFrequency,
+        setShowFrequency,
+        showStatus,
+        setShowStatus,
         toolBarAdjustment,
         setToolBarAdjustment,
         controlBarAdjustment,
