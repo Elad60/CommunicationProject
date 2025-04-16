@@ -106,3 +106,5 @@ ScaffoldingReadMe.txt
 **/windows/*/bin/
 **/windows/*/obj/
 
+ClientSide/msbuild.binlog
+ClientSide/msbuild.binlog
