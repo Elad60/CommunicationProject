@@ -42,6 +42,7 @@ const ControlPanel = ({
     }).start();
 
     setControlPanelPosition(targetPosition);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [controlBarAdjustment]);
 
   const buttons = [
