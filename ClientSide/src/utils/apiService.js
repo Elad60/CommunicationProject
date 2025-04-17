@@ -145,6 +145,20 @@ const announcementsApi = {
     });
     return response.data;
   },
+  getAllWithReadStatus: async (userId) => {
+    const response = await api.get(`/Announcement/announcements/withReadStatus/${userId}`);
+    return response.data;
+  },
+  
+  markAllAsRead: async (userId) => {
+    const response = await api.post(`/Announcement/announcements/markAllAsRead/${userId}`);
+    return response.data;
+  },
+  
+  getUnreadCount: async (userId) => {
+    const response = await api.get(`/Announcement/announcements/unreadCount/${userId}`);
+    return response.data;
+  },
 };
 
 // 👫 Group Users API

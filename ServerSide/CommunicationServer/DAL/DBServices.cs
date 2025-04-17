@@ -44,6 +44,8 @@ namespace CommunicationServer.DAL
             return cmd;
         }
 
+        //Radio channels
+
         // Get all radio channels using stored procedure
         public List<RadioChannel> GetAllRadioChannels()
         {
@@ -159,6 +161,8 @@ namespace CommunicationServer.DAL
             }
         }
 
+        //Users
+
         public bool RegisterUser(string username, string email, string password, char group)
         {
             SqlConnection con = null;
@@ -263,7 +267,33 @@ namespace CommunicationServer.DAL
                 con?.Close();
             }
         }
+        public bool DeleteUser(int userId)
+        {
+            SqlConnection con = null;
 
+            try
+            {
+                con = Connect("myProjDB");
+
+                Dictionary<string, object> parameters = new Dictionary<string, object>
+        {
+            { "@UserId", userId }
+        };
+
+                SqlCommand cmd = CreateCommandWithStoredProcedure("sp_DeleteUser", con, parameters);
+                int rowsAffected = cmd.ExecuteNonQuery();
+
+                return rowsAffected > 0;
+            }
+            catch (Exception ex)
+            {
+                throw new Exception("Error deleting user: " + ex.Message);
+            }
+            finally
+            {
+                con?.Close();
+            }
+        }
 
         public List<User> GetAllUsers()
         {
@@ -361,7 +391,6 @@ namespace CommunicationServer.DAL
             }
         }
 
-
         public bool UpdateUserRole(int userId, string newRole)
         {
             SqlConnection con = null;
@@ -456,34 +485,6 @@ namespace CommunicationServer.DAL
             catch (Exception ex)
             {
                 throw new Exception("Error updating user group: " + ex.Message);
-            }
-            finally
-            {
-                con?.Close();
-            }
-        }
-
-        public bool DeleteUser(int userId)
-        {
-            SqlConnection con = null;
-
-            try
-            {
-                con = Connect("myProjDB");
-
-                Dictionary<string, object> parameters = new Dictionary<string, object>
-        {
-            { "@UserId", userId }
-        };
-
-                SqlCommand cmd = CreateCommandWithStoredProcedure("sp_DeleteUser", con, parameters);
-                int rowsAffected = cmd.ExecuteNonQuery();
-
-                return rowsAffected > 0;
-            }
-            catch (Exception ex)
-            {
-                throw new Exception("Error deleting user: " + ex.Message);
             }
             finally
             {
@@ -659,7 +660,98 @@ namespace CommunicationServer.DAL
             return announcements;
         }
 
+        // מתודה להחזרת הודעות עם סטטוס קריאה
+        public List<Announcement> GetAllAnnouncementsWithReadStatus(int userId)
+        {
+            SqlConnection con = null;
+            List<Announcement> announcements = new List<Announcement>();
+            try
+            {
+                con = Connect("myProjDB");
+                var parameters = new Dictionary<string, object>
+        {
+            { "@UserId", userId }
+        };
+                SqlCommand cmd = CreateCommandWithStoredProcedure("sp_GetAllAnnouncementsWithReadStatus", con, parameters);
+                SqlDataReader reader = cmd.ExecuteReader();
+                while (reader.Read())
+                {
+                    announcements.Add(new Announcement
+                    {
+                        Id = Convert.ToInt32(reader["Id"]),
+                        Title = reader["Title"].ToString(),
+                        Content = reader["Content"].ToString(),
+                        UserName = reader["UserName"].ToString(),
+                        CreatedAt = Convert.ToDateTime(reader["CreatedAt"]),
+                        IsRead = Convert.ToBoolean(reader["IsRead"]) // קריאת השדה החדש
+                    });
+                }
+                reader.Close();
+            }
+            catch (Exception ex)
+            {
+                throw new Exception("Error fetching announcements with read status: " + ex.Message);
+            }
+            finally
+            {
+                con?.Close();
+            }
+            return announcements;
+        }
 
+        // מתודה לסימון כל ההודעות כנקראות
+        public bool MarkAllAnnouncementsAsRead(int userId)
+        {
+            SqlConnection con = null;
+            try
+            {
+                con = Connect("myProjDB");
+                var parameters = new Dictionary<string, object>
+        {
+            { "@UserId", userId }
+        };
+                SqlCommand cmd = CreateCommandWithStoredProcedure("sp_MarkAllAnnouncementsAsRead", con, parameters);
+                cmd.ExecuteNonQuery();
+                return true;
+            }
+            catch (Exception ex)
+            {
+                throw new Exception("Error marking announcements as read: " + ex.Message);
+            }
+            finally
+            {
+                con?.Close();
+            }
+        }
 
+        // מתודה לקבלת מספר ההודעות שלא נקראו
+        public int GetUnreadAnnouncementsCount(int userId)
+        {
+            SqlConnection con = null;
+            int count = 0;
+            try
+            {
+                con = Connect("myProjDB");
+                var parameters = new Dictionary<string, object>
+        {
+            { "@UserId", userId }
+        };
+                SqlCommand cmd = CreateCommandWithStoredProcedure("sp_GetUnreadAnnouncementsCount", con, parameters);
+                object result = cmd.ExecuteScalar();
+                if (result != null && result != DBNull.Value)
+                {
+                    count = Convert.ToInt32(result);
+                }
+            }
+            catch (Exception ex)
+            {
+                throw new Exception("Error getting unread announcements count: " + ex.Message);
+            }
+            finally
+            {
+                con?.Close();
+            }
+            return count;
+        }
     }
 }

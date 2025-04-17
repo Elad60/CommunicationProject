@@ -1,3 +1,4 @@
+// App.tsx
 import React from 'react';
 import {
   SafeAreaView,
@@ -11,7 +12,8 @@ import LoginScreen from './src/screens/LoginScreen';
 import RegisterScreen from './src/screens/RegisterScreen';
 import {AuthProvider, useAuth} from './src/context/AuthContext';
 import {SettingsProvider} from './src/context/SettingsContext';
-import {TutorialProvider} from './src/context/TutorialContext'; // ✅ move to top
+import {TutorialProvider} from './src/context/TutorialContext';
+import {AnnouncementsProvider} from './src/context/AnnouncementsContext'; // הוספת קונטקסט ההודעות
 
 // Component that handles auth flow
 const AppContent = () => {
@@ -29,7 +31,7 @@ const AppContent = () => {
   if (!user) {
     return isRegistering ? (
       <RegisterScreen
-        onRegister={async (username, password, email, group) => {
+        onRegister={async (username: any, password: any, email: any, group: any) => {
           const result = await register(username, password, email, group);
           if (result?.success) {
             setIsRegistering(false);
@@ -41,7 +43,7 @@ const AppContent = () => {
       />
     ) : (
       <LoginScreen
-        onLogin={async (username, password) => {
+        onLogin={async (username: any, password: any) => {
           const result = await login(username, password);
           return result || {success: false, message: 'Login failed'};
         }}
@@ -65,7 +67,9 @@ const App = () => {
       <TutorialProvider>
         <SettingsProvider>
           <AuthProvider>
-            <AppContent />
+            <AnnouncementsProvider>
+              <AppContent />
+            </AnnouncementsProvider>
           </AuthProvider>
         </SettingsProvider>
       </TutorialProvider>
