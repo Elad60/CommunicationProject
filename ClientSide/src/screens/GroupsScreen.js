@@ -60,12 +60,12 @@ const GroupsScreen = ({ navigation }) => {
       case 'Idle':
         return {
           headphones: require('../../assets/logos/crossed-HF.png'),
-          mic: require('../../assets/logos/crossed-mic.webp'),
+          mic: require('../../assets/logos/crossed-mic.png'),
         };
       case 'ListenOnly':
         return {
           headphones: require('../../assets/logos/headphones.png'),
-          mic: require('../../assets/logos/crossed-mic.webp'),
+          mic: require('../../assets/logos/crossed-mic.png'),
         };
       case 'ListenAndTalk':
         return {

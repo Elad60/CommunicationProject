@@ -25,7 +25,7 @@ const ControlPanel = ({
   const position = useRef(new Animated.Value(controlPanelPosition)).current;
 
   const controlPanelStyle = {
-    left: (width - CONTROL_PANEL_WIDTH) / 2-10,
+    left: (width - CONTROL_PANEL_WIDTH) / 2 - 10,
   };
 
   const backgroundColor = darkMode ? '#1a1a1a' : '#fff';
