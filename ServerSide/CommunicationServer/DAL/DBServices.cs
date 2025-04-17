@@ -44,6 +44,8 @@ namespace CommunicationServer.DAL
             return cmd;
         }
 
+        //Radio channels
+
         // Get all radio channels using stored procedure
         public List<RadioChannel> GetAllRadioChannels()
         {
@@ -159,6 +161,8 @@ namespace CommunicationServer.DAL
             }
         }
 
+        //Users
+
         public bool RegisterUser(string username, string email, string password, char group)
         {
             SqlConnection con = null;
@@ -190,51 +194,106 @@ namespace CommunicationServer.DAL
                 con?.Close();
             }
         }
-        public User LoginUser(string username, string password)
+        public LoginResponse LoginUser(string username, string password)
         {
             SqlConnection con = null;
             try
             {
                 con = Connect("myProjDB");
-
                 var paramDic = new Dictionary<string, object>
         {
             { "@Username", username },
             { "@Password", password }
         };
-
                 SqlCommand cmd = CreateCommandWithStoredProcedure("sp_LoginUser", con, paramDic);
                 SqlDataReader reader = cmd.ExecuteReader();
 
                 if (reader.Read())
                 {
-                    return new User
+                    var response = new LoginResponse
                     {
-                        Id = Convert.ToInt32(reader["Id"]),
-                        Username = reader["Username"].ToString(),
-                        Email = reader["Email"].ToString(),
-                        Role = reader["Role"].ToString(),
-                        Group = Convert.ToChar(reader["Group"]),
-                        IsActive = Convert.ToBoolean(reader["IsActive"])
+                        Success = reader["Success"] != DBNull.Value ? Convert.ToBoolean(reader["Success"]) : false,
+                        ErrorCode = reader["ErrorCode"]?.ToString(),
+                        Message = reader["Message"]?.ToString()
                     };
+
+                    // If login was successful, populate the User property
+                    if (response.Success && reader.FieldCount > 3)
+                    {
+                        response.User = new User
+                        {
+                            Id = Convert.ToInt32(reader["Id"]),
+                            Username = reader["Username"].ToString(),
+                            Email = reader["Email"].ToString(),
+                            Role = reader["Role"].ToString(),
+                            Group = reader["Group"] != DBNull.Value ? Convert.ToChar(reader["Group"]) : '\0',
+                            IsActive = Convert.ToBoolean(reader["IsActive"])
+                        };
+                    }
+
+                    return response;
                 }
 
-                return null;
+                // If we got here, something went wrong but we didn't get an error
+                return new LoginResponse
+                {
+                    Success = false,
+                    ErrorCode = "UNKNOWN_ERROR",
+                    Message = "An unknown error occurred during login."
+                };
             }
             catch (SqlException ex)
             {
-                // אם המשתמש כבר מחובר — נזהה לפי הודעת השגיאה
-                if (ex.Message.Contains("User already logged in"))
-                    throw new Exception("User already logged in on another device.");
-                else
-                    throw new Exception("Login failed: " + ex.Message);
+                // Handle any SQL exceptions
+                return new LoginResponse
+                {
+                    Success = false,
+                    ErrorCode = "DATABASE_ERROR",
+                    Message = "Database error: " + ex.Message
+                };
+            }
+            catch (Exception ex)
+            {
+                // Handle any other exceptions
+                return new LoginResponse
+                {
+                    Success = false,
+                    ErrorCode = "SERVER_ERROR",
+                    Message = "Server error: " + ex.Message
+                };
             }
             finally
             {
                 con?.Close();
             }
         }
+        public bool DeleteUser(int userId)
+        {
+            SqlConnection con = null;
 
+            try
+            {
+                con = Connect("myProjDB");
+
+                Dictionary<string, object> parameters = new Dictionary<string, object>
+        {
+            { "@UserId", userId }
+        };
+
+                SqlCommand cmd = CreateCommandWithStoredProcedure("sp_DeleteUser", con, parameters);
+                int rowsAffected = cmd.ExecuteNonQuery();
+
+                return rowsAffected > 0;
+            }
+            catch (Exception ex)
+            {
+                throw new Exception("Error deleting user: " + ex.Message);
+            }
+            finally
+            {
+                con?.Close();
+            }
+        }
 
         public List<User> GetAllUsers()
         {
@@ -332,7 +391,6 @@ namespace CommunicationServer.DAL
             }
         }
 
-
         public bool UpdateUserRole(int userId, string newRole)
         {
             SqlConnection con = null;
@@ -387,7 +445,8 @@ namespace CommunicationServer.DAL
                         Role = reader["Role"].ToString(),
                         CreatedAt = Convert.ToDateTime(reader["CreatedAt"]),
                         IsBlocked = Convert.ToBoolean(reader["IsBlocked"]),
-                        Group = Convert.ToChar(reader["Group"])
+                        Group = Convert.ToChar(reader["Group"]),
+                        IsActive = Convert.ToBoolean(reader["IsActive"])
                     });
                 }
 
@@ -426,34 +485,6 @@ namespace CommunicationServer.DAL
             catch (Exception ex)
             {
                 throw new Exception("Error updating user group: " + ex.Message);
-            }
-            finally
-            {
-                con?.Close();
-            }
-        }
-
-        public bool DeleteUser(int userId)
-        {
-            SqlConnection con = null;
-
-            try
-            {
-                con = Connect("myProjDB");
-
-                Dictionary<string, object> parameters = new Dictionary<string, object>
-        {
-            { "@UserId", userId }
-        };
-
-                SqlCommand cmd = CreateCommandWithStoredProcedure("sp_DeleteUser", con, parameters);
-                int rowsAffected = cmd.ExecuteNonQuery();
-
-                return rowsAffected > 0;
-            }
-            catch (Exception ex)
-            {
-                throw new Exception("Error deleting user: " + ex.Message);
             }
             finally
             {
@@ -629,7 +660,98 @@ namespace CommunicationServer.DAL
             return announcements;
         }
 
+        // מתודה להחזרת הודעות עם סטטוס קריאה
+        public List<Announcement> GetAllAnnouncementsWithReadStatus(int userId)
+        {
+            SqlConnection con = null;
+            List<Announcement> announcements = new List<Announcement>();
+            try
+            {
+                con = Connect("myProjDB");
+                var parameters = new Dictionary<string, object>
+        {
+            { "@UserId", userId }
+        };
+                SqlCommand cmd = CreateCommandWithStoredProcedure("sp_GetAllAnnouncementsWithReadStatus", con, parameters);
+                SqlDataReader reader = cmd.ExecuteReader();
+                while (reader.Read())
+                {
+                    announcements.Add(new Announcement
+                    {
+                        Id = Convert.ToInt32(reader["Id"]),
+                        Title = reader["Title"].ToString(),
+                        Content = reader["Content"].ToString(),
+                        UserName = reader["UserName"].ToString(),
+                        CreatedAt = Convert.ToDateTime(reader["CreatedAt"]),
+                        IsRead = Convert.ToBoolean(reader["IsRead"]) // קריאת השדה החדש
+                    });
+                }
+                reader.Close();
+            }
+            catch (Exception ex)
+            {
+                throw new Exception("Error fetching announcements with read status: " + ex.Message);
+            }
+            finally
+            {
+                con?.Close();
+            }
+            return announcements;
+        }
 
+        // מתודה לסימון כל ההודעות כנקראות
+        public bool MarkAllAnnouncementsAsRead(int userId)
+        {
+            SqlConnection con = null;
+            try
+            {
+                con = Connect("myProjDB");
+                var parameters = new Dictionary<string, object>
+        {
+            { "@UserId", userId }
+        };
+                SqlCommand cmd = CreateCommandWithStoredProcedure("sp_MarkAllAnnouncementsAsRead", con, parameters);
+                cmd.ExecuteNonQuery();
+                return true;
+            }
+            catch (Exception ex)
+            {
+                throw new Exception("Error marking announcements as read: " + ex.Message);
+            }
+            finally
+            {
+                con?.Close();
+            }
+        }
 
+        // מתודה לקבלת מספר ההודעות שלא נקראו
+        public int GetUnreadAnnouncementsCount(int userId)
+        {
+            SqlConnection con = null;
+            int count = 0;
+            try
+            {
+                con = Connect("myProjDB");
+                var parameters = new Dictionary<string, object>
+        {
+            { "@UserId", userId }
+        };
+                SqlCommand cmd = CreateCommandWithStoredProcedure("sp_GetUnreadAnnouncementsCount", con, parameters);
+                object result = cmd.ExecuteScalar();
+                if (result != null && result != DBNull.Value)
+                {
+                    count = Convert.ToInt32(result);
+                }
+            }
+            catch (Exception ex)
+            {
+                throw new Exception("Error getting unread announcements count: " + ex.Message);
+            }
+            finally
+            {
+                con?.Close();
+            }
+            return count;
+        }
     }
 }

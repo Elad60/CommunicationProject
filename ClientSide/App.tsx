@@ -1,3 +1,4 @@
+// App.tsx
 import React from 'react';
 import {
   SafeAreaView,
@@ -11,8 +12,10 @@ import LoginScreen from './src/screens/LoginScreen';
 import RegisterScreen from './src/screens/RegisterScreen';
 import {AuthProvider, useAuth} from './src/context/AuthContext';
 import {SettingsProvider} from './src/context/SettingsContext';
+import {TutorialProvider} from './src/context/TutorialContext';
+import {AnnouncementsProvider} from './src/context/AnnouncementsContext'; // הוספת קונטקסט ההודעות
 
-// Main App component with auth routing
+// Component that handles auth flow
 const AppContent = () => {
   const {user, loading, login, register} = useAuth();
   const [isRegistering, setIsRegistering] = React.useState(false);
@@ -25,42 +28,30 @@ const AppContent = () => {
     );
   }
 
-  // If user is not logged in, show auth screens
   if (!user) {
-    if (isRegistering) {
-      return (
-        <RegisterScreen
-          onRegister={async (
-            username: string,
-            password: string,
-            email: string,
-            group: string,
-          ) => {
-            const result = await register(username, password, email, group);
-            if (result && result.success) {
-              setIsRegistering(false);
-              return {success: true};
-            }
-            return result || {success: false, message: 'Registration failed'};
-          }}
-          onNavigateToLogin={() => setIsRegistering(false)}
-        />
-      );
-    } else {
-      return (
-        <LoginScreen
-          onLogin={async (username: string, password: string) => {
-            const result = await login(username, password);
-            return result || {success: false, message: 'Login failed'};
-          }}
-          onNavigateToRegister={() => setIsRegistering(true)}
-        />
-      );
-    }
+    return isRegistering ? (
+      <RegisterScreen
+        onRegister={async (username: any, password: any, email: any, group: any) => {
+          const result = await register(username, password, email, group);
+          if (result?.success) {
+            setIsRegistering(false);
+            return {success: true};
+          }
+          return result || {success: false, message: 'Registration failed'};
+        }}
+        onNavigateToLogin={() => setIsRegistering(false)}
+      />
+    ) : (
+      <LoginScreen
+        onLogin={async (username: any, password: any) => {
+          const result = await login(username, password);
+          return result || {success: false, message: 'Login failed'};
+        }}
+        onNavigateToRegister={() => setIsRegistering(true)}
+      />
+    );
   }
 
-  // If user is logged in, show main app with navigation
-  // We're wrapping the AppNavigator with a custom MainScreen component to handle logout
   return (
     <View style={styles.container}>
       <AppNavigator />
@@ -68,16 +59,20 @@ const AppContent = () => {
   );
 };
 
-// Root component with providers
+// Root app with all providers
 const App = () => {
   return (
     <SafeAreaView style={styles.container}>
       <StatusBar barStyle="light-content" backgroundColor="#000" />
-      <AuthProvider>
+      <TutorialProvider>
         <SettingsProvider>
-          <AppContent />
+          <AuthProvider>
+            <AnnouncementsProvider>
+              <AppContent />
+            </AnnouncementsProvider>
+          </AuthProvider>
         </SettingsProvider>
-      </AuthProvider>
+      </TutorialProvider>
     </SafeAreaView>
   );
 };

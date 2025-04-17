@@ -1,46 +1,81 @@
-import React from 'react';
-import {TouchableOpacity, Text, StyleSheet, Image} from 'react-native';
+import React, {useRef} from 'react';
+import {Animated, Text, StyleSheet, Image, Pressable} from 'react-native';
 
-const ControlButton = ({title, icon, value, onPress, textColor, darkMode}) => {
-  const buttonBackgroundColor = darkMode ? '#222' : '#bbb';
+const ControlButton = ({title, icon, value, onPress, darkMode, isSelected}) => {
+  const scale = useRef(new Animated.Value(1)).current;
+
+  const handleHoverIn = () => {
+    Animated.spring(scale, {
+      toValue: 1.1,
+      useNativeDriver: true,
+    }).start();
+  };
+
+  const handleHoverOut = () => {
+    Animated.spring(scale, {
+      toValue: 1,
+      useNativeDriver: true,
+    }).start();
+  };
+
+  const backgroundColor = darkMode ? '#2b2b2b' : '#f8f8f8';
+  const borderColor = isSelected ? '#3b82f6' : darkMode ? '#555' : '#ccc';
+  const textColor = darkMode ? '#fff' : '#000';
 
   return (
-    <TouchableOpacity
-      style={[styles.button, {backgroundColor: buttonBackgroundColor}]}
-      onPress={onPress}>
-      <Image source={icon} style={styles.icon} resizeMode="contain" />
-      {value !== undefined && (
-        <Text style={[styles.value, {color: textColor}]}>{value}%</Text>
-      )}
-      <Text style={[styles.title, {color: textColor}]}>{title}</Text>
-    </TouchableOpacity>
+    <Pressable
+      onPress={onPress}
+      onHoverIn={handleHoverIn}
+      onHoverOut={handleHoverOut}
+      style={{marginHorizontal: 8}}>
+      <Animated.View
+        style={[
+          styles.button,
+          {
+            backgroundColor,
+            borderColor,
+            borderWidth: isSelected ? 2 : 1,
+            transform: [{scale}],
+            shadowColor: isSelected ? '#3b82f6' : '#000',
+            shadowOpacity: isSelected ? 0.3 : 0.1,
+            elevation: isSelected ? 6 : 3,
+          },
+        ]}>
+        <Image source={icon} style={styles.icon} resizeMode="contain" />
+        {value !== undefined && (
+          <Text style={[styles.value, {color: textColor}]}>{value}%</Text>
+        )}
+        <Text style={[styles.title, {color: textColor}]}>{title}</Text>
+      </Animated.View>
+    </Pressable>
   );
 };
 
 const styles = StyleSheet.create({
   button: {
-    width: '20%',
-    height: '90%',
-    borderRadius: 5,
-    justifyContent: 'center',
+    width: 80,
+    height: 80,
+    borderRadius: 20,
     alignItems: 'center',
+    justifyContent: 'center',
+    padding: 12,
+    shadowOffset: {width: 0, height: 2},
+    shadowRadius: 6,
+    overflow: 'hidden',
   },
   icon: {
-    width: 30,
-    height: 30,
+    width: 26,
+    height: 26,
     marginBottom: 4,
   },
   value: {
     fontSize: 12,
-    textAlign: 'center',
-    width: '80%',
-    flexWrap: 'wrap',
+    marginBottom: 2,
   },
   title: {
-    fontSize: 12,
+    fontSize: 10,
+    fontWeight: 'bold',
     textAlign: 'center',
-    width: '80%',
-    flexWrap: 'wrap',
   },
 });
 

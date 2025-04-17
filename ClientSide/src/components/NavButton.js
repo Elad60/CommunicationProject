@@ -1,42 +1,70 @@
-import React from 'react';
-import {TouchableOpacity, Text, StyleSheet, Image} from 'react-native';
+import React, {useRef} from 'react';
+import {Animated, StyleSheet, Image, Text, Pressable} from 'react-native';
 
 const NavButton = ({title, icon, onPress, isActive, darkMode}) => {
-  const buttonBackgroundColor = darkMode ? '#222' : '#bbb';
+  const scale = useRef(new Animated.Value(1)).current;
+
+  const handleHoverIn = () => {
+    Animated.spring(scale, {
+      toValue: 1.1,
+      useNativeDriver: true,
+    }).start();
+  };
+
+  const handleHoverOut = () => {
+    Animated.spring(scale, {
+      toValue: 1,
+      useNativeDriver: true,
+    }).start();
+  };
+
+  const backgroundColor = darkMode ? '#2b2b2b' : '#f8f8f8';
+  const borderColor = isActive ? '#3b82f6' : darkMode ? '#555' : '#ccc';
   const textColor = darkMode ? '#fff' : '#000';
 
   return (
-    <TouchableOpacity
-      style={[styles.button, {backgroundColor: buttonBackgroundColor}]}
+    <Pressable
       onPress={onPress}
-      activeOpacity={0.8}>
-      <Image source={icon} style={styles.icon} resizeMode="contain" />
-      <Text style={[styles.title, {color: textColor}]}>{title}</Text>
-    </TouchableOpacity>
+      onHoverIn={handleHoverIn}
+      onHoverOut={handleHoverOut}
+      style={{marginVertical: 6}}>
+      <Animated.View
+        style={[
+          styles.button,
+          {
+            transform: [{scale}],
+            backgroundColor,
+            borderColor,
+            borderWidth: isActive ? 2 : 1,
+            shadowColor: isActive ? '#3b82f6' : '#000',
+            shadowOpacity: isActive ? 0.3 : 0.1,
+          },
+        ]}>
+        <Image source={icon} style={styles.icon} resizeMode="contain" />
+        <Text style={[styles.title, {color: textColor}]}>{title}</Text>
+      </Animated.View>
+    </Pressable>
   );
 };
 
 const styles = StyleSheet.create({
   button: {
-    width: '92%',
-    height: 110,
-    borderRadius: 8,
-    justifyContent: 'center',
+    padding: 12,
+    borderRadius: 16,
     alignItems: 'center',
-    padding: 6,
-    shadowColor: '#000',
-    shadowOffset: {width: 0, height: 1},
-    shadowOpacity: 0.2,
-    shadowRadius: 2,
-    elevation: 3,
+    justifyContent: 'center',
+    shadowOffset: {width: 0, height: 2},
+    shadowRadius: 6,
+    width: 80,
+    height:100,
   },
   icon: {
-    width: 26,
-    height: 26,
-    marginBottom: 5,
+    width: 24,
+    height: 24,
+    marginBottom: 4,
   },
   title: {
-    fontSize: 11,
+    fontSize: 10,
     textAlign: 'center',
   },
 });

@@ -21,7 +21,7 @@ DerivedData
 *.ipa
 *.xcuserstate
 **/.xcode.env.local
-
+windows/
 # Android/IntelliJ
 #
 build/
@@ -99,8 +99,12 @@ ScaffoldingReadMe.txt
 # Logs
 *.log
 
-# Build outputs
+# Ignore platform version and project output files
+**/windows/FinalProject/FinalProject.csproj
+**/windows/FinalProject/FinalProject.vcxproj
+**/windows/Package.appxmanifest
 **/windows/*/bin/
 **/windows/*/obj/
 
-
+ClientSide/msbuild.binlog
+ClientSide/msbuild.binlog

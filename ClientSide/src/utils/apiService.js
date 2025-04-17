@@ -50,36 +50,60 @@ const radioChannelsApi = {
 // 🔐 Auth API
 const authApi = {
   login: async (username, password) => {
-    const response = await api.post('/user/login', {
-      username,
-      password,
-    });
-    return response.data;
+    try {
+      const response = await api.post('/user/login', {
+        username,
+        password,
+      });
+      return response.data;
+    } catch (error) {
+      // If we have a response with data, return that data
+      if (error.response && error.response.data) {
+        throw { response: { data: error.response.data } };
+      }
+      // Otherwise, throw a more general error
+      throw error;
+    }
   },
-  
+
   logout: async userId => {
     const response = await api.post(`/user/logout/${userId}`);
     return response.data;
   },
 
-  register: async (username, password, email,group) => {
-    const response = await api.post(
-      '/user/register',
-      {
-        username,
-        password,
-        email,
-        group,
-      },
-      {
-        headers: {
-          'Content-Type': 'application/json',
+  register: async (username, password, email, group) => {
+    try {
+      const response = await api.post(
+        '/user/register',
+        {
+          username,
+          password,
+          email,
+          group,
         },
-      },
-    );
-    return response.data;
+        {
+          headers: {
+            'Content-Type': 'application/json',
+          },
+        },
+      );
+      return response.data;
+    } catch (error) {
+      // If we have a response with data, return that data
+      if (error.response && error.response.data) {
+        console.error('Registration error (server):', error.response.data);
+        return error.response.data;
+      }
+      // Otherwise, return a generic error
+      console.error('Registration error:', error);
+      return {
+        success: false, 
+        message: 'Registration failed. Please try again.'
+      };
+    }
   },
 };
+
 
 // 🔒 Admin API
 const adminApi = {
@@ -119,6 +143,20 @@ const announcementsApi = {
       content,
       userName,
     });
+    return response.data;
+  },
+  getAllWithReadStatus: async (userId) => {
+    const response = await api.get(`/Announcement/announcements/withReadStatus/${userId}`);
+    return response.data;
+  },
+  
+  markAllAsRead: async (userId) => {
+    const response = await api.post(`/Announcement/announcements/markAllAsRead/${userId}`);
+    return response.data;
+  },
+  
+  getUnreadCount: async (userId) => {
+    const response = await api.get(`/Announcement/announcements/unreadCount/${userId}`);
     return response.data;
   },
 };

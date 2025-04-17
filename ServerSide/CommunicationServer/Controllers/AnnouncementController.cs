@@ -43,6 +43,52 @@ namespace CommunicationServer.Controllers
                 return StatusCode(500, new { success = false, message = ex.Message });
             }
         }
+        [HttpGet("announcements/withReadStatus/{userId}")]
+        public IActionResult GetAnnouncementsWithReadStatus(int userId)
+        {
+            try
+            {
+                DBServices db = new DBServices();
+                var announcements = db.GetAllAnnouncementsWithReadStatus(userId);
+                return Ok(announcements);
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(500, new { success = false, message = ex.Message });
+            }
+        }
 
+        [HttpPost("announcements/markAllAsRead/{userId}")]
+        public IActionResult MarkAllAnnouncementsAsRead(int userId)
+        {
+            try
+            {
+                DBServices db = new DBServices();
+                bool success = db.MarkAllAnnouncementsAsRead(userId);
+                if (success)
+                    return Ok(new { success = true });
+                else
+                    return BadRequest(new { success = false });
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(500, new { success = false, message = ex.Message });
+            }
+        }
+
+        [HttpGet("announcements/unreadCount/{userId}")]
+        public IActionResult GetUnreadAnnouncementsCount(int userId)
+        {
+            try
+            {
+                DBServices db = new DBServices();
+                int count = db.GetUnreadAnnouncementsCount(userId);
+                return Ok(new { count = count });
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(500, new { success = false, message = ex.Message });
+            }
+        }
     }
 }

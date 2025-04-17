@@ -1,4 +1,4 @@
-// src/screens/AnnouncementsScreen.js
+// AnnouncementsScreen.js - עם פתרון חלופי למודל
 import React, { useEffect, useState, useRef } from 'react';
 import {
   View,
@@ -10,51 +10,79 @@ import {
   ActivityIndicator,
   KeyboardAvoidingView,
   Platform,
+  // Modal - מוסר
 } from 'react-native';
 import AppLayout from '../components/AppLayout';
 import { useAuth } from '../context/AuthContext';
+import { useAnnouncements } from '../context/AnnouncementsContext';
 import { announcementsApi } from '../utils/apiService';
 
 const AnnouncementsScreen = ({ navigation }) => {
   const { user } = useAuth();
-  const [announcements, setAnnouncements] = useState([]);
+  const { 
+    announcements, 
+    loading: contextLoading, 
+    fetchAnnouncementsWithStatus, 
+    markAllAsRead,
+    fetchUnreadCount
+  } = useAnnouncements();
+  
   const [title, setTitle] = useState('');
   const [content, setContent] = useState('');
-  const [loading, setLoading] = useState(true);
+  const [loading, setLoading] = useState(false);
+  const [showAddForm, setShowAddForm] = useState(false); // במקום modalVisible
   const scrollViewRef = useRef();
 
-  const fetchAnnouncements = async () => {
-    try {
-      setLoading(true);
-      const data = await announcementsApi.getAll();
-      setAnnouncements(data.reverse());
-    } catch (err) {
-      console.error('Error fetching announcements:', err);
-    } finally {
-      setLoading(false);
-    }
-  };
-
+  // טעינת ההודעות עם סטטוס קריאה כשנכנסים למסך
   useEffect(() => {
-    fetchAnnouncements();
+    fetchAnnouncementsWithStatus();
+
+    // סימון הכל כנקרא כשעוזבים את המסך
+    return () => {
+      markAllAsRead();
+      // עדכון הקאונטר שמוצג בתפריט
+      setTimeout(() => {
+        fetchUnreadCount();
+      }, 500);
+    };
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   const handleAddAnnouncement = async () => {
     if (!title.trim() || !content.trim()) return;
+    setLoading(true);
+    
     try {
       await announcementsApi.add(title, content, user.username);
       setTitle('');
       setContent('');
-      fetchAnnouncements();
+      setShowAddForm(false); // סגירת הטופס אחרי הוספה
+      // רענון ההודעות עם הסטטוס
+      await fetchAnnouncementsWithStatus();
+      
       setTimeout(() => {
         scrollViewRef.current?.scrollToEnd({ animated: true });
       }, 300);
     } catch (err) {
       console.error('Error adding announcement:', err);
+    } finally {
+      setLoading(false);
     }
   };
 
-  if (loading) {
+  // פורמט תאריך באנגלית
+  const formatDate = (dateString) => {
+    const options = { 
+      year: 'numeric', 
+      month: 'short', 
+      day: 'numeric', 
+      hour: '2-digit', 
+      minute: '2-digit'
+    };
+    return new Date(dateString).toLocaleDateString('en-US', options);
+  };
+
+  if (contextLoading || loading) {
     return (
       <AppLayout navigation={navigation} title="📋 Announcements">
         <View style={styles.centerContainer}>
@@ -71,43 +99,81 @@ const AnnouncementsScreen = ({ navigation }) => {
         style={styles.container}
         behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
 
+        {/* טופס הוספת הודעה חדשה - מוצג כשהמשתמש לוחץ על הכפתור */}
+        {showAddForm && (
+          <View style={styles.formOverlay}>
+            <View style={styles.formContainer}>
+              <Text style={styles.formTitle}>Add New Announcement</Text>
+              
+              <TextInput
+                placeholder="Title"
+                placeholderTextColor="#999"
+                style={[styles.input, styles.titleInput]}
+                value={title}
+                onChangeText={setTitle}
+              />
+              
+              <TextInput
+                placeholder="Content"
+                placeholderTextColor="#999"
+                style={[styles.input, styles.textArea]}
+                value={content}
+                onChangeText={setContent}
+                multiline
+              />
+              
+              <View style={styles.formButtonsRow}>
+                <TouchableOpacity 
+                  style={styles.cancelButton} 
+                  onPress={() => setShowAddForm(false)}>
+                  <Text style={styles.cancelButtonText}>Cancel</Text>
+                </TouchableOpacity>
+                
+                <TouchableOpacity 
+                  style={styles.submitButton} 
+                  onPress={handleAddAnnouncement}>
+                  <Text style={styles.submitButtonText}>Post</Text>
+                </TouchableOpacity>
+              </View>
+            </View>
+          </View>
+        )}
+
         <ScrollView
           style={styles.scrollView}
           contentContainerStyle={styles.scrollContent}
           ref={scrollViewRef}>
           {announcements.map((a) => (
-            <View key={a.id} style={styles.card}>
-              <Text style={styles.title}>{a.title}</Text>
+            <View 
+              key={a.id} 
+              style={[
+                styles.card, 
+                !a.isRead && styles.unreadCard
+              ]}>
+              <View style={styles.titleContainer}>
+                <Text style={styles.title}>{a.title}</Text>
+                {!a.isRead && (
+                  <View style={styles.newBadge}>
+                    <Text style={styles.newBadgeText}>NEW</Text>
+                  </View>
+                )}
+              </View>
               <Text style={styles.content}>{a.content}</Text>
               <View style={styles.metaRow}>
                 <Text style={styles.metaUser}>{a.userName}</Text>
-                <Text style={styles.metaTime}>{new Date(a.createdAt).toLocaleString()}</Text>
+                <Text style={styles.metaTime}>{formatDate(a.createdAt)}</Text>
               </View>
             </View>
           ))}
         </ScrollView>
 
+        {/* כפתור הוספת הודעה חדשה */}
         {(user?.role === 'Technician' || user?.role === 'Admin') && (
-          <View style={styles.inputContainer}>
-            <TextInput
-              placeholder="Title"
-              placeholderTextColor="#aaa"
-              style={[styles.input, styles.titleInput]}
-              value={title}
-              onChangeText={setTitle}
-            />
-            <TextInput
-              placeholder="Content"
-              placeholderTextColor="#aaa"
-              style={[styles.input, styles.textArea]}
-              value={content}
-              onChangeText={setContent}
-              multiline
-            />
-            <TouchableOpacity style={styles.button} onPress={handleAddAnnouncement}>
-              <Text style={styles.buttonText}>Add</Text>
-            </TouchableOpacity>
-          </View>
+          <TouchableOpacity 
+            style={styles.addButton} 
+            onPress={() => setShowAddForm(true)}>
+            <Text style={styles.addButtonText}>+</Text>
+          </TouchableOpacity>
         )}
       </KeyboardAvoidingView>
     </AppLayout>
@@ -117,14 +183,18 @@ const AnnouncementsScreen = ({ navigation }) => {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    paddingBottom: 100,
+    paddingBottom: 20,
+    width: '100%',
   },
   scrollView: {
     flex: 1,
     backgroundColor: '#121212',
+    width: '100%',
   },
   scrollContent: {
     padding: 10,
+    width: '100%',
+    paddingBottom: 70, // מרווח בתחתית בשביל הכפתור המרחף
   },
   card: {
     backgroundColor: '#1E1E1E',
@@ -135,21 +205,53 @@ const styles = StyleSheet.create({
     shadowOpacity: 0.3,
     shadowOffset: { width: 0, height: 2 },
     shadowRadius: 4,
+    width: '100%',
+  },
+  // סגנון לכרטיסיות של הודעות שלא נקראו
+  unreadCard: {
+    backgroundColor: '#262636', // רקע כהה יותר עם גוון כחול
+    borderLeftWidth: 4,
+    borderLeftColor: '#00ccff',
+    shadowColor: '#00ccff',
+    shadowOpacity: 0.3,
+  },
+  titleContainer: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 8,
   },
   title: {
     fontSize: 18,
     fontWeight: 'bold',
     color: '#fff',
-    marginBottom: 6,
+    flex: 1,
+  },
+  newBadge: {
+    backgroundColor: '#00ccff',
+    borderRadius: 4,
+    paddingHorizontal: 8,
+    paddingVertical: 2,
+    marginLeft: 10,
+  },
+  newBadgeText: {
+    color: '#000',
+    fontSize: 10,
+    fontWeight: 'bold',
   },
   content: {
     fontSize: 15,
     color: '#ccc',
-    marginBottom: 8,
+    marginBottom: 12,
+    lineHeight: 20,
   },
   metaRow: {
     flexDirection: 'row',
     justifyContent: 'space-between',
+    marginTop: 4,
+    borderTopWidth: 1,
+    borderTopColor: '#333',
+    paddingTop: 8,
   },
   metaUser: {
     color: '#00ccff',
@@ -160,44 +262,122 @@ const styles = StyleSheet.create({
     color: '#999',
     fontSize: 12,
   },
-  inputContainer: {
+  
+  // סגנון לכפתור הוספה מרחף
+  addButton: {
     position: 'absolute',
-    bottom: 0,
+    right: 20,
+    bottom: 30,
+    backgroundColor: '#0066cc',
+    width: 55,
+    height: 55,
+    borderRadius: 28,
+    justifyContent: 'center',
+    alignItems: 'center',
+    elevation: 6,
+    shadowColor: '#000',
+    shadowOffset: {
+      width: 0,
+      height: 3,
+    },
+    shadowOpacity: 0.3,
+    shadowRadius: 4.65,
+    zIndex: 1000,
+  },
+  addButtonText: {
+    color: '#fff',
+    fontSize: 32,
+    fontWeight: '500',
+    lineHeight: 34,
+  },
+  
+  // סגנון לפורם במקום מודל
+  formOverlay: {
+    position: 'absolute',
+    top: 0,
     left: 0,
     right: 0,
-    backgroundColor: '#1E1E1E',
-    padding: 12,
-    borderTopWidth: 1,
-    borderTopColor: '#333',
+    bottom: 0,
+    backgroundColor: 'rgba(0, 0, 0, 0.7)',
+    zIndex: 1001, // מעל הכפתור המרחף
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  formContainer: {
+    width: '90%',
+    backgroundColor: '#222',
+    borderRadius: 12,
+    padding: 20,
+    shadowColor: '#000',
+    shadowOffset: {
+      width: 0,
+      height: 5,
+    },
+    shadowOpacity: 0.3,
+    shadowRadius: 8,
+    elevation: 10,
+  },
+  formTitle: {
+    fontSize: 20,
+    fontWeight: 'bold',
+    color: '#fff',
+    marginBottom: 20,
+    textAlign: 'center',
   },
   input: {
     backgroundColor: '#333',
     color: '#fff',
-    padding: 10,
-    borderRadius: 6,
-    marginBottom: 10,
+    padding: 14,
+    borderRadius: 8,
+    marginBottom: 15,
+    fontSize: 16,
   },
   titleInput: {
-    height: 40,
+    height: 50,
   },
   textArea: {
-    height: 100,
+    height: 150,
+    textAlignVertical: 'top',
   },
-  button: {
+  formButtonsRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    marginTop: 10,
+  },
+  submitButton: {
     backgroundColor: '#0066cc',
-    padding: 12,
-    borderRadius: 6,
+    padding: 15,
+    borderRadius: 8,
+    flex: 1,
+    marginLeft: 8,
     alignItems: 'center',
   },
-  buttonText: {
+  submitButtonText: {
     color: '#fff',
     fontWeight: 'bold',
+    fontSize: 16,
   },
+  cancelButton: {
+    backgroundColor: '#444',
+    padding: 15,
+    borderRadius: 8,
+    flex: 1,
+    marginRight: 8,
+    alignItems: 'center',
+  },
+  cancelButtonText: {
+    color: '#eee',
+    fontWeight: '500',
+    fontSize: 16,
+  },
+  
+  // סגנונות משותפים אחרים
   centerContainer: {
     flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
     backgroundColor: '#121212',
+    width: '100%',
   },
   loadingText: {
     color: '#aaa',
