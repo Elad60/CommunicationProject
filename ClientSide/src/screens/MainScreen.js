@@ -61,7 +61,7 @@ const MainScreen = ({navigation}) => {
     if (user?.id) {
       fetchRadioChannels();
     }
-  // eslint-disable-next-line react-hooks/exhaustive-deps
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [user]);
 
   const handleChannelSelect = id => {
@@ -193,8 +193,8 @@ const styles = StyleSheet.create({
   mainGrid: {
     flexDirection: 'row',
     flexWrap: 'wrap',
-    padding: 5,
-    justifyContent: 'flex-start',
+    justifyContent: 'center',
+    paddingVertical: 10,
   },
   centerContainer: {
     flex: 1,

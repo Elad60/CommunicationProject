@@ -1,6 +1,6 @@
 import React from 'react';
-import {View, Text, StyleSheet, Image} from 'react-native';
-import {useSettings} from '../context/SettingsContext';
+import { View, Text, StyleSheet, Image } from 'react-native';
+import { useSettings } from '../context/SettingsContext';
 
 const RadioChannel = ({
   name,
@@ -9,16 +9,15 @@ const RadioChannel = ({
   mode,
   isSelected,
   channelState,
-  showFrequency = true,
-  showStatus = true,
 }) => {
-  const {darkMode} = useSettings();
+  const { darkMode, showFrequency, showStatus } = useSettings();
+
   const getBackgroundColor = () => {
     switch (channelState) {
       case 'ListenOnly':
-        return darkMode ? '#1f3d1f' : '#99cc99'; //  green
+        return darkMode ? '#1f3d1f' : '#99cc99'; // green
       case 'ListenAndTalk':
-        return darkMode ? '#1e2f4d' : '#91aad4'; //  blue
+        return darkMode ? '#1e2f4d' : '#91aad4'; // blue
       case 'Idle':
       default:
         return darkMode ? '#222' : '#ddd'; // default
@@ -30,12 +29,12 @@ const RadioChannel = ({
       case 'Idle':
         return {
           headphones: require('../../assets/logos/crossed-HF.png'),
-          mic: require('../../assets/logos/crossed-mic.webp'),
+          mic: require('../../assets/logos/crossed-mic.png'),
         };
       case 'ListenOnly':
         return {
           headphones: require('../../assets/logos/headphones.png'),
-          mic: require('../../assets/logos/crossed-mic.webp'),
+          mic: require('../../assets/logos/crossed-mic.png'),
         };
       case 'ListenAndTalk':
         return {
@@ -50,21 +49,16 @@ const RadioChannel = ({
     }
   };
 
-  const {headphones, mic} = getIconPaths();
+  const { headphones, mic } = getIconPaths();
 
   return (
-    <View style={[styles.container, {backgroundColor: getBackgroundColor()}]}>
-      <Text style={[styles.name, {color: darkMode ? '#fff' : '#000'}]}>
-        {name}
-      </Text>
+    <View style={[styles.container, { backgroundColor: getBackgroundColor() }]}>
+      <Text style={[styles.name, { color: darkMode ? '#fff' : '#000' }]}>{name}</Text>
       {showFrequency && (
-        <Text style={[styles.frequency, {color: darkMode ? '#fff' : '#000'}]}>
-          {frequency}
-        </Text>
+        <Text style={[styles.frequency, { color: darkMode ? '#fff' : '#000' }]}>{frequency}</Text>
       )}
-
       {showStatus && (
-        <Text style={[styles.status, {color: darkMode ? '#fff' : '#000'}]}>
+        <Text style={[styles.status, { color: darkMode ? '#fff' : '#000' }]}>
           {isActive ? 'Active' : 'Not used'}
         </Text>
       )}
@@ -73,7 +67,7 @@ const RadioChannel = ({
         <View
           style={[
             styles.statusIndicator,
-            {backgroundColor: isActive ? '#00cc00' : '#555'},
+            { backgroundColor: isActive ? '#00cc00' : '#555' },
           ]}
         />
         <Image source={mic} style={styles.iconImage} />

@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, {useState, useEffect} from 'react';
 import {
   View,
   Text,
@@ -9,16 +9,19 @@ import {
   Image,
 } from 'react-native';
 import AppLayout from '../components/AppLayout';
-import { useAuth } from '../context/AuthContext';
-import { groupUsersApi } from '../utils/apiService';
+import {useAuth} from '../context/AuthContext';
+import {groupUsersApi} from '../utils/apiService';
+import {useSettings} from '../context/SettingsContext';
 
-const GroupsScreen = ({ navigation }) => {
-  const { user, changeGroup } = useAuth();
+const GroupsScreen = ({navigation}) => {
+  const {user, changeGroup} = useAuth();
   const [groupUsers, setGroupUsers] = useState([]);
   const [userStates, setUserStates] = useState({});
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const letters = ['A', 'B', 'C', 'D', 'E', 'F'];
+  const {darkMode} = useSettings();
+  const textColor = darkMode ? '#fff' : '#000';
 
   const fetchGroupUsers = async () => {
     try {
@@ -48,24 +51,24 @@ const GroupsScreen = ({ navigation }) => {
     if (user?.group) {
       fetchGroupUsers();
     }
-  // eslint-disable-next-line react-hooks/exhaustive-deps
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [user?.group]);
 
-  const handleGroupChange = (newGroup) => {
+  const handleGroupChange = newGroup => {
     changeGroup(newGroup);
   };
 
-  const getIconPaths = (channelState) => {
+  const getIconPaths = channelState => {
     switch (channelState) {
       case 'Idle':
         return {
           headphones: require('../../assets/logos/crossed-HF.png'),
-          mic: require('../../assets/logos/crossed-mic.webp'),
+          mic: require('../../assets/logos/crossed-mic.png'),
         };
       case 'ListenOnly':
         return {
           headphones: require('../../assets/logos/headphones.png'),
-          mic: require('../../assets/logos/crossed-mic.webp'),
+          mic: require('../../assets/logos/crossed-mic.png'),
         };
       case 'ListenAndTalk':
         return {
@@ -80,19 +83,19 @@ const GroupsScreen = ({ navigation }) => {
     }
   };
 
-  const getBackgroundColor = (state) => {
+  const getBackgroundColor = state => {
     switch (state) {
       case 'ListenOnly':
-        return '#1f3d1f'; // ירוק כהה
+        return darkMode ? '#1f3d1f' : '#99cc99'; // green
       case 'ListenAndTalk':
-        return '#1e2f4d'; // כחול כהה
+        return darkMode ? '#1e2f4d' : '#91aad4'; // blue
       case 'Idle':
       default:
-        return '#222'; // אפור כהה
+        return darkMode ? '#222' : '#ddd'; // default
     }
   };
 
-  const cycleState = (state) => {
+  const cycleState = state => {
     switch (state) {
       case 'Idle':
         return 'ListenOnly';
@@ -104,8 +107,8 @@ const GroupsScreen = ({ navigation }) => {
     }
   };
 
-  const onUserPress = (userId) => {
-    setUserStates((prev) => ({
+  const onUserPress = userId => {
+    setUserStates(prev => ({
       ...prev,
       [userId]: cycleState(prev[userId] || 'Idle'),
     }));
@@ -114,9 +117,15 @@ const GroupsScreen = ({ navigation }) => {
   if (loading) {
     return (
       <AppLayout navigation={navigation} title={`Group: ${user?.group}`}>
-        <View style={styles.centerContainer}>
+        <View
+          style={[
+            styles.centerContainer,
+            {backgroundColor: darkMode ? '#000' : '#d9d9d9'},
+          ]}>
           <ActivityIndicator size="large" color="#0000ff" />
-          <Text style={styles.loadingText}>Loading users...</Text>
+          <Text style={[styles.loadingText, {color: textColor}]}>
+            Loading users...
+          </Text>
         </View>
       </AppLayout>
     );
@@ -124,10 +133,14 @@ const GroupsScreen = ({ navigation }) => {
 
   return (
     <AppLayout navigation={navigation} title={`Group: ${user?.group}`}>
-      <ScrollView style={styles.scrollView}>
+      <ScrollView
+        style={[
+          styles.scrollView,
+          {backgroundColor: darkMode ? '#000' : '#d9d9d9'},
+        ]}>
         <View style={styles.mainGrid}>
           {groupUsers.length > 0 ? (
-            groupUsers.map((u) => {
+            groupUsers.map(u => {
               const channelState = userStates[u.id] || 'Idle';
               const icons = getIconPaths(channelState);
               const bgColor = getBackgroundColor(channelState);
@@ -135,19 +148,30 @@ const GroupsScreen = ({ navigation }) => {
               return (
                 <TouchableOpacity
                   key={u.id}
-                  style={[styles.userCard, { backgroundColor: bgColor }]}
-                  onPress={() => onUserPress(u.id)}
-                >
-                  <Text style={styles.username}>{u.username}</Text>
-                  <Text style={styles.email}>{u.email}</Text>
-                  <Text style={styles.role}>Role: {u.role}</Text>
+                  style={[
+                    styles.userCard,
+                    {
+                      backgroundColor: bgColor,
+                      borderColor: darkMode ? '#888' : '#333',
+                    },
+                  ]}
+                  onPress={() => onUserPress(u.id)}>
+                  <Text style={{color: textColor, fontWeight: 'bold'}}>
+                    {u.username}
+                  </Text>
+                  <Text style={{color: darkMode ? '#ccc' : '#333'}}>
+                    {u.email}
+                  </Text>
+                  <Text style={{color: darkMode ? '#91aad4' : '#004080'}}>
+                    Role: {u.role}
+                  </Text>
 
                   <View style={styles.iconRow}>
                     <Image source={icons.headphones} style={styles.icon} />
                     <View
                       style={[
                         styles.statusDot,
-                        { backgroundColor: u.isActive ? '#00cc00' : '#555' },
+                        {backgroundColor: u.isActive ? '#00cc00' : '#555'},
                       ]}
                     />
                     <Image source={icons.mic} style={styles.icon} />
@@ -156,23 +180,46 @@ const GroupsScreen = ({ navigation }) => {
               );
             })
           ) : (
-            <Text style={styles.noUsersText}>No other users in this group.</Text>
+            <Text
+              style={{
+                color: darkMode ? '#aaa' : '#444',
+                textAlign: 'center',
+                marginTop: 20,
+              }}>
+              No other users in this group.
+            </Text>
           )}
         </View>
       </ScrollView>
 
-      <Text style={styles.label}>Change Your Group:</Text>
-      <View style={styles.letterContainer}>
-        {letters.map((letter) => (
+      <View style={{backgroundColor: darkMode ? '#000' : '#d9d9d9'}}>
+        <Text style={[styles.label, {color: textColor}]}>
+          Change Your Group:
+        </Text>
+      </View>
+      <View
+        style={[
+          styles.letterContainer,
+          {backgroundColor: darkMode ? '#000' : '#d9d9d9'},
+        ]}>
+        {letters.map(letter => (
           <TouchableOpacity
             key={letter}
             style={[
               styles.letterButton,
-              user?.group === letter && styles.letterButtonSelected,
+              {
+                backgroundColor:
+                  user?.group === letter
+                    ? darkMode
+                      ? '#0066cc'
+                      : '#91aad4'
+                    : darkMode
+                    ? '#333'
+                    : '#eee',
+              },
             ]}
-            onPress={() => handleGroupChange(letter)}
-          >
-            <Text style={styles.letterText}>{letter}</Text>
+            onPress={() => handleGroupChange(letter)}>
+            <Text style={{color: textColor}}>{letter}</Text>
           </TouchableOpacity>
         ))}
       </View>
@@ -181,7 +228,7 @@ const GroupsScreen = ({ navigation }) => {
 };
 
 const styles = StyleSheet.create({
-  scrollView: { flex: 1 },
+  scrollView: {flex: 1},
   mainGrid: {
     flexDirection: 'row',
     flexWrap: 'wrap',
@@ -195,22 +242,18 @@ const styles = StyleSheet.create({
     width: 130,
     alignItems: 'center',
     borderWidth: 1,
-    borderColor: '#444',
   },
   username: {
     fontSize: 16,
-    color: '#fff',
     fontWeight: 'bold',
     textAlign: 'center',
   },
   email: {
     fontSize: 12,
-    color: '#ccc',
     textAlign: 'center',
   },
   role: {
     fontSize: 12,
-    color: '#91aad4',
     textAlign: 'center',
   },
   iconRow: {
@@ -234,7 +277,6 @@ const styles = StyleSheet.create({
   },
   label: {
     fontSize: 18,
-    color: '#fff',
     margin: 10,
     textAlign: 'center',
   },
@@ -243,16 +285,11 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
   },
   letterButton: {
-    backgroundColor: '#333',
     padding: 10,
     margin: 5,
     borderRadius: 5,
   },
-  letterButtonSelected: {
-    backgroundColor: '#0066cc',
-  },
   letterText: {
-    color: '#fff',
     fontSize: 18,
   },
   centerContainer: {
@@ -260,11 +297,7 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     alignItems: 'center',
   },
-  loadingText: {
-    color: '#fff',
-  },
   noUsersText: {
-    color: '#aaa',
     fontSize: 16,
     textAlign: 'center',
     marginTop: 20,

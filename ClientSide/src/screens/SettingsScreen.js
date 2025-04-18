@@ -6,35 +6,33 @@ import {
   Switch,
   TouchableOpacity,
   ScrollView,
+  Linking,
 } from 'react-native';
 import CustomSlider from '../components/CustomSlider'; 
 import AppLayout from '../components/AppLayout';
 import { useSettings } from '../context/SettingsContext';
 
 const SettingsScreen = ({ navigation }) => {
-const {
-  toolBarAdjustment,
-  setToolBarAdjustment,
-  controlBarAdjustment,
-  setControlBarAdjustment,
-  brightness,
-  setBrightness,
-  darkMode,
-  setDarkMode,
-  showFrequency, 
-  setShowFrequency,
-  showStatus,
-  setShowStatus,
-} = useSettings();
+  const {
+    showFrequency,
+    setShowFrequency,
+    showStatus,
+    setShowStatus,
+    toolBarAdjustment,
+    setToolBarAdjustment,
+    controlBarAdjustment,
+    setControlBarAdjustment,
+    brightness,
+    setBrightness,
+    darkMode,
+    setDarkMode,
+  } = useSettings();
 
   const [settings, setSettings] = useState({
-    darkMode: true,
     notifications: true,
     autoConnect: false,
     saveTransmissions: true,
     lowPowerMode: false,
-    showFrequency: true,
-    showStatus: true,
   });
 
   const toggleSetting = (key) => {
@@ -68,9 +66,8 @@ const {
         <ScrollView style={styles.container}>
           <View style={styles.section}>
             <Text style={[styles.sectionTitle, { color: textColor }]}>Display Settings</Text>
-             {renderSettingItem('Show Frequency', 'showFrequency', showFrequency, () => setShowFrequency(!showFrequency))}
-             {renderSettingItem('Show Status', 'showStatus', showStatus, () => setShowStatus(!showStatus))}
-
+            {renderSettingItem('Show Frequency', 'showFrequency', showFrequency, () => setShowFrequency(!showFrequency))}
+            {renderSettingItem('Show Status', 'showStatus', showStatus, () => setShowStatus(!showStatus))}
           </View>
 
           <View style={styles.section}>
@@ -92,15 +89,22 @@ const {
 
           <View style={styles.section}>
             <Text style={[styles.sectionTitle, { color: textColor }]}>System</Text>
-            <TouchableOpacity style={[styles.button, { backgroundColor: buttonColor }]}>
-              <Text style={[styles.buttonText, { color: textColor }]}>Reset All Settings</Text>
-            </TouchableOpacity>
+            <TouchableOpacity
+            style={[styles.button, { backgroundColor: buttonColor }]}
+            onPress={() => {
+              setToolBarAdjustment(true);
+              setControlBarAdjustment(true);
+              setDarkMode(true);
+              setBrightness(1);
+            }}
+          >
+            <Text style={[styles.buttonText, { color: textColor }]}>Reset All Settings</Text>
+          </TouchableOpacity>
 
-            <TouchableOpacity style={[styles.button, { backgroundColor: buttonColor }]}>
-              <Text style={[styles.buttonText, { color: textColor }]}>Clear Saved Transmissions</Text>
-            </TouchableOpacity>
-
-            <TouchableOpacity style={[styles.button, { backgroundColor: buttonColor }]}>
+            <TouchableOpacity
+              style={[styles.button, { backgroundColor: buttonColor }]}
+              onPress={() => Linking.openURL('https://github.com/Elad60/CommunicationProject')}
+            >
               <Text style={[styles.buttonText, { color: textColor }]}>Check for Updates</Text>
             </TouchableOpacity>
           </View>

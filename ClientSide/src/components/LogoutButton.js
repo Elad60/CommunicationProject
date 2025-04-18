@@ -1,5 +1,5 @@
 import React, {useRef, useState} from 'react';
-import {Animated, Text, StyleSheet, View, Pressable} from 'react-native';
+import {Animated, Text, StyleSheet, View, Pressable, Image} from 'react-native';
 import Icon from 'react-native-vector-icons/FontAwesome';
 
 const LogoutButton = ({onLogout}) => {
@@ -32,7 +32,11 @@ const LogoutButton = ({onLogout}) => {
       style={{marginLeft: 10}}>
       <Animated.View style={[styles.button, {width: widthAnim}]}>
         <View style={styles.iconWrapper}>
-          <Icon name="sign-out" size={16} color="#fff" />
+          <Image
+            source={require('../../assets/logos/logout.png')}
+            style={styles.icon}
+            resizeMode="contain"
+          />
         </View>
         {hovering && <Text style={styles.text}>Logout</Text>}
       </Animated.View>
@@ -57,10 +61,15 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
   },
   text: {
-    color: 'white',
+    color: 'black',
     fontSize: 15,
     fontWeight: '600',
     paddingHorizontal: 10,
+  },
+  icon: {
+    width: 22,
+    height: 22,
+    color: 'black'
   },
 });
 

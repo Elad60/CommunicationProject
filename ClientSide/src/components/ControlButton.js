@@ -1,7 +1,7 @@
 import React, {useRef} from 'react';
 import {Animated, Text, StyleSheet, Image, Pressable} from 'react-native';
 
-const ControlButton = ({title, icon, value, onPress, darkMode, isSelected}) => {
+const ControlButton = ({title, icon, value, onPress, darkMode, isSelected, height, width}) => {
   const scale = useRef(new Animated.Value(1)).current;
 
   const handleHoverIn = () => {
@@ -32,6 +32,8 @@ const ControlButton = ({title, icon, value, onPress, darkMode, isSelected}) => {
         style={[
           styles.button,
           {
+            width: width * 0.10,
+            height: height * 0.1,
             backgroundColor,
             borderColor,
             borderWidth: isSelected ? 2 : 1,
@@ -53,8 +55,6 @@ const ControlButton = ({title, icon, value, onPress, darkMode, isSelected}) => {
 
 const styles = StyleSheet.create({
   button: {
-    width: 80,
-    height: 80,
     borderRadius: 20,
     alignItems: 'center',
     justifyContent: 'center',

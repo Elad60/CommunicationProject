@@ -9,10 +9,11 @@ import {
   Alert,
   ScrollView,
 } from 'react-native';
+import UserRow from '../components/UserRow';
 import AppLayout from '../components/AppLayout';
 import {adminApi} from '../utils/apiService';
 import {useAuth} from '../context/AuthContext';
-import { useSettings } from '../context/SettingsContext';
+import {useSettings} from '../context/SettingsContext';
 
 const UserManagementScreen = ({navigation}) => {
   const {darkMode} = useSettings();
@@ -26,10 +27,7 @@ const UserManagementScreen = ({navigation}) => {
     try {
       setLoading(true);
       const data = await adminApi.getAllUsers();
-
-      // Exclude the logged-in user
       const filtered = data.filter(u => u.id !== currentUser?.id);
-
       setUsers(filtered);
       setFilteredUsers(filtered);
     } catch (err) {
@@ -39,7 +37,7 @@ const UserManagementScreen = ({navigation}) => {
       setLoading(false);
     }
   };
-  
+
   useEffect(() => {
     loadUsers();
   }, []);
@@ -99,6 +97,7 @@ const UserManagementScreen = ({navigation}) => {
       ],
     );
   };
+
   const styles = getStyles(darkMode);
 
   return (
@@ -116,44 +115,32 @@ const UserManagementScreen = ({navigation}) => {
           <ActivityIndicator size="large" color="#00f" />
         ) : (
           <ScrollView contentContainerStyle={{paddingBottom: 20}}>
-            {filteredUsers.map(user => (
-              <View key={user.id} style={styles.userCard}>
-                <Text style={styles.username}>{user.username}</Text>
-                <Text style={styles.details}>Email: {user.email}</Text>
-                <Text style={styles.details}>Role: {user.role}</Text>
-                <Text style={styles.details}>
-                  Blocked: {user.isBlocked ? 'Yes' : 'No'}
-                </Text>
-                <View style={styles.buttonRow}>
-                  <TouchableOpacity
-                    style={styles.button}
-                    onPress={() => handleToggleBlock(user)}>
-                    <Text style={styles.buttonText}>
-                      {user.isBlocked ? 'Unblock' : 'Block'}
-                    </Text>
-                  </TouchableOpacity>
-                  {user.role !== 'Admin' && (
-                    <TouchableOpacity
-                      style={styles.button}
-                      onPress={() => handleToggleRole(user)}>
-                      <Text style={styles.buttonText}>
-                        Make{' '}
-                        {user.role === 'Operator' ? 'Technician' : 'Operator'}
-                      </Text>
-                    </TouchableOpacity>
-                  )}
-                  <TouchableOpacity
-                    style={styles.deleteButton}
-                    onPress={() => handleDelete(user)}>
-                    <Text style={styles.buttonText}>Delete</Text>
-                  </TouchableOpacity>
-                </View>
+            {/* Column Headers */}
+            <View style={styles.columnHeaders}>
+              <Text style={[styles.headerText, {flex: 2}]}>Name</Text>
+              <View style={[styles.middleHeader, {flex: 2}]}>
+                <Text style={styles.headerText}>Role</Text>
+                <Text style={styles.headerText}>Joined</Text>
+                <Text style={styles.headerText}>Status</Text>
               </View>
+              <Text style={[styles.headerText, {flex: 3, textAlign: 'right'}]}>
+                Actions
+              </Text>
+            </View>
+
+            {/* User Rows */}
+            {filteredUsers.map(user => (
+              <UserRow
+                key={user.id}
+                user={user}
+                darkMode={darkMode}
+                onBlockToggle={handleToggleBlock}
+                onRoleToggle={handleToggleRole}
+                onDelete={handleDelete}
+              />
             ))}
             {filteredUsers.length === 0 && (
-              <Text style={{textAlign: 'center', color: '#ccc', marginTop: 30}}>
-                No users found.
-              </Text>
+              <Text style={styles.noUsersText}>No users found.</Text>
             )}
           </ScrollView>
         )}
@@ -162,7 +149,7 @@ const UserManagementScreen = ({navigation}) => {
   );
 };
 
-const getStyles = (darkMode) =>
+const getStyles = darkMode =>
   StyleSheet.create({
     searchInput: {
       backgroundColor: darkMode ? '#2a2a2a' : '#fff',
@@ -173,48 +160,28 @@ const getStyles = (darkMode) =>
       borderWidth: 1,
       borderColor: darkMode ? '#555' : '#ccc',
     },
-    userCard: {
-      backgroundColor: darkMode ? '#1e1e1e' : '#f0f0f0',
-      marginHorizontal: 10,
-      marginVertical: 5,
-      padding: 15,
-      borderRadius: 10,
-      borderColor: darkMode ? '#444' : '#ddd',
-      borderWidth: 1,
-    },
-    username: {
-      fontSize: 18,
-      fontWeight: 'bold',
-      color: darkMode ? '#fff' : '#000',
-    },
-    details: {
-      fontSize: 14,
-      color: darkMode ? '#ccc' : '#555',
-      marginVertical: 2,
-    },
-    buttonRow: {
-      flexDirection: 'row',
-      marginTop: 10,
-      justifyContent: 'space-between',
-    },
-    button: {
-      backgroundColor: darkMode ? '#0066cc' : '#91aad4',
-      padding: 8,
-      borderRadius: 5,
-      flex: 1,
-      marginRight: 5,
-    },
-    deleteButton: {
-      backgroundColor: darkMode ?'#cc0000' : '#ff6666',
-      padding: 8,
-      borderRadius: 5,
-      flex: 1,
-      marginLeft: 5,
-    },
-    buttonText: {
-      color: darkMode ? '#fff' : '#000',
-      fontSize: 13,
+    noUsersText: {
       textAlign: 'center',
+      color: '#ccc',
+      marginTop: 30,
+    },
+    columnHeaders: {
+      flexDirection: 'row',
+      justifyContent: 'space-between',
+      alignItems: 'center',
+      paddingHorizontal: 15,
+      paddingBottom: 10,
+      marginTop: 10,
+    },
+    middleHeader: {
+      flexDirection: 'row',
+      justifyContent: 'space-around',
+      gap: 6,
+    },
+    headerText: {
+      fontSize: 12,
+      fontWeight: 'bold',
+      color: darkMode ? '#aaa' : '#000', // <- changed to black for light mode
     },
   });
 

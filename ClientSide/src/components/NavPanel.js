@@ -1,60 +1,79 @@
-import React, { useEffect, useRef } from 'react';
-import { Alert, Animated, Dimensions, View, Text, StyleSheet } from 'react-native';
-import { useRoute } from '@react-navigation/native';
+import React, {useEffect, useRef} from 'react';
+import {
+  Alert,
+  Animated,
+  useWindowDimensions,
+  View,
+  Text,
+  StyleSheet,
+} from 'react-native';
+import {useRoute} from '@react-navigation/native';
 import NavButton from './NavButton';
-import { useSettings } from '../context/SettingsContext';
-import { useAuth } from '../context/AuthContext';
-import { useAnnouncements } from '../context/AnnouncementsContext'; // הוספת הקונטקסט
+import {useSettings} from '../context/SettingsContext';
+import {useAuth} from '../context/AuthContext';
+import {useAnnouncements} from '../context/AnnouncementsContext'; // הוספת הקונטקסט
 
-const { width, height } = Dimensions.get('window');
-const PANEL_WIDTH = width * 0.08;
-const PANEL_HEIGHT = height * 0.9;
+const NavPanel = ({handleNavigation, darkMode, height, width}) => {
+  let NAV_PANEL_HEIGHT;
+  let NAV_PANEL_WIDTH;
+  const isLandscape = height < width;
 
-const NavPanel = ({ handleNavigation, darkMode }) => {
-  const { toolBarAdjustment, controlBarAdjustment } = useSettings();
-  const { user } = useAuth();
-  const { unreadCount, fetchUnreadCount } = useAnnouncements(); // שימוש בקונטקסט ההודעות
+  if (isLandscape) {
+    NAV_PANEL_HEIGHT = height * 0.7;
+    NAV_PANEL_WIDTH = width * 0.085;
+  } else {
+    NAV_PANEL_HEIGHT = height * 0.9;
+    NAV_PANEL_WIDTH = width * 0.14;
+  }
+  const {toolBarAdjustment, controlBarAdjustment} = useSettings();
+  const {user} = useAuth();
+  const {unreadCount, fetchUnreadCount} = useAnnouncements(); // שימוש בקונטקסט ההודעות
   const route = useRoute();
   const currentScreen = route.name;
 
   const positionX = useRef(
-    new Animated.Value(toolBarAdjustment ? width - PANEL_WIDTH : -PANEL_WIDTH),
+    new Animated.Value(
+      toolBarAdjustment ? width - NAV_PANEL_WIDTH : -NAV_PANEL_WIDTH,
+    ),
   ).current;
 
   useEffect(() => {
     Animated.spring(positionX, {
-      toValue: toolBarAdjustment ? width - PANEL_WIDTH : -PANEL_WIDTH,
+      toValue: toolBarAdjustment ? width - NAV_PANEL_WIDTH : -NAV_PANEL_WIDTH,
       useNativeDriver: false,
     }).start();
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [toolBarAdjustment]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [toolBarAdjustment, height, width]);
 
   // טעינת מספר הודעות שלא נקראו בעת טעינת הקומפוננטה
   useEffect(() => {
     if (user) {
       fetchUnreadCount();
     }
-  // eslint-disable-next-line react-hooks/exhaustive-deps
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [user, currentScreen]);
 
   const panelStyle = {
     position: 'absolute',
     top: 0,
-    bottom: controlBarAdjustment ? -height * 0.1 : 0,
-    width: PANEL_WIDTH,
-    height: height - 30,
+    top: controlBarAdjustment
+      ? 0
+      : isLandscape
+      ? -height * 0.13
+      : -height * 0.1,
+    height: height - height * 0.05,
+    width: NAV_PANEL_WIDTH,
     backgroundColor: darkMode ? '#1a1a1a' : '#fff',
-    borderRadius: 20,
     paddingVertical: 16,
     paddingHorizontal: 6,
     alignItems: 'center',
     justifyContent: 'space-evenly',
     shadowColor: '#000',
     shadowOpacity: 0.1,
-    shadowOffset: { width: 0, height: 2 },
+    shadowOffset: {width: 0, height: 2},
     shadowRadius: 8,
     elevation: 6,
-    transform: [{ translateX: positionX }],
+    transform: [{translateX: positionX}],
   };
 
   const buttons = [
@@ -91,9 +110,9 @@ const NavPanel = ({ handleNavigation, darkMode }) => {
 
   return (
     <Animated.View style={panelStyle}>
-      {buttons.map(({ title, icon, screen, roles, showBadge, badgeCount }) => {
+      {buttons.map(({title, icon, screen, roles, showBadge, badgeCount}) => {
         const allowed = !roles || roles.includes(user?.role);
-        
+
         return (
           <View key={screen} style={styles.buttonContainer}>
             <NavButton
@@ -111,8 +130,10 @@ const NavPanel = ({ handleNavigation, darkMode }) => {
               }}
               isActive={currentScreen === screen}
               darkMode={darkMode}
+              height={height}
+              width={width}
             />
-            
+
             {/* תג מספר הודעות שלא נקראו */}
             {showBadge && (
               <View style={styles.badge}>
@@ -126,7 +147,6 @@ const NavPanel = ({ handleNavigation, darkMode }) => {
   );
 };
 
-// סגנונות חדשים לתג
 const styles = StyleSheet.create({
   buttonContainer: {
     position: 'relative',
