@@ -155,12 +155,17 @@ const AnnouncementsScreen = ({ navigation }) => {
           ref={scrollViewRef}>
           {announcements.map((a) => (
             <View 
-              key={a.id} 
-              style={[
-                styles.card, 
-                !a.isRead && styles.unreadCard,
-                { backgroundColor: darkMode ? '#121212' : '#fff', borderColor: darkMode ? '#555' : '#ccc' }
-              ]}>
+            key={a.id} 
+            style={[
+              styles.card, 
+              !a.isRead && styles.unreadCard,
+              {
+                backgroundColor: !a.isRead 
+                  ? (darkMode ? '#262636' : '#e0f7ff')  
+                  : (darkMode ? '#121212' : '#fff'),   
+                borderColor: darkMode ? '#555' : '#ccc',
+              }
+            ]}>          
               <View style={styles.titleContainer}>
                 <Text style={[styles.title, { color: textColor }]}>{a.title}</Text>
                 {!a.isRead && (
@@ -207,7 +212,6 @@ const styles = StyleSheet.create({
     paddingBottom: 70, // מרווח בתחתית בשביל הכפתור המרחף
   },
   card: {
-    backgroundColor: '#1E1E1E',
     borderRadius: 10,
     padding: 15,
     marginBottom: 12,
@@ -217,9 +221,7 @@ const styles = StyleSheet.create({
     shadowRadius: 4,
     width: '100%',
   },
-  // סגנון לכרטיסיות של הודעות שלא נקראו
   unreadCard: {
-    backgroundColor: '#262636', // רקע כהה יותר עם גוון כחול
     borderLeftWidth: 4,
     borderLeftColor: '#00ccff',
     shadowColor: '#00ccff',
@@ -327,7 +329,6 @@ const styles = StyleSheet.create({
     textAlign: 'center',
   },
   input: {
-    backgroundColor: '#333',
     padding: 14,
     borderRadius: 8,
     marginBottom: 15,
