@@ -16,6 +16,7 @@ import AppLayout from '../components/AppLayout';
 import { useAuth } from '../context/AuthContext';
 import { useAnnouncements } from '../context/AnnouncementsContext';
 import { announcementsApi } from '../utils/apiService';
+import { useSettings } from '../context/SettingsContext';
 
 const AnnouncementsScreen = ({ navigation }) => {
   const { user } = useAuth();
@@ -32,6 +33,7 @@ const AnnouncementsScreen = ({ navigation }) => {
   const [loading, setLoading] = useState(false);
   const [showAddForm, setShowAddForm] = useState(false); // במקום modalVisible
   const scrollViewRef = useRef();
+  const { darkMode} = useSettings();
 
   // טעינת ההודעות עם סטטוס קריאה כשנכנסים למסך
   useEffect(() => {

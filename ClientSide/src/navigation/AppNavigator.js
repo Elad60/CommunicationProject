@@ -7,9 +7,6 @@ import SettingsScreen from '../screens/SettingsScreen';
 import ChannelConfigScreen from '../screens/MoreRadiosScreen';
 import GroupsScreen from '../screens/GroupsScreen';
 import AnnouncementsScreen from '../screens/AnnouncementsScreen';
-import PasScreen from '../screens/PasScreen';
-import RelayScreen from '../screens/RelayScreen';
-import ControlScreen from '../screens/ControlScreen';
 import LoginScreen from '../screens/LoginScreen';
 import RegisterScreen from '../screens/RegisterScreen';
 import {useAuth} from '../context/AuthContext';
@@ -62,9 +59,6 @@ const AppNavigator = () => {
           <Stack.Screen name="ChannelConfig" component={ChannelConfigScreen} />
           <Stack.Screen name="Groups" component={GroupsScreen} />
           <Stack.Screen name="Announcements" component={AnnouncementsScreen} />
-          <Stack.Screen name="Pas" component={PasScreen} />
-          <Stack.Screen name="Relay" component={RelayScreen} />
-          <Stack.Screen name="Control" component={ControlScreen} />
           <Stack.Screen name="UserManagement" component={UserManagementScreen}/>
           <Stack.Screen name="PickRadios" component={PickRadiosScreen} />
         </Stack.Navigator>
