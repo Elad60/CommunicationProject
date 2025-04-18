@@ -1,5 +1,5 @@
 import React, {useRef, useEffect, useState} from 'react';
-import {Animated, useWindowDimensions} from 'react-native';
+import {Animated} from 'react-native';
 import ControlButton from './ControlButton';
 import {useSettings} from '../context/SettingsContext';
 

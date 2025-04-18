@@ -2,7 +2,6 @@ import React, {useEffect, useRef} from 'react';
 import {
   Alert,
   Animated,
-  useWindowDimensions,
   View,
   Text,
   StyleSheet,
