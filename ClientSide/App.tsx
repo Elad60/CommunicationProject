@@ -12,8 +12,7 @@ import LoginScreen from './src/screens/LoginScreen';
 import RegisterScreen from './src/screens/RegisterScreen';
 import {AuthProvider, useAuth} from './src/context/AuthContext';
 import {SettingsProvider} from './src/context/SettingsContext';
-import {TutorialProvider} from './src/context/TutorialContext';
-import {AnnouncementsProvider} from './src/context/AnnouncementsContext'; // הוספת קונטקסט ההודעות
+import {AnnouncementsProvider} from './src/context/AnnouncementsContext';
 
 // Component that handles auth flow
 const AppContent = () => {
@@ -64,7 +63,6 @@ const App = () => {
   return (
     <SafeAreaView style={styles.container}>
       <StatusBar barStyle="light-content" backgroundColor="#000" />
-      <TutorialProvider>
         <SettingsProvider>
           <AuthProvider>
             <AnnouncementsProvider>
@@ -72,7 +70,7 @@ const App = () => {
             </AnnouncementsProvider>
           </AuthProvider>
         </SettingsProvider>
-      </TutorialProvider>
+
     </SafeAreaView>
   );
 };
