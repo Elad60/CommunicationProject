@@ -29,10 +29,7 @@ const SettingsScreen = ({ navigation }) => {
   } = useSettings();
 
   const [settings, setSettings] = useState({
-    notifications: true,
     autoConnect: false,
-    saveTransmissions: true,
-    lowPowerMode: false,
   });
 
   const toggleSetting = (key) => {
@@ -72,10 +69,7 @@ const SettingsScreen = ({ navigation }) => {
 
           <View style={styles.section}>
             <Text style={[styles.sectionTitle, { color: textColor }]}>Radio Settings</Text>
-            {renderSettingItem('Notifications', 'notifications', settings.notifications, () => toggleSetting('notifications'))}
             {renderSettingItem('Auto-Connect', 'autoConnect', settings.autoConnect, () => toggleSetting('autoConnect'))}
-            {renderSettingItem('Save Transmissions', 'saveTransmissions', settings.saveTransmissions, () => toggleSetting('saveTransmissions'))}
-            {renderSettingItem('Low Power Mode', 'lowPowerMode', settings.lowPowerMode, () => toggleSetting('lowPowerMode'))}
             {renderSettingItem('Nav Bar Adjustment ↔️', 'ToolBarAdjustment', toolBarAdjustment, () => setToolBarAdjustment(!toolBarAdjustment))}
             {renderSettingItem('Control Bar Adjustment ↕️', 'controlBarAdjustment', controlBarAdjustment, () => setControlBarAdjustment(!controlBarAdjustment))}
             {renderSettingItem('Dark Mode 🌗', 'darkMode', darkMode, () => setDarkMode(!darkMode))}
