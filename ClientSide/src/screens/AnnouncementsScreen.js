@@ -84,12 +84,14 @@ const AnnouncementsScreen = ({ navigation }) => {
     return new Date(dateString).toLocaleDateString('en-US', options);
   };
 
+  const textColor = darkMode ? '#fff' : '#000';
+
   if (contextLoading || loading) {
     return (
       <AppLayout navigation={navigation} title="📋 Announcements">
-        <View style={styles.centerContainer}>
+        <View style={[styles.centerContainer, { backgroundColor: darkMode ? '#121212' : '#fff'}]}>
           <ActivityIndicator size="large" color="#0066cc" />
-          <Text style={styles.loadingText}>Loading announcements...</Text>
+          <Text style={[styles.loadingText, { color: darkMode ?   '#aaa' : '#222'}]}>Loading announcements...</Text>
         </View>
       </AppLayout>
     );
@@ -103,38 +105,44 @@ const AnnouncementsScreen = ({ navigation }) => {
 
         {/* טופס הוספת הודעה חדשה - מוצג כשהמשתמש לוחץ על הכפתור */}
         {showAddForm && (
-          <View style={styles.formOverlay}>
-            <View style={styles.formContainer}>
-              <Text style={styles.formTitle}>Add New Announcement</Text>
+          <View style={[styles.formOverlay, { backgroundColor: darkMode ? 'rgba(0,0,0,0.7)' : 'rgba(255,255,255,0.7)' }]}>
+            <View style={[styles.formContainer, { backgroundColor: darkMode ? '#222' : '#fff' }]}>
+              <Text style={[styles.formTitle, { color: textColor }]}>Add New Announcement</Text>
               
               <TextInput
                 placeholder="Title"
-                placeholderTextColor="#999"
-                style={[styles.input, styles.titleInput]}
+                placeholderTextColor={darkMode ? '#888' : '#999'}
+                style={[styles.input, styles.titleInput, {
+                  backgroundColor: darkMode ? '#333' : '#eee',
+                  color: textColor,
+                }]}
                 value={title}
                 onChangeText={setTitle}
               />
               
               <TextInput
                 placeholder="Content"
-                placeholderTextColor="#999"
-                style={[styles.input, styles.textArea]}
+                placeholderTextColor={darkMode ? '#888' : '#999'}
+                style={[styles.input, styles.textArea, {
+                  backgroundColor: darkMode ? '#333' : '#eee',
+                  color: textColor,
+                }]}
                 value={content}
                 onChangeText={setContent}
                 multiline
               />
               
-              <View style={styles.formButtonsRow}>
+              <View style={[styles.formButtonsRow]}>
                 <TouchableOpacity 
-                  style={styles.cancelButton} 
+                  style={[styles.cancelButton, { backgroundColor: darkMode ? '#444' : '#ddd'}]} 
                   onPress={() => setShowAddForm(false)}>
-                  <Text style={styles.cancelButtonText}>Cancel</Text>
+                  <Text style={{ color: textColor }}>Cancel</Text>
                 </TouchableOpacity>
                 
                 <TouchableOpacity 
-                  style={styles.submitButton} 
+                  style={[styles.submitButton, { backgroundColor: darkMode ? '#0066cc' : '#91aad4'}]} 
                   onPress={handleAddAnnouncement}>
-                  <Text style={styles.submitButtonText}>Post</Text>
+                  <Text style={{ color: textColor }}>Post</Text>
                 </TouchableOpacity>
               </View>
             </View>
@@ -150,20 +158,21 @@ const AnnouncementsScreen = ({ navigation }) => {
               key={a.id} 
               style={[
                 styles.card, 
-                !a.isRead && styles.unreadCard
+                !a.isRead && styles.unreadCard,
+                { backgroundColor: darkMode ? '#121212' : '#fff', borderColor: darkMode ? '#555' : '#ccc' }
               ]}>
               <View style={styles.titleContainer}>
-                <Text style={styles.title}>{a.title}</Text>
+                <Text style={[styles.title, { color: textColor }]}>{a.title}</Text>
                 {!a.isRead && (
                   <View style={styles.newBadge}>
                     <Text style={styles.newBadgeText}>NEW</Text>
                   </View>
                 )}
               </View>
-              <Text style={styles.content}>{a.content}</Text>
-              <View style={styles.metaRow}>
-                <Text style={styles.metaUser}>{a.userName}</Text>
-                <Text style={styles.metaTime}>{formatDate(a.createdAt)}</Text>
+              <Text style={[styles.content, { color: darkMode ? '#ccc' : '#aaa' }]}>{a.content}</Text>
+              <View style={[styles.metaRow, { borderTopColor: textColor}]}>
+                <Text style={[styles.metaUser, { color: darkMode ? '#00ccff' : '#91aad4' }]}>{a.userName}</Text>
+                <Text style={[styles.metaTime, { color: darkMode ? '#999' : '#aaa' }]}>{formatDate(a.createdAt)}</Text>
               </View>
             </View>
           ))}
@@ -190,7 +199,6 @@ const styles = StyleSheet.create({
   },
   scrollView: {
     flex: 1,
-    backgroundColor: '#121212',
     width: '100%',
   },
   scrollContent: {
@@ -226,7 +234,6 @@ const styles = StyleSheet.create({
   title: {
     fontSize: 18,
     fontWeight: 'bold',
-    color: '#fff',
     flex: 1,
   },
   newBadge: {
@@ -243,7 +250,6 @@ const styles = StyleSheet.create({
   },
   content: {
     fontSize: 15,
-    color: '#ccc',
     marginBottom: 12,
     lineHeight: 20,
   },
@@ -252,16 +258,13 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
     marginTop: 4,
     borderTopWidth: 1,
-    borderTopColor: '#333',
     paddingTop: 8,
   },
   metaUser: {
-    color: '#00ccff',
     fontSize: 12,
     fontWeight: '600',
   },
   metaTime: {
-    color: '#999',
     fontSize: 12,
   },
   
@@ -300,14 +303,12 @@ const styles = StyleSheet.create({
     left: 0,
     right: 0,
     bottom: 0,
-    backgroundColor: 'rgba(0, 0, 0, 0.7)',
     zIndex: 1001, // מעל הכפתור המרחף
     justifyContent: 'center',
     alignItems: 'center',
   },
   formContainer: {
     width: '90%',
-    backgroundColor: '#222',
     borderRadius: 12,
     padding: 20,
     shadowColor: '#000',
@@ -322,13 +323,11 @@ const styles = StyleSheet.create({
   formTitle: {
     fontSize: 20,
     fontWeight: 'bold',
-    color: '#fff',
     marginBottom: 20,
     textAlign: 'center',
   },
   input: {
     backgroundColor: '#333',
-    color: '#fff',
     padding: 14,
     borderRadius: 8,
     marginBottom: 15,
@@ -347,7 +346,6 @@ const styles = StyleSheet.create({
     marginTop: 10,
   },
   submitButton: {
-    backgroundColor: '#0066cc',
     padding: 15,
     borderRadius: 8,
     flex: 1,
@@ -355,12 +353,10 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   submitButtonText: {
-    color: '#fff',
     fontWeight: 'bold',
     fontSize: 16,
   },
   cancelButton: {
-    backgroundColor: '#444',
     padding: 15,
     borderRadius: 8,
     flex: 1,
@@ -368,7 +364,6 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   cancelButtonText: {
-    color: '#eee',
     fontWeight: '500',
     fontSize: 16,
   },
@@ -378,11 +373,9 @@ const styles = StyleSheet.create({
     flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
-    backgroundColor: '#121212',
     width: '100%',
   },
   loadingText: {
-    color: '#aaa',
     marginTop: 10,
   },
 });

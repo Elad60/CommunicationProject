@@ -179,10 +179,12 @@ const GroupsScreen = ({ navigation }) => {
         </View>
       </ScrollView>
   
-      <Text style={[styles.label, { color: textColor }]}>
-        Change Your Group:
-      </Text>
-      <View style={styles.letterContainer}>
+      <View style={{ backgroundColor: darkMode ? '#000' : '#fff'}}>
+        <Text style={[styles.label, { color: textColor }]}>
+          Change Your Group:
+        </Text>
+      </View>
+      <View style={[styles.letterContainer, {backgroundColor : darkMode ? '#000' : '#fff'}]}>
         {letters.map((letter) => (
           <TouchableOpacity
             key={letter}
@@ -190,8 +192,8 @@ const GroupsScreen = ({ navigation }) => {
               styles.letterButton,
               {
                 backgroundColor: user?.group === letter
-                  ? '#0066cc'
-                  : darkMode ? '#333' : '#ccc',
+                  ? darkMode ? '#0066cc' : '#91aad4'
+                  : darkMode ? '#333' : '#eee',
               },
             ]}
             onPress={() => handleGroupChange(letter)}
