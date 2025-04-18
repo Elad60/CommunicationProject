@@ -9,12 +9,13 @@ const ControlPanel = ({
   selectedChannel,
   navigation,
   darkMode,
+  height,
+  width,
 }) => {
-  const { height, width } = useWindowDimensions();
   let CONTROL_PANEL_HEIGHT;
   let CONTROL_PANEL_WIDTH;
   const isLandscape = height < width;
-  
+
   if (isLandscape) {
     CONTROL_PANEL_HEIGHT = height * 0.13;
     CONTROL_PANEL_WIDTH = width * 0.92;
@@ -35,11 +36,11 @@ const ControlPanel = ({
 
   const controlPanelStyle = {
     marginLeft:
-    !toolBarAdjustment && isLandscape
-      ? width * 0.08
-      : !toolBarAdjustment && !isLandscape
-      ? width * 0.14
-      : 0,
+      !toolBarAdjustment && isLandscape
+        ? width * 0.08
+        : !toolBarAdjustment && !isLandscape
+        ? width * 0.14
+        : 0,
   };
 
   const backgroundColor = darkMode ? '#1a1a1a' : '#fff';

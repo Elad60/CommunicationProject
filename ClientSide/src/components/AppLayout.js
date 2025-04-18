@@ -1,12 +1,13 @@
+// AppLayout.js
 import React, {useState, useMemo} from 'react';
 import {
   View,
   Text,
   StyleSheet,
   TouchableOpacity,
-  useWindowDimensions,
   StatusBar,
 } from 'react-native';
+import {useDebouncedDimensions} from '../utils/useDebouncedDimensions';
 import {useAuth} from '../context/AuthContext';
 import ControlPanel from './ControlPanel';
 import NavPanel from './NavPanel';
@@ -20,14 +21,14 @@ const AppLayout = ({
   showControls = true,
   showNavPanel = true,
 }) => {
-  const { height, width } = useWindowDimensions(); 
+  const {height, width} = useDebouncedDimensions(300);
   const isLandscape = width > height;
 
   const {
     NAV_PANEL_WIDTH,
     NAV_PANEL_HEIGHT,
     CONTROL_PANEL_WIDTH,
-    CONTROL_PANEL_HEIGHT
+    CONTROL_PANEL_HEIGHT,
   } = useMemo(() => {
     return {
       NAV_PANEL_WIDTH: isLandscape ? width * 0.08 : width * 0.14,
@@ -50,11 +51,6 @@ const AppLayout = ({
     navigation.navigate(screen);
   };
 
-  const contentContainerStyle = {
-    marginTop: controlBarAdjustment ? 0 : CONTROL_PANEL_HEIGHT,
-    marginLeft: toolBarAdjustment ? 0 : NAV_PANEL_WIDTH,
-  };
-
   const backgroundColor = darkMode ? '#000' : '#d9d9d9';
   const textColor = darkMode ? '#fff' : '#000';
 
@@ -67,14 +63,12 @@ const AppLayout = ({
 
       {/* Header */}
       <View style={[styles.header, {backgroundColor, height: height * 0.05}]}>
-        {/* Left - Title */}
         <View style={styles.headerSection}>
           <Text style={[styles.headerText, {color: textColor}]}>
             {title || 'Communication System'}
           </Text>
         </View>
 
-        {/* Center - User info */}
         <View style={[styles.headerSection, styles.centerSection]}>
           {user && (
             <Text style={[styles.userInfo, {color: textColor}]}>
@@ -83,7 +77,6 @@ const AppLayout = ({
           )}
         </View>
 
-        {/* Right - Logout button */}
         <View style={[styles.headerSection, {alignItems: 'flex-end'}]}>
           <LogoutButton
             onLogout={async () => {
@@ -98,26 +91,25 @@ const AppLayout = ({
 
       {/* Main content */}
       <View
-        style={[
-          styles.contentContainer,
-          {
-            marginTop: controlBarAdjustment ? 0 : CONTROL_PANEL_HEIGHT,
-            marginLeft: toolBarAdjustment ? 0 : NAV_PANEL_WIDTH,
-            width: CONTROL_PANEL_WIDTH,
-            height: isLandscape ?  NAV_PANEL_HEIGHT +  CONTROL_PANEL_HEIGHT : NAV_PANEL_HEIGHT -  CONTROL_PANEL_HEIGHT /2 ,
-          },
-        ]}
-      >
+        style={{
+          marginTop: controlBarAdjustment ? 0 : CONTROL_PANEL_HEIGHT,
+          marginLeft: toolBarAdjustment ? 0 : NAV_PANEL_WIDTH,
+          width: CONTROL_PANEL_WIDTH,
+          height: isLandscape
+            ? NAV_PANEL_HEIGHT + CONTROL_PANEL_HEIGHT
+            : NAV_PANEL_HEIGHT - CONTROL_PANEL_HEIGHT / 2,
+        }}>
         {children}
         {showNavPanel && (
           <NavPanel
             activeNav={activeNav}
             handleNavigation={handleNavigation}
             darkMode={darkMode}
+            height={height}
+            width={width}
           />
         )}
       </View>
-
 
       {/* Control Panel */}
       {showControls && (
@@ -128,6 +120,8 @@ const AppLayout = ({
           setBrightness={brightness}
           darkMode={darkMode}
           navigation={navigation}
+          height={height}
+          width={width}
         />
       )}
 
@@ -156,26 +150,20 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     paddingHorizontal: 15,
   },
-
-  // שלושת העמודות ב-header
   headerSection: {
     flex: 1,
     justifyContent: 'center',
   },
-
   centerSection: {
     alignItems: 'center',
   },
-
   headerText: {
     fontSize: 20,
     fontWeight: 'bold',
   },
-
   userInfo: {
     fontSize: 14,
   },
 });
-
 
 export default AppLayout;

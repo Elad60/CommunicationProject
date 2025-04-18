@@ -6,13 +6,11 @@ import { useSettings } from '../context/SettingsContext';
 import { useAuth } from '../context/AuthContext';
 import { useAnnouncements } from '../context/AnnouncementsContext'; // הוספת הקונטקסט
 
-const NavPanel = ({ handleNavigation, darkMode }) => {
-
-  const { height, width } = useWindowDimensions();
+const NavPanel = ({handleNavigation, darkMode, height, width}) => {
   let NAV_PANEL_HEIGHT;
   let NAV_PANEL_WIDTH;
   const isLandscape = height < width;
-  
+
   if (isLandscape) {
     NAV_PANEL_HEIGHT = height * 0.7;
     NAV_PANEL_WIDTH = width * 0.08;
@@ -20,14 +18,16 @@ const NavPanel = ({ handleNavigation, darkMode }) => {
     NAV_PANEL_HEIGHT = height * 0.9;
     NAV_PANEL_WIDTH = width * 0.14;
   }
-  const { toolBarAdjustment, controlBarAdjustment } = useSettings();
-  const { user } = useAuth();
-  const { unreadCount, fetchUnreadCount } = useAnnouncements(); // שימוש בקונטקסט ההודעות
+  const {toolBarAdjustment, controlBarAdjustment} = useSettings();
+  const {user} = useAuth();
+  const {unreadCount, fetchUnreadCount} = useAnnouncements(); // שימוש בקונטקסט ההודעות
   const route = useRoute();
   const currentScreen = route.name;
 
   const positionX = useRef(
-    new Animated.Value(toolBarAdjustment ? width - NAV_PANEL_WIDTH : -NAV_PANEL_WIDTH),
+    new Animated.Value(
+      toolBarAdjustment ? width - NAV_PANEL_WIDTH : -NAV_PANEL_WIDTH,
+    ),
   ).current;
 
   useEffect(() => {
@@ -35,7 +35,7 @@ const NavPanel = ({ handleNavigation, darkMode }) => {
       toValue: toolBarAdjustment ? width - NAV_PANEL_WIDTH : -NAV_PANEL_WIDTH,
       useNativeDriver: false,
     }).start();
-  // eslint-disable-next-line react-hooks/exhaustive-deps
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [toolBarAdjustment, height, width]);
 
   // טעינת מספר הודעות שלא נקראו בעת טעינת הקומפוננטה
@@ -43,13 +43,17 @@ const NavPanel = ({ handleNavigation, darkMode }) => {
     if (user) {
       fetchUnreadCount();
     }
-  // eslint-disable-next-line react-hooks/exhaustive-deps
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [user, currentScreen]);
 
   const panelStyle = {
     position: 'absolute',
     top: 0,
-    top: controlBarAdjustment ? 0 : isLandscape ? -height * 0.13 : -height * 0.1,
+    top: controlBarAdjustment
+      ? 0
+      : isLandscape
+      ? -height * 0.13
+      : -height * 0.1,
     height: height - height * 0.05,
     width: NAV_PANEL_WIDTH,
     backgroundColor: darkMode ? '#1a1a1a' : '#fff',
@@ -60,10 +64,10 @@ const NavPanel = ({ handleNavigation, darkMode }) => {
     justifyContent: 'space-evenly',
     shadowColor: '#000',
     shadowOpacity: 0.1,
-    shadowOffset: { width: 0, height: 2 },
+    shadowOffset: {width: 0, height: 2},
     shadowRadius: 8,
     elevation: 6,
-    transform: [{ translateX: positionX }],
+    transform: [{translateX: positionX}],
   };
 
   const buttons = [
@@ -100,9 +104,9 @@ const NavPanel = ({ handleNavigation, darkMode }) => {
 
   return (
     <Animated.View style={panelStyle}>
-      {buttons.map(({ title, icon, screen, roles, showBadge, badgeCount }) => {
+      {buttons.map(({title, icon, screen, roles, showBadge, badgeCount}) => {
         const allowed = !roles || roles.includes(user?.role);
-        
+
         return (
           <View key={screen} style={styles.buttonContainer}>
             <NavButton
@@ -123,7 +127,7 @@ const NavPanel = ({ handleNavigation, darkMode }) => {
               height={height}
               width={width}
             />
-            
+
             {/* תג מספר הודעות שלא נקראו */}
             {showBadge && (
               <View style={styles.badge}>
