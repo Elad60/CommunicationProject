@@ -34,7 +34,7 @@ const NavButton = ({title, icon, onPress, isActive, darkMode, height, width}) =>
           styles.button,
           {
             height: isLandscape ? height * 0.13 : height * 0.15,
-            width: isLandscape ? width * 0.07: width * 0.13,
+            width: isLandscape ? width * 0.08: width * 0.14,
             transform: [{scale}],
             backgroundColor,
             borderColor,

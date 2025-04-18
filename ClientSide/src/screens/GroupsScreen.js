@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, {useState, useEffect} from 'react';
 import {
   View,
   Text,
@@ -9,18 +9,18 @@ import {
   Image,
 } from 'react-native';
 import AppLayout from '../components/AppLayout';
-import { useAuth } from '../context/AuthContext';
-import { groupUsersApi } from '../utils/apiService';
-import { useSettings } from '../context/SettingsContext';
+import {useAuth} from '../context/AuthContext';
+import {groupUsersApi} from '../utils/apiService';
+import {useSettings} from '../context/SettingsContext';
 
-const GroupsScreen = ({ navigation }) => {
-  const { user, changeGroup } = useAuth();
+const GroupsScreen = ({navigation}) => {
+  const {user, changeGroup} = useAuth();
   const [groupUsers, setGroupUsers] = useState([]);
   const [userStates, setUserStates] = useState({});
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const letters = ['A', 'B', 'C', 'D', 'E', 'F'];
-  const { darkMode} = useSettings();
+  const {darkMode} = useSettings();
   const textColor = darkMode ? '#fff' : '#000';
 
   const fetchGroupUsers = async () => {
@@ -51,14 +51,14 @@ const GroupsScreen = ({ navigation }) => {
     if (user?.group) {
       fetchGroupUsers();
     }
-  // eslint-disable-next-line react-hooks/exhaustive-deps
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [user?.group]);
 
-  const handleGroupChange = (newGroup) => {
+  const handleGroupChange = newGroup => {
     changeGroup(newGroup);
   };
 
-  const getIconPaths = (channelState) => {
+  const getIconPaths = channelState => {
     switch (channelState) {
       case 'Idle':
         return {
@@ -83,7 +83,7 @@ const GroupsScreen = ({ navigation }) => {
     }
   };
 
-  const getBackgroundColor = (state) => {
+  const getBackgroundColor = state => {
     switch (state) {
       case 'ListenOnly':
         return darkMode ? '#1f3d1f' : '#99cc99'; // green
@@ -95,7 +95,7 @@ const GroupsScreen = ({ navigation }) => {
     }
   };
 
-  const cycleState = (state) => {
+  const cycleState = state => {
     switch (state) {
       case 'Idle':
         return 'ListenOnly';
@@ -107,8 +107,8 @@ const GroupsScreen = ({ navigation }) => {
     }
   };
 
-  const onUserPress = (userId) => {
-    setUserStates((prev) => ({
+  const onUserPress = userId => {
+    setUserStates(prev => ({
       ...prev,
       [userId]: cycleState(prev[userId] || 'Idle'),
     }));
@@ -120,50 +120,58 @@ const GroupsScreen = ({ navigation }) => {
         <View
           style={[
             styles.centerContainer,
-            { backgroundColor: darkMode ? '#000' : '#fff' },
-          ]}
-        >
+            {backgroundColor: darkMode ? '#000' : '#d9d9d9'},
+          ]}>
           <ActivityIndicator size="large" color="#0000ff" />
-          <Text style={[styles.loadingText, { color: textColor }]}>
+          <Text style={[styles.loadingText, {color: textColor}]}>
             Loading users...
           </Text>
         </View>
       </AppLayout>
     );
   }
-  
+
   return (
     <AppLayout navigation={navigation} title={`Group: ${user?.group}`}>
       <ScrollView
-        style={[styles.scrollView, { backgroundColor: darkMode ? '#000' : '#fff' }]}
-      >
+        style={[
+          styles.scrollView,
+          {backgroundColor: darkMode ? '#000' : '#d9d9d9'},
+        ]}>
         <View style={styles.mainGrid}>
           {groupUsers.length > 0 ? (
-            groupUsers.map((u) => {
+            groupUsers.map(u => {
               const channelState = userStates[u.id] || 'Idle';
               const icons = getIconPaths(channelState);
               const bgColor = getBackgroundColor(channelState);
-  
+
               return (
                 <TouchableOpacity
                   key={u.id}
-                  style={[styles.userCard, { backgroundColor: bgColor, borderColor: darkMode ? '#888' : '#333'}]}
-                  onPress={() => onUserPress(u.id)}
-                >
-                  <Text style={{ color: textColor, fontWeight: 'bold' }}>
+                  style={[
+                    styles.userCard,
+                    {
+                      backgroundColor: bgColor,
+                      borderColor: darkMode ? '#888' : '#333',
+                    },
+                  ]}
+                  onPress={() => onUserPress(u.id)}>
+                  <Text style={{color: textColor, fontWeight: 'bold'}}>
                     {u.username}
                   </Text>
-                  <Text style={{ color: darkMode ? '#ccc' : '#333' }}>{u.email}</Text>
-                  <Text style={{ color: darkMode ? '#91aad4' : '#004080' }}>
+                  <Text style={{color: darkMode ? '#ccc' : '#333'}}>
+                    {u.email}
+                  </Text>
+                  <Text style={{color: darkMode ? '#91aad4' : '#004080'}}>
                     Role: {u.role}
                   </Text>
-  
+
                   <View style={styles.iconRow}>
                     <Image source={icons.headphones} style={styles.icon} />
                     <View
                       style={[
                         styles.statusDot,
-                        { backgroundColor: u.isActive ? '#00cc00' : '#555' },
+                        {backgroundColor: u.isActive ? '#00cc00' : '#555'},
                       ]}
                     />
                     <Image source={icons.mic} style={styles.icon} />
@@ -172,42 +180,55 @@ const GroupsScreen = ({ navigation }) => {
               );
             })
           ) : (
-            <Text style={{ color: darkMode ? '#aaa' : '#444', textAlign: 'center', marginTop: 20 }}>
+            <Text
+              style={{
+                color: darkMode ? '#aaa' : '#444',
+                textAlign: 'center',
+                marginTop: 20,
+              }}>
               No other users in this group.
             </Text>
           )}
         </View>
       </ScrollView>
-  
-      <View style={{ backgroundColor: darkMode ? '#000' : '#fff'}}>
-        <Text style={[styles.label, { color: textColor }]}>
+
+      <View style={{backgroundColor: darkMode ? '#000' : '#d9d9d9'}}>
+        <Text style={[styles.label, {color: textColor}]}>
           Change Your Group:
         </Text>
       </View>
-      <View style={[styles.letterContainer, {backgroundColor : darkMode ? '#000' : '#fff'}]}>
-        {letters.map((letter) => (
+      <View
+        style={[
+          styles.letterContainer,
+          {backgroundColor: darkMode ? '#000' : '#d9d9d9'},
+        ]}>
+        {letters.map(letter => (
           <TouchableOpacity
             key={letter}
             style={[
               styles.letterButton,
               {
-                backgroundColor: user?.group === letter
-                  ? darkMode ? '#0066cc' : '#91aad4'
-                  : darkMode ? '#333' : '#eee',
+                backgroundColor:
+                  user?.group === letter
+                    ? darkMode
+                      ? '#0066cc'
+                      : '#91aad4'
+                    : darkMode
+                    ? '#333'
+                    : '#eee',
               },
             ]}
-            onPress={() => handleGroupChange(letter)}
-          >
-            <Text style={{ color: textColor }}>{letter}</Text>
+            onPress={() => handleGroupChange(letter)}>
+            <Text style={{color: textColor}}>{letter}</Text>
           </TouchableOpacity>
         ))}
       </View>
     </AppLayout>
-  ); 
+  );
 };
 
 const styles = StyleSheet.create({
-  scrollView: { flex: 1 },
+  scrollView: {flex: 1},
   mainGrid: {
     flexDirection: 'row',
     flexWrap: 'wrap',
