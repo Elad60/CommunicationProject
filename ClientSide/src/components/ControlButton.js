@@ -32,7 +32,7 @@ const ControlButton = ({title, icon, value, onPress, darkMode, isSelected, heigh
         style={[
           styles.button,
           {
-            width: width * 0.18,
+            width: width * 0.10,
             height: height * 0.1,
             backgroundColor,
             borderColor,

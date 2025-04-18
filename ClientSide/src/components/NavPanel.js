@@ -1,10 +1,17 @@
-import React, { useEffect, useRef } from 'react';
-import { Alert, Animated, useWindowDimensions, View, Text, StyleSheet } from 'react-native';
-import { useRoute } from '@react-navigation/native';
+import React, {useEffect, useRef} from 'react';
+import {
+  Alert,
+  Animated,
+  useWindowDimensions,
+  View,
+  Text,
+  StyleSheet,
+} from 'react-native';
+import {useRoute} from '@react-navigation/native';
 import NavButton from './NavButton';
-import { useSettings } from '../context/SettingsContext';
-import { useAuth } from '../context/AuthContext';
-import { useAnnouncements } from '../context/AnnouncementsContext'; // הוספת הקונטקסט
+import {useSettings} from '../context/SettingsContext';
+import {useAuth} from '../context/AuthContext';
+import {useAnnouncements} from '../context/AnnouncementsContext'; // הוספת הקונטקסט
 
 const NavPanel = ({handleNavigation, darkMode, height, width}) => {
   let NAV_PANEL_HEIGHT;
@@ -57,7 +64,6 @@ const NavPanel = ({handleNavigation, darkMode, height, width}) => {
     height: height - height * 0.05,
     width: NAV_PANEL_WIDTH,
     backgroundColor: darkMode ? '#1a1a1a' : '#fff',
-    borderRadius: 20,
     paddingVertical: 16,
     paddingHorizontal: 6,
     alignItems: 'center',
@@ -141,7 +147,6 @@ const NavPanel = ({handleNavigation, darkMode, height, width}) => {
   );
 };
 
-// סגנונות חדשים לתג
 const styles = StyleSheet.create({
   buttonContainer: {
     position: 'relative',
