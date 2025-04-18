@@ -20,7 +20,7 @@ const NavPanel = ({handleNavigation, darkMode, height, width}) => {
 
   if (isLandscape) {
     NAV_PANEL_HEIGHT = height * 0.7;
-    NAV_PANEL_WIDTH = width * 0.085;
+    NAV_PANEL_WIDTH = width * 0.082;
   } else {
     NAV_PANEL_HEIGHT = height * 0.9;
     NAV_PANEL_WIDTH = width * 0.14;

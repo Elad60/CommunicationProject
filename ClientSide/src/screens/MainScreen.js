@@ -12,9 +12,7 @@ import AppLayout from '../components/AppLayout';
 import {useAuth} from '../context/AuthContext';
 import {radioChannelsApi} from '../utils/apiService';
 import {useSettings} from '../context/SettingsContext';
-import {useTutorial} from '../context/TutorialContext';
-import TutorialTooltip from '../components/TutorialTooltip';
-import AsyncStorage from '@react-native-async-storage/async-storage';
+
 const MainScreen = ({navigation}) => {
   const [selectedChannel, setSelectedChannel] = useState(null);
   const [radioChannels, setRadioChannels] = useState([]);
@@ -23,19 +21,6 @@ const MainScreen = ({navigation}) => {
 
   const {user} = useAuth();
   const {showFrequency, showStatus} = useSettings();
-  const {
-    hasSeenTutorial,
-    markTutorialSeen,
-    loading: tutorialLoading,
-  } = useTutorial();
-
-  const [tutorialStep, setTutorialStep] = useState(0);
-
-  const tutorialSteps = [
-    '📡 This is your radio grid. Tap a channel to change its state.',
-    '➕ Press this + button to add new radios to your grid.',
-    '🧭 Use the side and bottom panels to navigate or control.',
-  ];
 
   const fetchRadioChannels = async () => {
     try {
@@ -53,9 +38,6 @@ const MainScreen = ({navigation}) => {
       setIsLoading(false);
     }
   };
-  useEffect(() => {
-    AsyncStorage.removeItem('hasSeenTutorial');
-  }, []);
 
   useEffect(() => {
     if (user?.id) {
@@ -160,24 +142,6 @@ const MainScreen = ({navigation}) => {
         <TouchableOpacity style={styles.addButton} onPress={handleAddChannel}>
           <Text style={styles.addButtonText}>+</Text>
         </TouchableOpacity>
-
-        {/* 🔥 Tooltip Tutorial Overlay */}
-        {!tutorialLoading &&
-          !hasSeenTutorial &&
-          tutorialStep < tutorialSteps.length && (
-            <TutorialTooltip
-              text={tutorialSteps[tutorialStep]}
-              step={tutorialStep + 1}
-              totalSteps={tutorialSteps.length}
-              onNext={() => {
-                if (tutorialStep + 1 === tutorialSteps.length) {
-                  markTutorialSeen();
-                } else {
-                  setTutorialStep(prev => prev + 1);
-                }
-              }}
-            />
-          )}
       </View>
     </AppLayout>
   );
