@@ -1,11 +1,7 @@
 import React, {useRef, useEffect, useState} from 'react';
-import {Animated, Dimensions} from 'react-native';
+import {Animated, useWindowDimensions} from 'react-native';
 import ControlButton from './ControlButton';
 import {useSettings} from '../context/SettingsContext';
-
-const {height, width} = Dimensions.get('window');
-const CONTROL_PANEL_HEIGHT = height * 0.13;
-const CONTROL_PANEL_WIDTH = width * 0.32;
 
 const ControlPanel = ({
   speakerVolume,
@@ -14,6 +10,19 @@ const ControlPanel = ({
   navigation,
   darkMode,
 }) => {
+  const { height, width } = useWindowDimensions();
+  let CONTROL_PANEL_HEIGHT;
+  let CONTROL_PANEL_WIDTH;
+  const isLandscape = height < width;
+  
+  if (isLandscape) {
+    CONTROL_PANEL_HEIGHT = height * 0.13;
+    CONTROL_PANEL_WIDTH = width * 0.92;
+  } else {
+    CONTROL_PANEL_HEIGHT = height * 0.1;
+    CONTROL_PANEL_WIDTH = width * 0.86;
+  }
+
   const [selectedButton, setSelectedButton] = useState(null);
 
   const {
@@ -25,7 +34,12 @@ const ControlPanel = ({
   const position = useRef(new Animated.Value(controlPanelPosition)).current;
 
   const controlPanelStyle = {
-    left: (width - CONTROL_PANEL_WIDTH) / 2 - 10,
+    marginLeft:
+    !toolBarAdjustment && isLandscape
+      ? width * 0.08
+      : !toolBarAdjustment && !isLandscape
+      ? width * 0.14
+      : 0,
   };
 
   const backgroundColor = darkMode ? '#1a1a1a' : '#fff';
@@ -42,7 +56,7 @@ const ControlPanel = ({
     }).start();
 
     setControlPanelPosition(targetPosition);
-  }, [controlBarAdjustment]);
+  }, [controlBarAdjustment, height, width]);
 
   const buttons = [
     {
@@ -89,7 +103,7 @@ const ControlPanel = ({
           width: CONTROL_PANEL_WIDTH,
           height: CONTROL_PANEL_HEIGHT,
           flexDirection: 'row',
-          justifyContent: 'center', // ✅ Center buttons
+          justifyContent: 'space-around',
           alignItems: 'center',
           backgroundColor,
           borderRadius: 20,
@@ -114,6 +128,8 @@ const ControlPanel = ({
           darkMode={darkMode}
           textColor={buttonTextColor}
           isSelected={selectedButton === btn.title}
+          height={height}
+          width={width}
         />
       ))}
     </Animated.View>

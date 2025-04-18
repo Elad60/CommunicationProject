@@ -1,8 +1,9 @@
 import React, {useRef} from 'react';
 import {Animated, StyleSheet, Image, Text, Pressable} from 'react-native';
 
-const NavButton = ({title, icon, onPress, isActive, darkMode}) => {
+const NavButton = ({title, icon, onPress, isActive, darkMode, height, width}) => {
   const scale = useRef(new Animated.Value(1)).current;
+  const isLandscape = height < width;
 
   const handleHoverIn = () => {
     Animated.spring(scale, {
@@ -32,6 +33,8 @@ const NavButton = ({title, icon, onPress, isActive, darkMode}) => {
         style={[
           styles.button,
           {
+            height: isLandscape ? height * 0.07 : height * 0.16,
+            width: isLandscape ? width * 0.08: width * 0.14,
             transform: [{scale}],
             backgroundColor,
             borderColor,
@@ -55,8 +58,6 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     shadowOffset: {width: 0, height: 2},
     shadowRadius: 6,
-    width: 80,
-    height:100,
   },
   icon: {
     width: 24,
