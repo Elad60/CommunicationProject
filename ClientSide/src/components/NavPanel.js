@@ -50,7 +50,7 @@ const NavPanel = ({ handleNavigation, darkMode }) => {
     position: 'absolute',
     top: 0,
     top: controlBarAdjustment ? 0 : isLandscape ? -height * 0.13 : -height * 0.1,
-    height: height - 30,
+    height: height - height * 0.05,
     width: NAV_PANEL_WIDTH,
     backgroundColor: darkMode ? '#1a1a1a' : '#fff',
     borderRadius: 20,
