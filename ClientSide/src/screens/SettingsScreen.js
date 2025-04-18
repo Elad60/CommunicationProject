@@ -28,10 +28,6 @@ const SettingsScreen = ({ navigation }) => {
     setDarkMode,
   } = useSettings();
 
-  const [settings, setSettings] = useState({
-    autoConnect: false,
-  });
-
   const toggleSetting = (key) => {
     setSettings({
       ...settings,
@@ -69,7 +65,6 @@ const SettingsScreen = ({ navigation }) => {
 
           <View style={styles.section}>
             <Text style={[styles.sectionTitle, { color: textColor }]}>Radio Settings</Text>
-            {renderSettingItem('Auto-Connect', 'autoConnect', settings.autoConnect, () => toggleSetting('autoConnect'))}
             {renderSettingItem('Nav Bar Adjustment ↔️', 'ToolBarAdjustment', toolBarAdjustment, () => setToolBarAdjustment(!toolBarAdjustment))}
             {renderSettingItem('Control Bar Adjustment ↕️', 'controlBarAdjustment', controlBarAdjustment, () => setControlBarAdjustment(!controlBarAdjustment))}
             {renderSettingItem('Dark Mode 🌗', 'darkMode', darkMode, () => setDarkMode(!darkMode))}
