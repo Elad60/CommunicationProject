@@ -132,8 +132,7 @@ const PickRadiosScreen = ({navigation}) => {
   return (
     <AppLayout navigation={navigation} title="Pick Radios">
       <ScrollView
-        contentContainerStyle={[styles.container, dynamicStyles.container]}
-      >
+        contentContainerStyle={[styles.container, dynamicStyles.container]}>
         <View style={[styles.sectionCard, dynamicStyles.sectionCard]}>
           <Text style={[styles.title, dynamicStyles.title]}>
             🎧 Select Your Channels
@@ -164,28 +163,21 @@ const PickRadiosScreen = ({navigation}) => {
                   dynamicStyles.card,
                   isSelected && styles.cardSelected,
                   isSelected && dynamicStyles.cardSelected,
-                ]}
-              >
+                ]}>
                 <View style={styles.cardContent}>
                   <View>
                     <Text
-                      style={[styles.channelName, dynamicStyles.channelName]}
-                    >
+                      style={[styles.channelName, dynamicStyles.channelName]}>
                       {c.name}
                     </Text>
                     {showFrequency && (
                       <Text
-                        style={[
-                          styles.channelFreq,
-                          dynamicStyles.channelFreq,
-                        ]}
-                      >
+                        style={[styles.channelFreq, dynamicStyles.channelFreq]}>
                         {c.frequency}
                       </Text>
                     )}
                     <Text
-                      style={[styles.channelMode, dynamicStyles.channelMode]}
-                    >
+                      style={[styles.channelMode, dynamicStyles.channelMode]}>
                       Mode: {c.mode}
                     </Text>
                     {showStatus && c.status && (
@@ -193,8 +185,7 @@ const PickRadiosScreen = ({navigation}) => {
                         style={[
                           styles.channelStatus,
                           dynamicStyles.channelStatus,
-                        ]}
-                      >
+                        ]}>
                         Status: {c.status}
                       </Text>
                     )}
@@ -207,8 +198,12 @@ const PickRadiosScreen = ({navigation}) => {
             );
           })}
 
-          <TouchableOpacity style={[styles.saveButton, dynamicStyles.saveButton]} onPress={handleSave}>
-            <Text style={[styles.saveButtonText, dynamicStyles.saveButtonText]}>💾 Save Selection</Text>
+          <TouchableOpacity
+            style={[styles.saveButton, dynamicStyles.saveButton]}
+            onPress={handleSave}>
+            <Text style={[styles.saveButtonText, dynamicStyles.saveButtonText]}>
+              💾 Save Selection
+            </Text>
           </TouchableOpacity>
         </View>
       </ScrollView>
