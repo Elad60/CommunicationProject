@@ -133,14 +133,10 @@ const GroupsScreen = ({navigation}) => {
     );
   }
 
-  let CardSize = 130;
-  if (groupUsers.length > 8 && groupUsers.length < 12) {
-    CardSize = ((width * 0.7) + (height * 0.7)) / (groupUsers.length - 2);
-  } else if (groupUsers.length > 4 && groupUsers.length <= 8) {
-    CardSize = ((width * 0.7) + (height * 0.7)) / (groupUsers.length + 1);
-  } else if (groupUsers.length <= 4) {
-    CardSize = ((width * 0.7) + (height * 0.7)) / (groupUsers.length + 3);
-  }  
+  const CardSize =
+  (groupUsers.length === 2 || groupUsers.length === 3)
+    ? Math.sqrt((width * 0.6 * height * 0.6) / (groupUsers.length + 1))
+    : Math.sqrt((width * 0.7 * height * 0.7) / groupUsers.length);
 
   return (
     <AppLayout navigation={navigation} title={`Group: ${user?.group}`}>

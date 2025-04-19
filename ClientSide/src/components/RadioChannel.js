@@ -55,20 +55,16 @@ const RadioChannel = ({
   const { headphones, mic } = getIconPaths();
 
   const RadioChannelStyle = useMemo(() => {
-    let size = 130;
-    if (numberOfChannels > 8 && numberOfChannels < 12) {
-      size = ((width * 0.7) + (height * 0.7)) / (numberOfChannels - 2);
-    } else if (numberOfChannels > 4 && numberOfChannels <= 8) {
-      size = ((width * 0.7) + (height * 0.7)) / (numberOfChannels + 1);
-    } else if (numberOfChannels <= 4) {
-      size = ((width * 0.7) + (height * 0.7)) / (numberOfChannels + 3);
-    }
+    const size = (numberOfChannels === 2 || numberOfChannels === 3)
+    ? Math.sqrt((width * 0.65 * height * 0.65) / (numberOfChannels + 1))
+    : Math.sqrt((width * 0.7 * height * 0.7) / numberOfChannels);
+    
     return {
       width: size,
       height: size,
     };
   }, [width, height, numberOfChannels]);
-
+  
   return (
     <View style={[styles.container, { backgroundColor: getBackgroundColor() }, RadioChannelStyle]}>
       <Text style={[styles.name, { color: darkMode ? '#fff' : '#000' }]}>{name}</Text>
