@@ -136,7 +136,7 @@ const GroupsScreen = ({navigation}) => {
   const CardSize =
   (groupUsers.length === 2 || groupUsers.length === 3)
     ? Math.sqrt((width * 0.6 * height * 0.6) / (groupUsers.length + 1))
-    : Math.sqrt((width * 0.7 * height * 0.7) / groupUsers.length);
+    : Math.sqrt((width * 0.65 * height * 0.65) / groupUsers.length);
 
   return (
     <AppLayout navigation={navigation} title={`Group: ${user?.group}`}>
