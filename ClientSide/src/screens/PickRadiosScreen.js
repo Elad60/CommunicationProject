@@ -11,6 +11,7 @@ import {
 import AppLayout from '../components/AppLayout';
 import {radioChannelsApi} from '../utils/apiService';
 import {useAuth} from '../context/AuthContext';
+import {useSettings} from '../context/SettingsContext';
 
 const PickRadiosScreen = ({navigation}) => {
   const {user} = useAuth();
@@ -19,6 +20,7 @@ const PickRadiosScreen = ({navigation}) => {
   const [selected, setSelected] = useState([]);
   const [originalSelection, setOriginalSelection] = useState([]);
   const [search, setSearch] = useState('');
+  const {darkMode, showFrequency, showStatus} = useSettings();
 
   useEffect(() => {
     const loadChannels = async () => {
@@ -80,22 +82,74 @@ const PickRadiosScreen = ({navigation}) => {
     }
   };
 
+  const dynamicStyles = StyleSheet.create({
+    sectionCard: {
+      backgroundColor: darkMode ? '#2a2a2a' : '#fff',
+      borderColor: darkMode ? '#444' : '#ccc',
+    },
+    title: {
+      color: darkMode ? '#fff' : '#000',
+    },
+    input: {
+      backgroundColor: darkMode ? '#222' : '#f0f0f0',
+      color: darkMode ? '#fff' : '#000',
+      borderColor: darkMode ? '#444' : '#ccc',
+    },
+    noResults: {
+      color: darkMode ? '#888' : '#666',
+    },
+    card: {
+      backgroundColor: darkMode ? '#1c1c1e' : '#f9f9f9',
+      borderColor: darkMode ? '#444' : '#ccc',
+    },
+    cardSelected: {
+      backgroundColor: darkMode ? '#2e2e2e' : '#d0f0e0',
+      borderColor: '#1DB954',
+    },
+    channelName: {
+      color: darkMode ? '#fff' : '#000',
+    },
+    channelFreq: {
+      color: darkMode ? '#aaa' : '#555',
+    },
+    channelMode: {
+      color: darkMode ? '#ccc' : '#777',
+    },
+    channelStatus: {
+      color: darkMode ? '#bbb' : '#333',
+    },
+    checkIcon: {
+      color: darkMode ? '#1DB954' : '#007a3d',
+    },
+    saveButton: {
+      backgroundColor: darkMode ? '#1DB954' : '#21bf73',
+    },
+    saveButtonText: {
+      color: darkMode ? '#fff' : '#000',
+    },
+  });
+
   return (
     <AppLayout navigation={navigation} title="Pick Radios">
-      <ScrollView contentContainerStyle={styles.container}>
-        <View style={styles.sectionCard}>
-          <Text style={styles.title}>🎧 Select Your Channels</Text>
+      <ScrollView
+        contentContainerStyle={[styles.container, dynamicStyles.container]}>
+        <View style={[styles.sectionCard, dynamicStyles.sectionCard]}>
+          <Text style={[styles.title, dynamicStyles.title]}>
+            🎧 Select Your Channels
+          </Text>
 
           <TextInput
-            style={styles.input}
+            style={[styles.input, dynamicStyles.input]}
             placeholder="🔍 Search by name / frequency / mode"
-            placeholderTextColor="#aaa"
+            placeholderTextColor={darkMode ? '#aaa' : '#888'}
             value={search}
             onChangeText={setSearch}
           />
 
           {filteredChannels.length === 0 && (
-            <Text style={styles.noResults}>No matching channels found.</Text>
+            <Text style={[styles.noResults, dynamicStyles.noResults]}>
+              No matching channels found.
+            </Text>
           )}
 
           {filteredChannels.map(c => {
@@ -104,14 +158,39 @@ const PickRadiosScreen = ({navigation}) => {
               <TouchableOpacity
                 key={c.id}
                 onPress={() => toggleSelect(c.id)}
-                style={[styles.card, isSelected && styles.cardSelected]}>
+                style={[
+                  styles.card,
+                  dynamicStyles.card,
+                  isSelected && styles.cardSelected,
+                  isSelected && dynamicStyles.cardSelected,
+                ]}>
                 <View style={styles.cardContent}>
                   <View>
-                    <Text style={styles.channelName}>{c.name}</Text>
-                    <Text style={styles.channelFreq}>{c.frequency}</Text>
-                    <Text style={styles.channelMode}>Mode: {c.mode}</Text>
+                    <Text
+                      style={[styles.channelName, dynamicStyles.channelName]}>
+                      {c.name}
+                    </Text>
+                    {showFrequency && (
+                      <Text
+                        style={[styles.channelFreq, dynamicStyles.channelFreq]}>
+                        {c.frequency}
+                      </Text>
+                    )}
+                    <Text
+                      style={[styles.channelMode, dynamicStyles.channelMode]}>
+                      Mode: {c.mode}
+                    </Text>
+                    {showStatus && c.status && (
+                      <Text
+                        style={[
+                          styles.channelStatus,
+                          dynamicStyles.channelStatus,
+                        ]}>
+                        Status: {c.status}
+                      </Text>
+                    )}
                   </View>
-                  <Text style={styles.checkIcon}>
+                  <Text style={[styles.checkIcon, dynamicStyles.checkIcon]}>
                     {isSelected ? '✅' : '＋'}
                   </Text>
                 </View>
@@ -119,8 +198,12 @@ const PickRadiosScreen = ({navigation}) => {
             );
           })}
 
-          <TouchableOpacity style={styles.saveButton} onPress={handleSave}>
-            <Text style={styles.saveButtonText}>💾 Save Selection</Text>
+          <TouchableOpacity
+            style={[styles.saveButton, dynamicStyles.saveButton]}
+            onPress={handleSave}>
+            <Text style={[styles.saveButtonText, dynamicStyles.saveButtonText]}>
+              💾 Save Selection
+            </Text>
           </TouchableOpacity>
         </View>
       </ScrollView>
@@ -134,47 +217,37 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   sectionCard: {
-    backgroundColor: '#2a2a2a',
     padding: 15,
     borderRadius: 10,
     marginBottom: 25,
     width: '100%',
     borderWidth: 1,
-    borderColor: '#444',
   },
   title: {
-    color: '#fff',
     fontSize: 20,
     fontWeight: 'bold',
     marginBottom: 15,
   },
   input: {
-    backgroundColor: '#222',
-    color: '#fff',
     padding: 10,
     marginBottom: 15,
     borderRadius: 8,
     width: '100%',
     borderWidth: 1,
-    borderColor: '#444',
   },
   noResults: {
-    color: '#888',
     fontStyle: 'italic',
     marginBottom: 15,
     textAlign: 'center',
   },
   card: {
-    backgroundColor: '#1c1c1e',
     borderRadius: 10,
     padding: 15,
     marginBottom: 12,
     borderWidth: 1,
-    borderColor: '#444',
   },
   cardSelected: {
-    borderColor: '#1DB954',
-    backgroundColor: '#2e2e2e',
+    borderWidth: 1,
   },
   cardContent: {
     flexDirection: 'row',
@@ -183,32 +256,30 @@ const styles = StyleSheet.create({
   },
   channelName: {
     fontSize: 18,
-    color: '#fff',
     fontWeight: '600',
   },
   channelFreq: {
     fontSize: 14,
-    color: '#aaa',
     marginTop: 2,
   },
   channelMode: {
     fontSize: 13,
-    color: '#ccc',
+    marginTop: 4,
+  },
+  channelStatus: {
+    fontSize: 13,
     marginTop: 4,
   },
   checkIcon: {
     fontSize: 24,
-    color: '#1DB954',
   },
   saveButton: {
-    backgroundColor: '#1DB954',
     padding: 15,
     borderRadius: 8,
     alignItems: 'center',
     marginTop: 20,
   },
   saveButtonText: {
-    color: '#fff',
     fontWeight: 'bold',
     fontSize: 16,
   },
