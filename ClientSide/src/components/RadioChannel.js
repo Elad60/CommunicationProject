@@ -1,6 +1,7 @@
-import React from 'react';
+import React, { useMemo } from 'react';
 import { View, Text, StyleSheet, Image } from 'react-native';
-import { useSettings } from '../context/SettingsContext';
+import {useSettings} from '../context/SettingsContext';
+import { useDebouncedDimensions } from '../utils/useDebouncedDimensions';
 
 const RadioChannel = ({
   name,
@@ -9,8 +10,10 @@ const RadioChannel = ({
   mode,
   isSelected,
   channelState,
+  numberOfChannels,
 }) => {
-  const { darkMode, showFrequency, showStatus } = useSettings();
+  const { darkMode, showFrequency, showStatus} = useSettings();
+  const { height, width } = useDebouncedDimensions(300);
 
   const getBackgroundColor = () => {
     switch (channelState) {
@@ -51,8 +54,23 @@ const RadioChannel = ({
 
   const { headphones, mic } = getIconPaths();
 
+  const RadioChannelStyle = useMemo(() => {
+    let size = 130;
+    if (numberOfChannels > 8 && numberOfChannels < 12) {
+      size = ((width * 0.7) + (height * 0.7)) / (numberOfChannels - 2);
+    } else if (numberOfChannels > 4 && numberOfChannels <= 8) {
+      size = ((width * 0.7) + (height * 0.7)) / (numberOfChannels + 1);
+    } else if (numberOfChannels <= 4) {
+      size = ((width * 0.7) + (height * 0.7)) / (numberOfChannels + 3);
+    }
+    return {
+      width: size,
+      height: size,
+    };
+  }, [width, height, numberOfChannels]);
+
   return (
-    <View style={[styles.container, { backgroundColor: getBackgroundColor() }]}>
+    <View style={[styles.container, { backgroundColor: getBackgroundColor() }, RadioChannelStyle]}>
       <Text style={[styles.name, { color: darkMode ? '#fff' : '#000' }]}>{name}</Text>
       {showFrequency && (
         <Text style={[styles.frequency, { color: darkMode ? '#fff' : '#000' }]}>{frequency}</Text>
@@ -78,8 +96,6 @@ const RadioChannel = ({
 
 const styles = StyleSheet.create({
   container: {
-    width: 120,
-    height: 120,
     margin: 5,
     borderRadius: 5,
     borderWidth: 1,

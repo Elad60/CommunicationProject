@@ -12,6 +12,7 @@ import AppLayout from '../components/AppLayout';
 import {useAuth} from '../context/AuthContext';
 import {groupUsersApi} from '../utils/apiService';
 import {useSettings} from '../context/SettingsContext';
+import { useDebouncedDimensions } from '../utils/useDebouncedDimensions';
 
 const GroupsScreen = ({navigation}) => {
   const {user, changeGroup} = useAuth();
@@ -22,6 +23,7 @@ const GroupsScreen = ({navigation}) => {
   const letters = ['A', 'B', 'C', 'D', 'E', 'F'];
   const {darkMode} = useSettings();
   const textColor = darkMode ? '#fff' : '#000';
+   const { height, width } = useDebouncedDimensions(300);
 
   const fetchGroupUsers = async () => {
     try {
@@ -131,6 +133,15 @@ const GroupsScreen = ({navigation}) => {
     );
   }
 
+  let CardSize = 130;
+  if (groupUsers.length > 8 && groupUsers.length < 12) {
+    CardSize = ((width * 0.7) + (height * 0.7)) / (groupUsers.length - 2);
+  } else if (groupUsers.length > 4 && groupUsers.length <= 8) {
+    CardSize = ((width * 0.7) + (height * 0.7)) / (groupUsers.length + 1);
+  } else if (groupUsers.length <= 4) {
+    CardSize = ((width * 0.7) + (height * 0.7)) / (groupUsers.length + 3);
+  }  
+
   return (
     <AppLayout navigation={navigation} title={`Group: ${user?.group}`}>
       <ScrollView
@@ -153,6 +164,8 @@ const GroupsScreen = ({navigation}) => {
                     {
                       backgroundColor: bgColor,
                       borderColor: darkMode ? '#888' : '#333',
+                      width: CardSize,
+                      height: CardSize,
                     },
                   ]}
                   onPress={() => onUserPress(u.id)}>
@@ -239,7 +252,6 @@ const styles = StyleSheet.create({
     borderRadius: 8,
     padding: 10,
     margin: 8,
-    width: 130,
     alignItems: 'center',
     borderWidth: 1,
   },

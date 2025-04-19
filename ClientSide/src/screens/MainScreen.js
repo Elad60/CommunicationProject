@@ -133,6 +133,7 @@ const MainScreen = ({navigation}) => {
                   channelState={channel.channelState}
                   showFrequency={showFrequency}
                   showStatus={showStatus}
+                  numberOfChannels={radioChannels.length}
                 />
               </TouchableOpacity>
             ))}
