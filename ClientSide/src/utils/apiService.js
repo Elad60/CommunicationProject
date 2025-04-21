@@ -1,7 +1,8 @@
 import axios from 'axios';
 
 const api = axios.create({
-  baseURL: 'http://194.90.158.74/cgroup90/test2/tar1/api',
+  baseURL: 'http://localhost:7220/api',
+  // 'http://194.90.158.74/cgroup90/test2/tar1/api'
   timeout: 5000,
 });
 
