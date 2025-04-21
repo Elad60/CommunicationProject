@@ -1,7 +1,7 @@
 import axios from 'axios';
 
 const api = axios.create({
-  baseURL: 'http://localhost:5137/api',
+  baseURL: 'http://localhost:7220/api',
   timeout: 5000,
 });
 
@@ -59,7 +59,7 @@ const authApi = {
     } catch (error) {
       // If we have a response with data, return that data
       if (error.response && error.response.data) {
-        throw { response: { data: error.response.data } };
+        throw {response: {data: error.response.data}};
       }
       // Otherwise, throw a more general error
       throw error;
@@ -97,13 +97,12 @@ const authApi = {
       // Otherwise, return a generic error
       console.error('Registration error:', error);
       return {
-        success: false, 
-        message: 'Registration failed. Please try again.'
+        success: false,
+        message: 'Registration failed. Please try again.',
       };
     }
   },
 };
-
 
 // 🔒 Admin API
 const adminApi = {
@@ -145,18 +144,24 @@ const announcementsApi = {
     });
     return response.data;
   },
-  getAllWithReadStatus: async (userId) => {
-    const response = await api.get(`/Announcement/announcements/withReadStatus/${userId}`);
+  getAllWithReadStatus: async userId => {
+    const response = await api.get(
+      `/Announcement/announcements/withReadStatus/${userId}`,
+    );
     return response.data;
   },
-  
-  markAllAsRead: async (userId) => {
-    const response = await api.post(`/Announcement/announcements/markAllAsRead/${userId}`);
+
+  markAllAsRead: async userId => {
+    const response = await api.post(
+      `/Announcement/announcements/markAllAsRead/${userId}`,
+    );
     return response.data;
   },
-  
-  getUnreadCount: async (userId) => {
-    const response = await api.get(`/Announcement/announcements/unreadCount/${userId}`);
+
+  getUnreadCount: async userId => {
+    const response = await api.get(
+      `/Announcement/announcements/unreadCount/${userId}`,
+    );
     return response.data;
   },
 };
@@ -169,9 +174,13 @@ const groupUsersApi = {
   },
   changeUserGroup: async (userId, newGroup) => {
     try {
-      const response = await api.post(`/user/change-group/${userId}`, JSON.stringify(newGroup), {
-        headers: { 'Content-Type': 'application/json' },
-      });
+      const response = await api.post(
+        `/user/change-group/${userId}`,
+        JSON.stringify(newGroup),
+        {
+          headers: {'Content-Type': 'application/json'},
+        },
+      );
       return response.data;
     } catch (error) {
       console.error('Error changing user group:', error);
@@ -179,6 +188,5 @@ const groupUsersApi = {
     }
   },
 };
-
 
 export {radioChannelsApi, authApi, adminApi, groupUsersApi, announcementsApi};
