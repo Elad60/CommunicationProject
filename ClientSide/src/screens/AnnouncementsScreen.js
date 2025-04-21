@@ -49,6 +49,14 @@ const AnnouncementsScreen = ({ navigation }) => {
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
+  useEffect(() => {
+    if (announcements.length > 0) {
+      setTimeout(() => {
+        scrollViewRef.current?.scrollToEnd({ animated: false });
+      }, 300);
+    }
+  }, [announcements]);
+  
   const handleAddAnnouncement = async () => {
     if (!title.trim() || !content.trim()) return;
     setLoading(true);
@@ -70,16 +78,18 @@ const AnnouncementsScreen = ({ navigation }) => {
     }
   };
 
-  const formatDate = (dateString) => {
-    const options = {
-      year: 'numeric',
-      month: 'short',
-      day: 'numeric',
-      hour: '2-digit',
-      minute: '2-digit',
-    };
-    return new Date(dateString).toLocaleDateString('en-US', options);
+ const formatDate = (dateString) => {
+  const options = {
+    year: 'numeric',
+    month: 'short',
+    day: 'numeric',
+    hour: '2-digit',
+    minute: '2-digit',
+    hour12: false,
   };
+  return new Date(dateString).toLocaleString('en-US', options);
+};
+
 
   const textColor = darkMode ? '#fff' : '#000';
 
@@ -147,7 +157,10 @@ const AnnouncementsScreen = ({ navigation }) => {
           style={styles.scrollView}
           contentContainerStyle={styles.scrollContent}
           ref={scrollViewRef}>
-          {announcements.map((a) => (
+          {[...announcements]
+  .sort((a, b) => new Date(a.createdAt) - new Date(b.createdAt))
+  .map((a) => (
+
             <View
             key={a.id}
             style={[
