@@ -2,12 +2,14 @@
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using CommunicationServer.BL;
+
 namespace CommunicationServer.Controllers
 {
     [Route("api/[controller]")]
     [ApiController]
     public class UserController : ControllerBase
     {
+        // Endpoint for user registration
         [HttpPost("register")]
         public IActionResult Register([FromBody] UserRegistrationRequest req)
         {
@@ -33,9 +35,12 @@ namespace CommunicationServer.Controllers
             }
             else
             {
+                // Registration failed due to duplicate username or email
                 return BadRequest(new { success = false, message = "Username or email already exists." });
             }
         }
+
+        // Endpoint for user login
         [HttpPost("login")]
         public IActionResult Login([FromBody] UserLoginRequest req)
         {
@@ -70,6 +75,7 @@ namespace CommunicationServer.Controllers
             }
             catch (Exception ex)
             {
+                // Return error in case of unexpected exception
                 return StatusCode(500, new LoginResponse
                 {
                     Success = false,
@@ -79,6 +85,7 @@ namespace CommunicationServer.Controllers
             }
         }
 
+        // Endpoint to log out a user by ID
         [HttpPost("logout/{userId}")]
         public IActionResult Logout(int userId)
         {
@@ -91,6 +98,7 @@ namespace CommunicationServer.Controllers
                 return BadRequest(new { success = false, message = "Logout failed." });
         }
 
+        // Get a list of all users
         [HttpGet("all")]
         public IActionResult GetAllUsers()
         {
@@ -106,6 +114,8 @@ namespace CommunicationServer.Controllers
                 return StatusCode(500, new { success = false, message = ex.Message });
             }
         }
+
+        // Block or unblock a user
         [HttpPost("block/{userId}")]
         public IActionResult BlockUser(int userId, [FromBody] bool isBlocked)
         {
@@ -124,6 +134,8 @@ namespace CommunicationServer.Controllers
                 return StatusCode(500, new { success = false, message = ex.Message });
             }
         }
+
+        // Update a user's role (e.g. admin/user)
         [HttpPost("update-role")]
         public IActionResult UpdateUserRole([FromBody] UpdateUserRoleRequest req)
         {
@@ -135,6 +147,8 @@ namespace CommunicationServer.Controllers
             else
                 return BadRequest(new { success = false, message = "Failed to update user role." });
         }
+
+        // Delete a user by ID
         [HttpDelete("{userId}")]
         public IActionResult DeleteUser(int userId)
         {
@@ -146,6 +160,8 @@ namespace CommunicationServer.Controllers
             else
                 return BadRequest(new { success = false, message = "Failed to delete user." });
         }
+
+        // Change a user's group assignment
         [HttpPost("change-group/{userId}")]
         public IActionResult ChangeUserGroup(int userId, [FromBody] char newGroup)
         {
@@ -165,6 +181,7 @@ namespace CommunicationServer.Controllers
             }
         }
 
+        // Get a list of users by group name
         [HttpGet("group/{groupName}")]
         public IActionResult GetUsersByGroup(char groupName)
         {

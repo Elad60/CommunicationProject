@@ -2,13 +2,13 @@
 using CommunicationServer.BL;
 using CommunicationServer.DAL;
 
-
 namespace CommunicationServer.Controllers
 {
     [Route("api/[controller]")]
     [ApiController]
     public class RadioChannelsController : ControllerBase
     {
+        // 📌 Get all available radio channels
         [HttpGet]
         public IActionResult GetAllChannels()
         {
@@ -23,6 +23,8 @@ namespace CommunicationServer.Controllers
                 return StatusCode(500, $"Error: {ex.Message}");
             }
         }
+
+        // 📌 Get radio channels assigned to a specific user
         [HttpGet("user/{userId}")]
         public IActionResult GetUserChannels(int userId)
         {
@@ -37,6 +39,8 @@ namespace CommunicationServer.Controllers
                 return StatusCode(500, $"Error retrieving user channels: {ex.Message}");
             }
         }
+
+        // 📌 Update the state of a user's channel (e.g., active/inactive)
         [HttpPost("user/{userId}/channel/{channelId}/state")]
         public IActionResult UpdateChannelState(int userId, int channelId, [FromBody] string newState)
         {
@@ -51,6 +55,8 @@ namespace CommunicationServer.Controllers
                 return StatusCode(500, $"Error updating channel state: {ex.Message}");
             }
         }
+
+        // 📌 Add a new radio channel
         [HttpPost]
         public IActionResult AddChannel([FromBody] RadioChannel newChannel)
         {
@@ -66,6 +72,7 @@ namespace CommunicationServer.Controllers
             }
         }
 
+        // 📌 Delete a radio channel by its ID
         [HttpDelete("{id}")]
         public IActionResult DeleteChannel(int id)
         {
@@ -80,6 +87,8 @@ namespace CommunicationServer.Controllers
                 return StatusCode(500, new { success = false, message = ex.Message });
             }
         }
+
+        // 📌 Add an existing channel to a user's assigned channels
         [HttpPost("user/{userId}/add-channel/{channelId}")]
         public IActionResult AddUserChannel(int userId, int channelId)
         {
@@ -95,6 +104,7 @@ namespace CommunicationServer.Controllers
             }
         }
 
+        // 📌 Remove a channel from a user's assigned channels
         [HttpDelete("user/{userId}/remove-channel/{channelId}")]
         public IActionResult RemoveUserChannel(int userId, int channelId)
         {
@@ -109,6 +119,5 @@ namespace CommunicationServer.Controllers
                 return StatusCode(500, new { success = false, message = ex.Message });
             }
         }
-
     }
 }
