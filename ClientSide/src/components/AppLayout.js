@@ -1,4 +1,6 @@
 // AppLayout.js
+// This is the main layout component that wraps the entire application
+// It includes the header, navigation panel, and control panel
 import React, {useState, useMemo} from 'react';
 import {
   View,
@@ -21,9 +23,11 @@ const AppLayout = ({
   showControls = true,
   showNavPanel = true,
 }) => {
+  // Get screen dimensions and check if in landscape mode
   const {height, width} = useDebouncedDimensions(300);
   const isLandscape = width > height;
 
+  // Calculate panel dimensions based on screen size
   const {
     NAV_PANEL_WIDTH,
     NAV_PANEL_HEIGHT,
@@ -38,30 +42,34 @@ const AppLayout = ({
     };
   }, [height, width]);
 
+  // State for speaker volume and active navigation
   const [speakerVolume, setSpeakerVolume] = useState(40);
   const [activeNav, setActiveNav] = useState('radios');
 
+  // Get user info and settings from context
   const {user, logout, changeGroup} = useAuth();
-
   const {controlBarAdjustment, toolBarAdjustment, brightness, darkMode} =
     useSettings();
 
+  // Handle navigation between screens
   const handleNavigation = screen => {
     setActiveNav(screen);
     navigation.navigate(screen);
   };
 
+  // Set colors based on dark mode
   const backgroundColor = darkMode ? '#000' : '#d9d9d9';
   const textColor = darkMode ? '#fff' : '#000';
 
   return (
     <View style={[styles.container, {backgroundColor}]}>
+      {/* Status bar with appropriate style based on dark mode */}
       <StatusBar
         barStyle={darkMode ? 'light-content' : 'dark-content'}
         backgroundColor={backgroundColor}
       />
 
-      {/* Header */}
+      {/* Header with title, user info, and logout button */}
       <View style={[styles.header, {backgroundColor, height: height * 0.05}]}>
         <View style={styles.headerSection}>
           <Text style={[styles.headerText, {color: textColor}]}>
@@ -89,7 +97,7 @@ const AppLayout = ({
         </View>
       </View>
 
-      {/* Main content */}
+      {/* Main content area with navigation panel */}
       <View
         style={{
           marginTop: controlBarAdjustment ? 0 : CONTROL_PANEL_HEIGHT,
@@ -111,7 +119,7 @@ const AppLayout = ({
         )}
       </View>
 
-      {/* Control Panel */}
+      {/* Control panel at the bottom */}
       {showControls && (
         <ControlPanel
           speakerVolume={speakerVolume}
@@ -125,7 +133,7 @@ const AppLayout = ({
         />
       )}
 
-      {/* Global Brightness Overlay */}
+      {/* Global brightness overlay */}
       <View
         pointerEvents="none"
         style={[
@@ -139,6 +147,7 @@ const AppLayout = ({
   );
 };
 
+// Styles for the layout components
 const styles = StyleSheet.create({
   container: {
     flex: 1,

@@ -1,5 +1,8 @@
 /* eslint-disable react-native/no-inline-styles */
 /* eslint-disable no-alert */
+// ControlPanel.js
+// This component shows the control buttons at the bottom of the screen
+// It includes buttons for speaker volume, channel volume, mute, and settings
 import React, {useRef, useEffect, useState} from 'react';
 import {Animated} from 'react-native';
 import ControlButton from './ControlButton';
@@ -14,6 +17,7 @@ const ControlPanel = ({
   height,
   width,
 }) => {
+  // Calculate panel dimensions based on screen orientation
   let CONTROL_PANEL_HEIGHT;
   let CONTROL_PANEL_WIDTH;
   const isLandscape = height < width;
@@ -26,16 +30,21 @@ const ControlPanel = ({
     CONTROL_PANEL_WIDTH = width * 0.86;
   }
 
+  // Track which button is currently selected
   const [selectedButton, setSelectedButton] = useState(null);
 
+  // Get settings from context
   const {
     controlBarAdjustment,
     controlPanelPosition,
     setControlPanelPosition,
     toolBarAdjustment,
   } = useSettings();
+
+  // Animation for panel position
   const position = useRef(new Animated.Value(controlPanelPosition)).current;
 
+  // Adjust panel position based on toolbar adjustment
   const controlPanelStyle = {
     marginLeft:
       !toolBarAdjustment && isLandscape
@@ -45,9 +54,11 @@ const ControlPanel = ({
         : 0,
   };
 
+  // Set colors based on dark mode
   const backgroundColor = darkMode ? '#1a1a1a' : '#fff';
   const buttonTextColor = darkMode ? '#fff' : '#000';
 
+  // Animate panel position when control bar adjustment changes
   useEffect(() => {
     const targetPosition = controlBarAdjustment
       ? height - CONTROL_PANEL_HEIGHT
@@ -61,6 +72,7 @@ const ControlPanel = ({
     setControlPanelPosition(targetPosition);
   }, [controlBarAdjustment, height, width]);
 
+  // Define control buttons with their properties
   const buttons = [
     {
       title: 'Speaker',
@@ -120,6 +132,7 @@ const ControlPanel = ({
         },
         controlPanelStyle,
       ]}>
+      {/* Render each control button */}
       {buttons.map((btn, index) => (
         <ControlButton
           key={btn.title}
