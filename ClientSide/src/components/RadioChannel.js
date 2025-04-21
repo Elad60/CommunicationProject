@@ -55,9 +55,9 @@ const RadioChannel = ({
   const { headphones, mic } = getIconPaths();
 
   const RadioChannelStyle = useMemo(() => {
-    const size = (numberOfChannels === 2 || numberOfChannels === 3)
-    ? Math.sqrt((width * 0.65 * height * 0.65) / (numberOfChannels + 1))
-    : Math.sqrt((width * 0.7 * height * 0.7) / numberOfChannels);
+    const size = (numberOfChannels >= 1 && numberOfChannels <= 4)
+    ? Math.sqrt((width * 0.60 * height * 0.60) / (numberOfChannels + 3))
+    : Math.sqrt((width * 0.65 * height * 0.65) / numberOfChannels + 2);
     
     return {
       width: size,
