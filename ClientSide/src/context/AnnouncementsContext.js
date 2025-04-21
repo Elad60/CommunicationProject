@@ -11,6 +11,7 @@ export const AnnouncementsProvider = ({ children }) => {
   const [unreadCount, setUnreadCount] = useState(0);
   const [loading, setLoading] = useState(false);
 
+  // Fetch announcements including read/unread status
   const fetchAnnouncementsWithStatus = async () => {
     if (!user) {return;}
     try {
@@ -24,6 +25,7 @@ export const AnnouncementsProvider = ({ children }) => {
     }
   };
 
+  // Get the count of unread announcements
   const fetchUnreadCount = async () => {
     if (!user) {return;}
     try {
@@ -34,6 +36,7 @@ export const AnnouncementsProvider = ({ children }) => {
     }
   };
 
+  // Mark all announcements as read and update local state
   const markAllAsRead = async () => {
     if (!user) {return;}
     try {
@@ -47,7 +50,7 @@ export const AnnouncementsProvider = ({ children }) => {
     }
   };
 
-  // טעינת נתונים התחלתית
+  // Initial fetch when user becomes available
   useEffect(() => {
     if (user) {
       fetchUnreadCount();
@@ -70,6 +73,7 @@ export const AnnouncementsProvider = ({ children }) => {
   );
 };
 
+// Hook to access announcements context
 export const useAnnouncements = () => {
   const context = useContext(AnnouncementsContext);
   if (!context) {

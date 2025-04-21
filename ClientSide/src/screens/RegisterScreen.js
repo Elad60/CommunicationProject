@@ -13,6 +13,7 @@ import {
 import authBackgroundPic from '../../assets/images/tank.jpg';
 
 const RegisterScreen = ({onRegister, onNavigateToLogin}) => {
+  // State to store form data and loading/error states
   const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
@@ -28,6 +29,7 @@ const RegisterScreen = ({onRegister, onNavigateToLogin}) => {
     group: '',
   });
 
+  // Validation logic for each input field
   const validateField = (field, value) => {
     switch (field) {
       case 'username':
@@ -59,6 +61,7 @@ const RegisterScreen = ({onRegister, onNavigateToLogin}) => {
     }
   };
 
+  // Handle changes to input fields and validate
   const handleFieldChange = (field, value) => {
     switch (field) {
       case 'username':
@@ -79,10 +82,11 @@ const RegisterScreen = ({onRegister, onNavigateToLogin}) => {
     }
     setFieldErrors(prev => ({
       ...prev,
-      [field]: validateField(field, value)
+      [field]: validateField(field, value) // Validate field on change
     }));
   };
 
+  // Validate the entire form before submission
   const validateForm = () => {
     const newFieldErrors = {
       username: validateField('username', username),
@@ -92,26 +96,28 @@ const RegisterScreen = ({onRegister, onNavigateToLogin}) => {
       group: validateField('group', group),
     };
     
-    setFieldErrors(newFieldErrors);
+    setFieldErrors(newFieldErrors); // Update field errors state
     
+    // If any field has an error, return false
     return !Object.values(newFieldErrors).some(error => error !== '');
   };
 
+  // Handle form submission for registration
   const handleRegister = async () => {
     if (!validateForm()) {
       return;
     }
   
-    setIsLoading(true);
-    setError('');
+    setIsLoading(true); // Show loading state
+    setError(''); // Clear previous errors
   
     try {
-      // Call the register function passed from parent
+      // Call the register function passed from parent component
       const result = await onRegister(username, password, email, group);
       console.log('Register result in component:', result);
   
       if (result && result.success) {
-        // Show success message
+        // Show success message on successful registration
         Alert.alert(
           'Registration Successful',
           result.message || 'Your account has been created successfully!',
@@ -119,7 +125,7 @@ const RegisterScreen = ({onRegister, onNavigateToLogin}) => {
             { 
               text: 'Continue', 
               onPress: () => {
-                // Just navigate to login screen
+                // Navigate to login screen after success
                 onNavigateToLogin();
               }
             }
@@ -135,12 +141,13 @@ const RegisterScreen = ({onRegister, onNavigateToLogin}) => {
         );
       }
     } catch (err) {
-      // Error handling...
+      // Error handling in case of failure
     } finally {
-      setIsLoading(false);
+      setIsLoading(false); // Hide loading indicator
     }
   };
 
+  // Calculate password strength based on criteria
   const getPasswordStrength = () => {
     if (!password) {return null;}
 
@@ -155,8 +162,8 @@ const RegisterScreen = ({onRegister, onNavigateToLogin}) => {
     if (strength < 4) {return {text: 'Medium', color: '#faad14'};}
     return {text: 'Strong', color: '#52c41a'};
   };
-  const letters = ['A', 'B', 'C', 'D', 'E', 'F'];
-  const passwordStrength = getPasswordStrength();
+  const letters = ['A', 'B', 'C', 'D', 'E', 'F']; // Group selection letters
+  const passwordStrength = getPasswordStrength(); // Get password strength
 
   return (
     <ImageBackground
@@ -171,8 +178,10 @@ const RegisterScreen = ({onRegister, onNavigateToLogin}) => {
               Register to access the communication system
             </Text>
 
+            {/* Show error message if there is any */}
             {error ? <Text style={styles.errorText}>{error}</Text> : null}
 
+            {/* Username input field */}
             <TextInput
               style={[styles.input, fieldErrors.username ? styles.inputError : null]}
               placeholder="Username (min. 4 characters)"
@@ -184,6 +193,7 @@ const RegisterScreen = ({onRegister, onNavigateToLogin}) => {
             />
             {fieldErrors.username ? <Text style={styles.fieldError}>{fieldErrors.username}</Text> : null}
 
+            {/* Email input field */}
             <TextInput
               style={[styles.input, fieldErrors.email ? styles.inputError : null]}
               placeholder="Email address"
@@ -195,6 +205,7 @@ const RegisterScreen = ({onRegister, onNavigateToLogin}) => {
             />
             {fieldErrors.email ? <Text style={styles.fieldError}>{fieldErrors.email}</Text> : null}
 
+            {/* Password input field */}
             <TextInput
               style={[styles.input, fieldErrors.password ? styles.inputError : null]}
               placeholder="Password (min. 8 characters)"
@@ -205,6 +216,7 @@ const RegisterScreen = ({onRegister, onNavigateToLogin}) => {
             />
             {fieldErrors.password ? <Text style={styles.fieldError}>{fieldErrors.password}</Text> : null}
 
+            {/* Confirm Password input field */}
             <TextInput
               style={[styles.input, fieldErrors.confirmPassword ? styles.inputError : null]}
               placeholder="Confirm Password"
@@ -215,6 +227,7 @@ const RegisterScreen = ({onRegister, onNavigateToLogin}) => {
             />
             {fieldErrors.confirmPassword ? <Text style={styles.fieldError}>{fieldErrors.confirmPassword}</Text> : null}
 
+            {/* Password requirements */}
             <View style={styles.passwordRequirements}>
               <Text style={styles.requirementsTitle}>
                 Password must contain:
@@ -234,7 +247,7 @@ const RegisterScreen = ({onRegister, onNavigateToLogin}) => {
               {letters.map(letter => (
                 <TouchableOpacity
                   key={letter}
-                  style={[
+                  style={[ 
                     styles.letterButton,
                     group === letter && styles.letterButtonSelected,
                   ]}
@@ -250,6 +263,7 @@ const RegisterScreen = ({onRegister, onNavigateToLogin}) => {
               ))}
             </View>
 
+            {/* Register button */}
             <TouchableOpacity 
               style={[styles.button, isLoading && styles.buttonDisabled]} 
               onPress={handleRegister}
@@ -261,6 +275,7 @@ const RegisterScreen = ({onRegister, onNavigateToLogin}) => {
               )}
             </TouchableOpacity>
 
+            {/* Login navigation */}
             <TouchableOpacity onPress={onNavigateToLogin}>
               <Text style={styles.loginText}>
                 Already have an account? Login

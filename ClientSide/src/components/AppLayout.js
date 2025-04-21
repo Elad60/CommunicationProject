@@ -24,6 +24,7 @@ const AppLayout = ({
   const {height, width} = useDebouncedDimensions(300);
   const isLandscape = width > height;
 
+  // Panel size calculations based on orientation
   const {
     NAV_PANEL_WIDTH,
     NAV_PANEL_HEIGHT,
@@ -42,7 +43,6 @@ const AppLayout = ({
   const [activeNav, setActiveNav] = useState('radios');
 
   const {user, logout, changeGroup} = useAuth();
-
   const {controlBarAdjustment, toolBarAdjustment, brightness, darkMode} =
     useSettings();
 
@@ -56,6 +56,7 @@ const AppLayout = ({
 
   return (
     <View style={[styles.container, {backgroundColor}]}>
+      {/* Status Bar */}
       <StatusBar
         barStyle={darkMode ? 'light-content' : 'dark-content'}
         backgroundColor={backgroundColor}
@@ -89,7 +90,7 @@ const AppLayout = ({
         </View>
       </View>
 
-      {/* Main content */}
+      {/* Main Content */}
       <View
         style={{
           marginTop: controlBarAdjustment ? 0 : CONTROL_PANEL_HEIGHT,
@@ -100,6 +101,8 @@ const AppLayout = ({
             : NAV_PANEL_HEIGHT - CONTROL_PANEL_HEIGHT / 2,
         }}>
         {children}
+
+        {/* Navigation Panel */}
         {showNavPanel && (
           <NavPanel
             activeNav={activeNav}

@@ -96,7 +96,7 @@ const LoginScreen = ({onLogin, onNavigateToRegister}) => {
             onChangeText={setPassword}
           />
 
-<TouchableOpacity 
+          <TouchableOpacity 
             style={[styles.button, isLoading && styles.buttonDisabled]} 
             onPress={handleLogin}
             disabled={isLoading}

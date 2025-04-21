@@ -12,21 +12,26 @@ const RadioChannel = ({
   channelState,
   numberOfChannels,
 }) => {
+  // Access settings context values
   const { darkMode, showFrequency, showStatus} = useSettings();
+
+  // Get screen dimensions with a 300ms debounce to avoid excessive renders
   const { height, width } = useDebouncedDimensions(300);
 
+  // Return background color based on the channel's state
   const getBackgroundColor = () => {
     switch (channelState) {
       case 'ListenOnly':
-        return darkMode ? '#1f3d1f' : '#99cc99'; // green
+        return darkMode ? '#1f3d1f' : '#99cc99'; // green shades
       case 'ListenAndTalk':
-        return darkMode ? '#1e2f4d' : '#91aad4'; // blue
+        return darkMode ? '#1e2f4d' : '#91aad4'; // blue shades
       case 'Idle':
       default:
-        return darkMode ? '#222' : '#ddd'; // default
+        return darkMode ? '#222' : '#ddd'; // default gray
     }
   };
 
+  // Return icon paths based on channel state
   const getIconPaths = () => {
     switch (channelState) {
       case 'Idle':
@@ -52,14 +57,15 @@ const RadioChannel = ({
     }
   };
 
+  // Destructure icon paths
   const { headphones, mic } = getIconPaths();
 
+  // Dynamically calculate square size based on screen size and number of channels
   const RadioChannelStyle = useMemo(() => {
     const size = Math.max(
-      130,
-      Math.sqrt((width * 0.75 * height * 0.75) / (numberOfChannels + 4))
+      130, // set a minimum size
+      Math.sqrt((width * 0.75 * height * 0.75) / (numberOfChannels + 4)) // responsive calculation
     );
-    
     
     return {
       width: size,
@@ -69,21 +75,28 @@ const RadioChannel = ({
   
   return (
     <View style={[styles.container, { backgroundColor: getBackgroundColor() }, RadioChannelStyle]}>
+      {/* Display channel name */}
       <Text style={[styles.name, { color: darkMode ? '#fff' : '#000' }]}>{name}</Text>
+      
+      {/* Conditionally show frequency and mode */}
       {showFrequency && (
         <Text style={[styles.frequency, { color: darkMode ? '#fff' : '#000' }]}>{frequency}{' '}{mode}</Text>
       )}
+      
+      {/* Conditionally show status */}
       {showStatus && (
         <Text style={[styles.status, { color: darkMode ? '#fff' : '#000' }]}>
           {isActive ? 'Active' : 'Not used'}
         </Text>
       )}
+
+      {/* Display headphone and mic icons with status indicator */}
       <View style={styles.iconContainer}>
         <Image source={headphones} style={styles.iconImage} />
         <View
           style={[
             styles.statusIndicator,
-            { backgroundColor: isActive ? '#00cc00' : '#555' },
+            { backgroundColor: isActive ? '#00cc00' : '#555' }, // green if active, gray otherwise
           ]}
         />
         <Image source={mic} style={styles.iconImage} />
@@ -92,6 +105,7 @@ const RadioChannel = ({
   );
 };
 
+// Styles for the component
 const styles = StyleSheet.create({
   container: {
     margin: 5,

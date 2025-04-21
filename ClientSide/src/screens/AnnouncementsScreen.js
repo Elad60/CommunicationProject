@@ -35,11 +35,12 @@ const AnnouncementsScreen = ({ navigation }) => {
   const [loading, setLoading] = useState(false);
   const [showAddForm, setShowAddForm] = useState(false);
   const scrollViewRef = useRef();
-  const { darkMode} = useSettings();
+  const { darkMode } = useSettings();
 
   useEffect(() => {
     fetchAnnouncementsWithStatus();
 
+    // Mark all announcements as read when the component unmounts and refresh unread count
     return () => {
       markAllAsRead();
       setTimeout(() => {
@@ -49,17 +50,19 @@ const AnnouncementsScreen = ({ navigation }) => {
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
+  // Handle adding a new announcement
   const handleAddAnnouncement = async () => {
     if (!title.trim() || !content.trim()) return;
     setLoading(true);
 
     try {
       await announcementsApi.add(title, content, user.username);
-      setTitle('');
-      setContent('');
-      setShowAddForm(false);
+      setTitle(''); // Reset title
+      setContent(''); // Reset content
+      setShowAddForm(false); // Hide add form
       await fetchAnnouncementsWithStatus();
 
+      // Scroll to the bottom of the list after a short delay
       setTimeout(() => {
         scrollViewRef.current?.scrollToEnd({ animated: true });
       }, 300);
@@ -70,6 +73,7 @@ const AnnouncementsScreen = ({ navigation }) => {
     }
   };
 
+  // Format the date to display in a user-friendly format
   const formatDate = (dateString) => {
     const options = {
       year: 'numeric',
@@ -83,12 +87,13 @@ const AnnouncementsScreen = ({ navigation }) => {
 
   const textColor = darkMode ? '#fff' : '#000';
 
+  // Display loading screen while fetching data
   if (contextLoading || loading) {
     return (
       <AppLayout navigation={navigation} title="📋 Announcements">
-        <View style={[styles.centerContainer, { backgroundColor: darkMode ? '#121212' : '#fff'}]}>
+        <View style={[styles.centerContainer, { backgroundColor: darkMode ? '#121212' : '#fff' }]}>
           <ActivityIndicator size="large" color="#0066cc" />
-          <Text style={[styles.loadingText, { color: darkMode ?   '#aaa' : '#222'}]}>Loading announcements...</Text>
+          <Text style={[styles.loadingText, { color: darkMode ? '#aaa' : '#222' }]}>Loading announcements...</Text>
         </View>
       </AppLayout>
     );
@@ -100,12 +105,13 @@ const AnnouncementsScreen = ({ navigation }) => {
         style={styles.container}
         behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
 
-        {/* טופס הוספת הודעה חדשה - מוצג כשהמשתמש לוחץ על הכפתור */}
+        {/* Display form to add a new announcement */}
         {showAddForm && (
           <View style={[styles.formOverlay, { backgroundColor: darkMode ? 'rgba(0,0,0,0.7)' : 'rgba(255,255,255,0.7)' }]}>
             <View style={[styles.formContainer, { backgroundColor: darkMode ? '#222' : '#fff' }]}>
               <Text style={[styles.formTitle, { color: textColor }]}>Add New Announcement</Text>
 
+              {/* Title input field */}
               <TextInput
                 placeholder="Title"
                 placeholderTextColor={darkMode ? '#888' : '#999'}
@@ -116,6 +122,8 @@ const AnnouncementsScreen = ({ navigation }) => {
                 value={title}
                 onChangeText={setTitle}
               />
+
+              {/* Content input field */}
               <TextInput
                 placeholder="Content"
                 placeholderTextColor={darkMode ? '#888' : '#999'}
@@ -127,14 +135,16 @@ const AnnouncementsScreen = ({ navigation }) => {
                 onChangeText={setContent}
                 multiline
               />
+
+              {/* Form buttons: Cancel and Submit */}
               <View style={[styles.formButtonsRow]}>
                 <TouchableOpacity
-                  style={[styles.cancelButton, { backgroundColor: darkMode ? '#444' : '#ddd'}]}
+                  style={[styles.cancelButton, { backgroundColor: darkMode ? '#444' : '#ddd' }]}
                   onPress={() => setShowAddForm(false)}>
                   <Text style={{ color: textColor }}>Cancel</Text>
                 </TouchableOpacity>
                 <TouchableOpacity
-                  style={[styles.submitButton, { backgroundColor: darkMode ? '#0066cc' : '#91aad4'}]}
+                  style={[styles.submitButton, { backgroundColor: darkMode ? '#0066cc' : '#91aad4' }]}
                   onPress={handleAddAnnouncement}>
                   <Text style={{ color: textColor }}>Post</Text>
                 </TouchableOpacity>
@@ -143,25 +153,27 @@ const AnnouncementsScreen = ({ navigation }) => {
           </View>
         )}
 
+        {/* Announcements List */}
         <ScrollView
           style={styles.scrollView}
           contentContainerStyle={styles.scrollContent}
           ref={scrollViewRef}>
           {announcements.map((a) => (
             <View
-            key={a.id}
-            style={[
-              styles.card,
-              !a.isRead && styles.unreadCard,
-              {
-                backgroundColor: !a.isRead
-                  ? (darkMode ? '#262636' : '#e0f7ff')
-                  : (darkMode ? '#121212' : '#fff'),
-                borderColor: darkMode ? '#555' : '#ccc',
-              },
-            ]}>
+              key={a.id}
+              style={[
+                styles.card,
+                !a.isRead && styles.unreadCard,
+                {
+                  backgroundColor: !a.isRead
+                    ? (darkMode ? '#262636' : '#e0f7ff')
+                    : (darkMode ? '#121212' : '#fff'),
+                  borderColor: darkMode ? '#555' : '#ccc',
+                },
+              ]}>
               <View style={styles.titleContainer}>
                 <Text style={[styles.title, { color: textColor }]}>{a.title}</Text>
+                {/* Display 'NEW' badge for unread announcements */}
                 {!a.isRead && (
                   <View style={styles.newBadge}>
                     <Text style={styles.newBadgeText}>NEW</Text>
@@ -169,13 +181,15 @@ const AnnouncementsScreen = ({ navigation }) => {
                 )}
               </View>
               <Text style={[styles.content, { color: darkMode ? '#ccc' : '#aaa' }]}>{a.content}</Text>
-              <View style={[styles.metaRow, { borderTopColor: textColor}]}>
+              <View style={[styles.metaRow, { borderTopColor: textColor }]}>
                 <Text style={[styles.metaUser, { color: darkMode ? '#00ccff' : '#91aad4' }]}>{a.userName}</Text>
                 <Text style={[styles.metaTime, { color: darkMode ? '#999' : '#aaa' }]}>{formatDate(a.createdAt)}</Text>
               </View>
             </View>
           ))}
         </ScrollView>
+
+        {/* Show add button for Technicians and Admins */}
         {(user?.role === 'Technician' || user?.role === 'Admin') && (
           <TouchableOpacity
             style={styles.addButton}
@@ -261,7 +275,7 @@ const styles = StyleSheet.create({
   metaTime: {
     fontSize: 12,
   },
-    addButton: {
+  addButton: {
     position: 'absolute',
     right: 20,
     bottom: 30,
@@ -287,7 +301,7 @@ const styles = StyleSheet.create({
     fontWeight: '500',
     lineHeight: 34,
   },
-    formOverlay: {
+  formOverlay: {
     position: 'absolute',
     top: 0,
     left: 0,
@@ -356,7 +370,7 @@ const styles = StyleSheet.create({
     fontWeight: '500',
     fontSize: 16,
   },
-    centerContainer: {
+  centerContainer: {
     flex: 1,
     justifyContent: 'center',
     alignItems: 'center',

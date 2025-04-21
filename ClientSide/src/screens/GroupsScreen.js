@@ -16,26 +16,40 @@ import {useSettings} from '../context/SettingsContext';
 import { useDebouncedDimensions } from '../utils/useDebouncedDimensions';
 
 const GroupsScreen = ({navigation}) => {
+  // Destructuring user and changeGroup from AuthContext
   const {user, changeGroup} = useAuth();
+  
+  // States for managing group users, user states, loading status, and errors
   const [groupUsers, setGroupUsers] = useState([]);
   const [userStates, setUserStates] = useState({});
   const [loading, setLoading] = useState(true);
   const [, setError] = useState(null);
+  
+  // Array for group letter options
   const letters = ['A', 'B', 'C', 'D', 'E', 'F'];
+  
+  // Fetching dark mode setting from SettingsContext
   const {darkMode} = useSettings();
+  
+  // Setting text color based on dark mode
   const textColor = darkMode ? '#fff' : '#000';
-   const { height, width } = useDebouncedDimensions(300);
+  
+  // Debounced dimensions for responsive UI
+  const { height, width } = useDebouncedDimensions(300);
 
+  // Function to fetch users for the current group
   const fetchGroupUsers = async () => {
     try {
       setLoading(true);
       const groupName = user?.group;
       if (!groupName) {throw new Error('Group not found');}
 
+      // API call to get users by group
       const users = await groupUsersApi.getUsersByGroup(groupName);
-      const filtered = users.filter(u => u.id !== user.id);
+      const filtered = users.filter(u => u.id !== user.id); // Excluding the current user
       setGroupUsers(filtered);
 
+      // Initialize user states as 'Idle'
       const initialStates = {};
       filtered.forEach(u => {
         initialStates[u.id] = 'Idle';
@@ -44,12 +58,13 @@ const GroupsScreen = ({navigation}) => {
       setError(null);
     } catch (err) {
       console.error('Error fetching group users:', err);
-      setError('Failed to load group users.');
+      setError('Failed to load group users.'); // Error handling
     } finally {
-      setLoading(false);
+      setLoading(false); // Stop loading
     }
   };
 
+  // Effect hook to fetch users when the group changes
   useEffect(() => {
     if (user?.group) {
       fetchGroupUsers();
@@ -57,10 +72,12 @@ const GroupsScreen = ({navigation}) => {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [user?.group]);
 
+  // Handler to change the group
   const handleGroupChange = newGroup => {
     changeGroup(newGroup);
   };
 
+  // Function to return appropriate icon paths based on user state
   const getIconPaths = channelState => {
     switch (channelState) {
       case 'Idle':
@@ -86,6 +103,7 @@ const GroupsScreen = ({navigation}) => {
     }
   };
 
+  // Function to get background color based on user state
   const getBackgroundColor = state => {
     switch (state) {
       case 'ListenOnly':
@@ -98,6 +116,7 @@ const GroupsScreen = ({navigation}) => {
     }
   };
 
+  // Function to cycle through states: Idle -> ListenOnly -> ListenAndTalk
   const cycleState = state => {
     switch (state) {
       case 'Idle':
@@ -110,13 +129,15 @@ const GroupsScreen = ({navigation}) => {
     }
   };
 
+  // Function to handle user press event to change their state
   const onUserPress = userId => {
     setUserStates(prev => ({
       ...prev,
-      [userId]: cycleState(prev[userId] || 'Idle'),
+      [userId]: cycleState(prev[userId] || 'Idle'), // Toggle user state
     }));
   };
 
+  // Loading state display
   if (loading) {
     return (
       <AppLayout navigation={navigation} title={`Group: ${user?.group}`}>
@@ -134,11 +155,13 @@ const GroupsScreen = ({navigation}) => {
     );
   }
 
+  // Calculate the card size dynamically based on screen size
   const CardSize = Math.max(
     130,
     Math.sqrt((width * 0.7 * height * 0.7) / (groupUsers.length + 4))
   );
 
+  // Main screen layout
   return (
     <AppLayout navigation={navigation} title={`Group: ${user?.group}`}>
       <ScrollView
@@ -237,6 +260,7 @@ const GroupsScreen = ({navigation}) => {
   );
 };
 
+// Styles for the component
 const styles = StyleSheet.create({
   scrollView: {flex: 1},
   mainGrid: {

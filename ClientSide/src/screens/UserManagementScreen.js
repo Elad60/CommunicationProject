@@ -16,79 +16,84 @@ import {useAuth} from '../context/AuthContext';
 import {useSettings} from '../context/SettingsContext';
 
 const UserManagementScreen = ({navigation}) => {
-  const {darkMode} = useSettings();
-  const [users, setUsers] = useState([]);
-  const [filteredUsers, setFilteredUsers] = useState([]);
-  const [searchQuery, setSearchQuery] = useState('');
-  const [loading, setLoading] = useState(true);
-  const {user: currentUser} = useAuth();
+  const {darkMode} = useSettings(); // Access dark mode setting
+  const [users, setUsers] = useState([]); // State for all users
+  const [filteredUsers, setFilteredUsers] = useState([]); // State for filtered users
+  const [searchQuery, setSearchQuery] = useState(''); // Search query for filtering users
+  const [loading, setLoading] = useState(true); // Loading state for fetching data
+  const {user: currentUser} = useAuth(); // Access current authenticated user
 
+  // Function to load all users from the API
   const loadUsers = async () => {
     try {
-      setLoading(true);
+      setLoading(true); // Set loading to true before fetching data
       const data = await adminApi.getAllUsers();
-      const filtered = data.filter(u => u.id !== currentUser?.id);
+      const filtered = data.filter(u => u.id !== currentUser?.id); // Exclude current user
       setUsers(filtered);
       setFilteredUsers(filtered);
     } catch (err) {
       console.error('Error loading users:', err);
       Alert.alert('Error', 'Failed to load users.');
     } finally {
-      setLoading(false);
+      setLoading(false); // Set loading to false after fetching is done
     }
   };
 
   useEffect(() => {
-    loadUsers();
+    loadUsers(); // Load users on component mount
   }, []);
 
+  // Filter users based on search query
   useEffect(() => {
-    const lower = searchQuery.toLowerCase();
+    const lower = searchQuery.toLowerCase(); // Convert query to lowercase for case-insensitive search
     const filtered = users.filter(
       u =>
-        u.username.toLowerCase().includes(lower) ||
+        u.username.toLowerCase().includes(lower) || 
         u.email.toLowerCase().includes(lower),
     );
     setFilteredUsers(filtered);
   }, [searchQuery, users]);
 
+  // Handle toggling block status for a user
   const handleToggleBlock = async user => {
     try {
       await adminApi.blockUser(user.id, !user.isBlocked);
-      loadUsers();
+      loadUsers(); // Reload users after toggling block status
     } catch (err) {
       Alert.alert('Error', 'Failed to update block status.');
     }
   };
 
+  // Handle toggling role for a user
   const handleToggleRole = async user => {
     const newRole =
       user.role === 'Operator'
         ? 'Technician'
         : user.role === 'Technician'
         ? 'Operator'
-        : 'Technician';
+        : 'Technician'; // Toggle between roles
     try {
       await adminApi.updateUserRole(user.id, newRole);
-      loadUsers();
+      loadUsers(); // Reload users after role update
     } catch (err) {
       Alert.alert('Error', 'Failed to update user role.');
     }
   };
 
+  // Handle deleting a user
   const handleDelete = async user => {
     Alert.alert(
       'Confirm Delete',
       `Are you sure you want to delete ${user.username}?`,
       [
-        {text: 'Cancel', style: 'cancel'},
+        {text: 'Cancel', style: 'cancel'}, // Cancel action
         {
           text: 'Delete',
-          style: 'destructive',
+          style: 'destructive', // Destructive style for delete
           onPress: async () => {
             try {
               await adminApi.deleteUser(user.id);
-              loadUsers();
+              loadUsers(); // Reload users after deletion
             } catch (err) {
               Alert.alert('Error', 'Failed to delete user.');
             }
@@ -98,7 +103,7 @@ const UserManagementScreen = ({navigation}) => {
     );
   };
 
-  const styles = getStyles(darkMode);
+  const styles = getStyles(darkMode); // Get styles based on dark mode
 
   return (
     <AppLayout navigation={navigation} title="User Management">
@@ -108,14 +113,14 @@ const UserManagementScreen = ({navigation}) => {
           placeholder="Search by username or email"
           placeholderTextColor="#888"
           value={searchQuery}
-          onChangeText={setSearchQuery}
+          onChangeText={setSearchQuery} // Update search query on text input change
         />
 
         {loading ? (
-          <ActivityIndicator size="large" color="#00f" />
+          <ActivityIndicator size="large" color="#00f" /> // Show loading indicator while fetching data
         ) : (
           <ScrollView contentContainerStyle={{paddingBottom: 20}}>
-            {/* Column Headers */}
+            {/* Column Headers for user table */}
             <View style={styles.columnHeaders}>
               <Text style={[styles.headerText, {flex: 2}]}>Name</Text>
               <View style={[styles.middleHeader, {flex: 2}]}>
@@ -128,7 +133,7 @@ const UserManagementScreen = ({navigation}) => {
               </Text>
             </View>
 
-            {/* User Rows */}
+            {/* Map over filtered users and display them */}
             {filteredUsers.map(user => (
               <UserRow
                 key={user.id}
@@ -140,7 +145,7 @@ const UserManagementScreen = ({navigation}) => {
               />
             ))}
             {filteredUsers.length === 0 && (
-              <Text style={styles.noUsersText}>No users found.</Text>
+              <Text style={styles.noUsersText}>No users found.</Text> // Display message if no users match the search
             )}
           </ScrollView>
         )}
@@ -181,7 +186,7 @@ const getStyles = darkMode =>
     headerText: {
       fontSize: 12,
       fontWeight: 'bold',
-      color: darkMode ? '#aaa' : '#000', // <- changed to black for light mode
+      color: darkMode ? '#aaa' : '#000',
     },
   });
 
