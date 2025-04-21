@@ -11,10 +11,8 @@ export const AnnouncementsProvider = ({ children }) => {
   const [unreadCount, setUnreadCount] = useState(0);
   const [loading, setLoading] = useState(false);
 
-  // פונקציה לטעינת הודעות עם סטטוס קריאה
   const fetchAnnouncementsWithStatus = async () => {
-    if (!user) return;
-    
+    if (!user) {return;}
     try {
       setLoading(true);
       const data = await announcementsApi.getAllWithReadStatus(user.id);
@@ -26,10 +24,8 @@ export const AnnouncementsProvider = ({ children }) => {
     }
   };
 
-  // פונקציה לטעינת מספר הודעות שלא נקראו
   const fetchUnreadCount = async () => {
-    if (!user) return;
-    
+    if (!user) {return;}
     try {
       const { count } = await announcementsApi.getUnreadCount(user.id);
       setUnreadCount(count);
@@ -38,13 +34,10 @@ export const AnnouncementsProvider = ({ children }) => {
     }
   };
 
-  // פונקציה לסימון כל ההודעות כנקראות
   const markAllAsRead = async () => {
-    if (!user) return;
-    
+    if (!user) {return;}
     try {
       await announcementsApi.markAllAsRead(user.id);
-      // עדכון מיידי של הממשק
       setUnreadCount(0);
       setAnnouncements(current => 
         current.map(announcement => ({ ...announcement, isRead: true }))

@@ -1,3 +1,4 @@
+/* eslint-disable react-native/no-inline-styles */
 import React, {useState, useEffect} from 'react';
 import {
   View,
@@ -19,7 +20,7 @@ const GroupsScreen = ({navigation}) => {
   const [groupUsers, setGroupUsers] = useState([]);
   const [userStates, setUserStates] = useState({});
   const [loading, setLoading] = useState(true);
-  const [error, setError] = useState(null);
+  const [, setError] = useState(null);
   const letters = ['A', 'B', 'C', 'D', 'E', 'F'];
   const {darkMode} = useSettings();
   const textColor = darkMode ? '#fff' : '#000';
@@ -29,7 +30,7 @@ const GroupsScreen = ({navigation}) => {
     try {
       setLoading(true);
       const groupName = user?.group;
-      if (!groupName) throw new Error('Group not found');
+      if (!groupName) {throw new Error('Group not found');}
 
       const users = await groupUsersApi.getUsersByGroup(groupName);
       const filtered = users.filter(u => u.id !== user.id);
@@ -37,7 +38,7 @@ const GroupsScreen = ({navigation}) => {
 
       const initialStates = {};
       filtered.forEach(u => {
-        initialStates[u.id] = 'Idle'; // ברירת מחדל
+        initialStates[u.id] = 'Idle';
       });
       setUserStates(initialStates);
       setError(null);

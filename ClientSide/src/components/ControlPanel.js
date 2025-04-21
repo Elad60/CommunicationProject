@@ -1,3 +1,5 @@
+/* eslint-disable react-native/no-inline-styles */
+/* eslint-disable no-alert */
 import React, {useRef, useEffect, useState} from 'react';
 import {Animated} from 'react-native';
 import ControlButton from './ControlButton';

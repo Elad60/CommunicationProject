@@ -317,7 +317,7 @@ namespace CommunicationServer.DAL
                         CreatedAt = Convert.ToDateTime(reader["CreatedAt"]),
                         IsBlocked = Convert.ToBoolean(reader["IsBlocked"]),
                         Group = Convert.ToChar(reader["Group"]),
-                        IsActive = Convert.ToBoolean(reader["IsActive"]) 
+                        IsActive = Convert.ToBoolean(reader["IsActive"])
 
                     });
                 }
