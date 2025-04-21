@@ -1,4 +1,7 @@
-// AnnouncementsScreen.js - עם פתרון חלופי למודל
+/* eslint-disable eol-last */
+/* eslint-disable curly */
+/* eslint-disable react-native/no-inline-styles */
+// AnnouncementsScreen.js
 import React, { useEffect, useState, useRef } from 'react';
 import {
   View,
@@ -10,7 +13,6 @@ import {
   ActivityIndicator,
   KeyboardAvoidingView,
   Platform,
-  // Modal - מוסר
 } from 'react-native';
 import AppLayout from '../components/AppLayout';
 import { useAuth } from '../context/AuthContext';
@@ -20,29 +22,26 @@ import { useSettings } from '../context/SettingsContext';
 
 const AnnouncementsScreen = ({ navigation }) => {
   const { user } = useAuth();
-  const { 
-    announcements, 
-    loading: contextLoading, 
-    fetchAnnouncementsWithStatus, 
+  const {
+    announcements,
+    loading: contextLoading,
+    fetchAnnouncementsWithStatus,
     markAllAsRead,
-    fetchUnreadCount
+    fetchUnreadCount,
   } = useAnnouncements();
-  
+
   const [title, setTitle] = useState('');
   const [content, setContent] = useState('');
   const [loading, setLoading] = useState(false);
-  const [showAddForm, setShowAddForm] = useState(false); // במקום modalVisible
+  const [showAddForm, setShowAddForm] = useState(false);
   const scrollViewRef = useRef();
   const { darkMode} = useSettings();
 
-  // טעינת ההודעות עם סטטוס קריאה כשנכנסים למסך
   useEffect(() => {
     fetchAnnouncementsWithStatus();
 
-    // סימון הכל כנקרא כשעוזבים את המסך
     return () => {
       markAllAsRead();
-      // עדכון הקאונטר שמוצג בתפריט
       setTimeout(() => {
         fetchUnreadCount();
       }, 500);
@@ -53,15 +52,14 @@ const AnnouncementsScreen = ({ navigation }) => {
   const handleAddAnnouncement = async () => {
     if (!title.trim() || !content.trim()) return;
     setLoading(true);
-    
+
     try {
       await announcementsApi.add(title, content, user.username);
       setTitle('');
       setContent('');
-      setShowAddForm(false); // סגירת הטופס אחרי הוספה
-      // רענון ההודעות עם הסטטוס
+      setShowAddForm(false);
       await fetchAnnouncementsWithStatus();
-      
+
       setTimeout(() => {
         scrollViewRef.current?.scrollToEnd({ animated: true });
       }, 300);
@@ -72,14 +70,13 @@ const AnnouncementsScreen = ({ navigation }) => {
     }
   };
 
-  // פורמט תאריך באנגלית
   const formatDate = (dateString) => {
-    const options = { 
-      year: 'numeric', 
-      month: 'short', 
-      day: 'numeric', 
-      hour: '2-digit', 
-      minute: '2-digit'
+    const options = {
+      year: 'numeric',
+      month: 'short',
+      day: 'numeric',
+      hour: '2-digit',
+      minute: '2-digit',
     };
     return new Date(dateString).toLocaleDateString('en-US', options);
   };
@@ -108,7 +105,7 @@ const AnnouncementsScreen = ({ navigation }) => {
           <View style={[styles.formOverlay, { backgroundColor: darkMode ? 'rgba(0,0,0,0.7)' : 'rgba(255,255,255,0.7)' }]}>
             <View style={[styles.formContainer, { backgroundColor: darkMode ? '#222' : '#fff' }]}>
               <Text style={[styles.formTitle, { color: textColor }]}>Add New Announcement</Text>
-              
+
               <TextInput
                 placeholder="Title"
                 placeholderTextColor={darkMode ? '#888' : '#999'}
@@ -119,7 +116,6 @@ const AnnouncementsScreen = ({ navigation }) => {
                 value={title}
                 onChangeText={setTitle}
               />
-              
               <TextInput
                 placeholder="Content"
                 placeholderTextColor={darkMode ? '#888' : '#999'}
@@ -131,16 +127,14 @@ const AnnouncementsScreen = ({ navigation }) => {
                 onChangeText={setContent}
                 multiline
               />
-              
               <View style={[styles.formButtonsRow]}>
-                <TouchableOpacity 
-                  style={[styles.cancelButton, { backgroundColor: darkMode ? '#444' : '#ddd'}]} 
+                <TouchableOpacity
+                  style={[styles.cancelButton, { backgroundColor: darkMode ? '#444' : '#ddd'}]}
                   onPress={() => setShowAddForm(false)}>
                   <Text style={{ color: textColor }}>Cancel</Text>
                 </TouchableOpacity>
-                
-                <TouchableOpacity 
-                  style={[styles.submitButton, { backgroundColor: darkMode ? '#0066cc' : '#91aad4'}]} 
+                <TouchableOpacity
+                  style={[styles.submitButton, { backgroundColor: darkMode ? '#0066cc' : '#91aad4'}]}
                   onPress={handleAddAnnouncement}>
                   <Text style={{ color: textColor }}>Post</Text>
                 </TouchableOpacity>
@@ -154,18 +148,18 @@ const AnnouncementsScreen = ({ navigation }) => {
           contentContainerStyle={styles.scrollContent}
           ref={scrollViewRef}>
           {announcements.map((a) => (
-            <View 
-            key={a.id} 
+            <View
+            key={a.id}
             style={[
-              styles.card, 
+              styles.card,
               !a.isRead && styles.unreadCard,
               {
-                backgroundColor: !a.isRead 
-                  ? (darkMode ? '#262636' : '#e0f7ff')  
-                  : (darkMode ? '#121212' : '#fff'),   
+                backgroundColor: !a.isRead
+                  ? (darkMode ? '#262636' : '#e0f7ff')
+                  : (darkMode ? '#121212' : '#fff'),
                 borderColor: darkMode ? '#555' : '#ccc',
-              }
-            ]}>          
+              },
+            ]}>
               <View style={styles.titleContainer}>
                 <Text style={[styles.title, { color: textColor }]}>{a.title}</Text>
                 {!a.isRead && (
@@ -182,11 +176,9 @@ const AnnouncementsScreen = ({ navigation }) => {
             </View>
           ))}
         </ScrollView>
-
-        {/* כפתור הוספת הודעה חדשה */}
         {(user?.role === 'Technician' || user?.role === 'Admin') && (
-          <TouchableOpacity 
-            style={styles.addButton} 
+          <TouchableOpacity
+            style={styles.addButton}
             onPress={() => setShowAddForm(true)}>
             <Text style={styles.addButtonText}>+</Text>
           </TouchableOpacity>
@@ -209,7 +201,7 @@ const styles = StyleSheet.create({
   scrollContent: {
     padding: 10,
     width: '100%',
-    paddingBottom: 70, // מרווח בתחתית בשביל הכפתור המרחף
+    paddingBottom: 70,
   },
   card: {
     borderRadius: 10,
@@ -269,9 +261,7 @@ const styles = StyleSheet.create({
   metaTime: {
     fontSize: 12,
   },
-  
-  // סגנון לכפתור הוספה מרחף
-  addButton: {
+    addButton: {
     position: 'absolute',
     right: 20,
     bottom: 30,
@@ -297,15 +287,13 @@ const styles = StyleSheet.create({
     fontWeight: '500',
     lineHeight: 34,
   },
-  
-  // סגנון לפורם במקום מודל
-  formOverlay: {
+    formOverlay: {
     position: 'absolute',
     top: 0,
     left: 0,
     right: 0,
     bottom: 0,
-    zIndex: 1001, // מעל הכפתור המרחף
+    zIndex: 1001,
     justifyContent: 'center',
     alignItems: 'center',
   },
@@ -368,9 +356,7 @@ const styles = StyleSheet.create({
     fontWeight: '500',
     fontSize: 16,
   },
-  
-  // סגנונות משותפים אחרים
-  centerContainer: {
+    centerContainer: {
     flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
