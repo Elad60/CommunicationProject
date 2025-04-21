@@ -55,7 +55,7 @@ const RadioChannel = ({
     <View style={[styles.container, { backgroundColor: getBackgroundColor() }]}>
       <Text style={[styles.name, { color: darkMode ? '#fff' : '#000' }]}>{name}</Text>
       {showFrequency && (
-        <Text style={[styles.frequency, { color: darkMode ? '#fff' : '#000' }]}>{frequency}</Text>
+        <Text style={[styles.frequency, { color: darkMode ? '#fff' : '#000' }]}>{frequency}{' '}{mode}</Text>
       )}
       {showStatus && (
         <Text style={[styles.status, { color: darkMode ? '#fff' : '#000' }]}>
