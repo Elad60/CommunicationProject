@@ -22,6 +22,7 @@ const PickRadiosScreen = ({navigation}) => {
   const [search, setSearch] = useState('');
   const {darkMode, showFrequency, showStatus} = useSettings();
 
+  // Load all channels and the user's selected channels on mount
   useEffect(() => {
     const loadChannels = async () => {
       try {
@@ -32,6 +33,8 @@ const PickRadiosScreen = ({navigation}) => {
 
         setAllChannels(all);
         setFilteredChannels(all);
+
+        // Save selected channel IDs to compare later for changes
         const userSelectedIds = userSelected.map(c => c.id);
         setSelected(userSelectedIds);
         setOriginalSelection(userSelectedIds);
@@ -43,6 +46,7 @@ const PickRadiosScreen = ({navigation}) => {
     loadChannels();
   }, [user.id]);
 
+  // Filter channels when search input changes
   useEffect(() => {
     const lowerSearch = search.toLowerCase();
     const filtered = allChannels.filter(
@@ -54,6 +58,7 @@ const PickRadiosScreen = ({navigation}) => {
     setFilteredChannels(filtered);
   }, [search, allChannels]);
 
+  // Toggle channel selection on press
   const toggleSelect = channelId => {
     setSelected(prev =>
       prev.includes(channelId)
@@ -62,6 +67,7 @@ const PickRadiosScreen = ({navigation}) => {
     );
   };
 
+  // Save updated selection to backend
   const handleSave = async () => {
     try {
       const toAdd = selected.filter(id => !originalSelection.includes(id));
@@ -82,6 +88,7 @@ const PickRadiosScreen = ({navigation}) => {
     }
   };
 
+  // Dynamic styles based on darkMode
   const dynamicStyles = StyleSheet.create({
     sectionCard: {
       backgroundColor: darkMode ? '#2a2a2a' : '#fff',
@@ -146,12 +153,14 @@ const PickRadiosScreen = ({navigation}) => {
             onChangeText={setSearch}
           />
 
+          {/* No matching channels */}
           {filteredChannels.length === 0 && (
             <Text style={[styles.noResults, dynamicStyles.noResults]}>
               No matching channels found.
             </Text>
           )}
 
+          {/* List of all available channels */}
           {filteredChannels.map(c => {
             const isSelected = selected.includes(c.id);
             return (
@@ -210,6 +219,7 @@ const PickRadiosScreen = ({navigation}) => {
     </AppLayout>
   );
 };
+
 
 const styles = StyleSheet.create({
   container: {

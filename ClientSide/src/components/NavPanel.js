@@ -1,3 +1,4 @@
+/* eslint-disable react-hooks/exhaustive-deps */
 import React, {useEffect, useRef} from 'react';
 import {
   Alert,
@@ -11,7 +12,7 @@ import {useRoute} from '@react-navigation/native';
 import NavButton from './NavButton';
 import {useSettings} from '../context/SettingsContext';
 import {useAuth} from '../context/AuthContext';
-import {useAnnouncements} from '../context/AnnouncementsContext'; // הוספת הקונטקסט
+import {useAnnouncements} from '../context/AnnouncementsContext';
 
 const NavPanel = ({handleNavigation, darkMode, height, width}) => {
   let NAV_PANEL_HEIGHT;
@@ -25,12 +26,14 @@ const NavPanel = ({handleNavigation, darkMode, height, width}) => {
     NAV_PANEL_HEIGHT = height * 0.9;
     NAV_PANEL_WIDTH = width * 0.14;
   }
+
   const {toolBarAdjustment, controlBarAdjustment} = useSettings();
   const {user} = useAuth();
-  const {unreadCount, fetchUnreadCount} = useAnnouncements(); // שימוש בקונטקסט ההודעות
+  const {unreadCount, fetchUnreadCount} = useAnnouncements();
   const route = useRoute();
   const currentScreen = route.name;
 
+  // Animate the X position of the panel (slide-in/out)
   const positionX = useRef(
     new Animated.Value(
       toolBarAdjustment ? width - NAV_PANEL_WIDTH : -NAV_PANEL_WIDTH,
@@ -42,20 +45,16 @@ const NavPanel = ({handleNavigation, darkMode, height, width}) => {
       toValue: toolBarAdjustment ? width - NAV_PANEL_WIDTH : -NAV_PANEL_WIDTH,
       useNativeDriver: false,
     }).start();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [toolBarAdjustment, height, width]);
 
-  // טעינת מספר הודעות שלא נקראו בעת טעינת הקומפוננטה
   useEffect(() => {
     if (user) {
-      fetchUnreadCount();
+      fetchUnreadCount(); // Refresh unread badge when screen/user changes
     }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [user, currentScreen]);
 
   const panelStyle = {
     position: 'absolute',
-    top: 0,
     top: controlBarAdjustment
       ? 0
       : isLandscape
@@ -91,8 +90,8 @@ const NavPanel = ({handleNavigation, darkMode, height, width}) => {
       title: 'Announcements',
       icon: require('../../assets/logos/announcement.png'),
       screen: 'Announcements',
-      showBadge: unreadCount > 0, // האם להציג תג
-      badgeCount: unreadCount, // מספר ההודעות שלא נקראו
+      showBadge: unreadCount > 0,
+      badgeCount: unreadCount,
     },
     {
       title: 'More Radios',
@@ -134,7 +133,7 @@ const NavPanel = ({handleNavigation, darkMode, height, width}) => {
               width={width}
             />
 
-            {/* תג מספר הודעות שלא נקראו */}
+            {/* Badge for unread announcement count */}
             {showBadge && (
               <View style={styles.badge}>
                 <Text style={styles.badgeText}>{badgeCount}</Text>

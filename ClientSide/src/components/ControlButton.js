@@ -1,23 +1,26 @@
+/* eslint-disable react-native/no-inline-styles */
 import React, {useRef} from 'react';
 import {Animated, Text, StyleSheet, Image, Pressable} from 'react-native';
 
 const ControlButton = ({title, icon, value, onPress, darkMode, isSelected, height, width}) => {
+  // Animated scale for hover interaction
   const scale = useRef(new Animated.Value(1)).current;
 
   const handleHoverIn = () => {
     Animated.spring(scale, {
-      toValue: 1.1,
+      toValue: 1.1, // Slight zoom-in on hover
       useNativeDriver: true,
     }).start();
   };
 
   const handleHoverOut = () => {
     Animated.spring(scale, {
-      toValue: 1,
+      toValue: 1, // Return to original size
       useNativeDriver: true,
     }).start();
   };
 
+  // Dynamic styles based on dark mode and selection
   const backgroundColor = darkMode ? '#2b2b2b' : '#f8f8f8';
   const borderColor = isSelected ? '#3b82f6' : darkMode ? '#555' : '#ccc';
   const textColor = darkMode ? '#fff' : '#000';
@@ -37,10 +40,10 @@ const ControlButton = ({title, icon, value, onPress, darkMode, isSelected, heigh
             backgroundColor,
             borderColor,
             borderWidth: isSelected ? 2 : 1,
-            transform: [{scale}],
+            transform: [{scale}], // Scale animation
             shadowColor: isSelected ? '#3b82f6' : '#000',
             shadowOpacity: isSelected ? 0.3 : 0.1,
-            elevation: isSelected ? 6 : 3,
+            elevation: isSelected ? 6 : 3, // Higher elevation when selected
           },
         ]}>
         <Image source={icon} style={styles.icon} resizeMode="contain" />

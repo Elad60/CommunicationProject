@@ -6,13 +6,13 @@ const UserRow = ({user, darkMode, onBlockToggle, onRoleToggle, onDelete}) => {
 
   return (
     <View style={styles.row}>
-      {/* Left Column */}
+      {/* Left: Basic user info */}
       <View style={styles.leftSection}>
         <Text style={styles.username}>{user.username}</Text>
         <Text style={styles.email}>{user.email}</Text>
       </View>
 
-      {/* Middle Columns (Role / Date / Status) */}
+      {/* Middle: Role, creation date, block status */}
       <View style={styles.middleSection}>
         <Text style={[styles.badge, styles.roleBadge]}>{user.role}</Text>
         <Text style={styles.infoText}>
@@ -27,8 +27,9 @@ const UserRow = ({user, darkMode, onBlockToggle, onRoleToggle, onDelete}) => {
         </Text>
       </View>
 
-      {/* Right Column: Buttons */}
+      {/* Right: Action buttons */}
       <View style={styles.rightSection}>
+        {/* Show role toggle only for non-admins */}
         {user.role !== 'Admin' && (
           <TouchableOpacity
             activeOpacity={0.7}
@@ -39,6 +40,7 @@ const UserRow = ({user, darkMode, onBlockToggle, onRoleToggle, onDelete}) => {
             </Text>
           </TouchableOpacity>
         )}
+
         <TouchableOpacity
           activeOpacity={0.7}
           onPress={() => onBlockToggle(user)}
@@ -59,6 +61,7 @@ const UserRow = ({user, darkMode, onBlockToggle, onRoleToggle, onDelete}) => {
   );
 };
 
+// Styles are theme-aware (light/dark)
 const getStyles = darkMode =>
   StyleSheet.create({
     row: {
@@ -82,7 +85,7 @@ const getStyles = darkMode =>
     rightSection: {
       flex: 3,
       alignItems: 'flex-end',
-      gap: 6,
+      gap: 6, // spacing between buttons
     },
     username: {
       fontSize: 16,
@@ -95,24 +98,24 @@ const getStyles = darkMode =>
     },
     infoText: {
       fontSize: 12,
-      color: darkMode ? '#aaa' : '#000', // ✅ black in light mode
+      color: darkMode ? '#aaa' : '#000',
     },
     badge: {
       fontSize: 12,
-      color: darkMode ? '#fff' : '#000', // ✅ black in light mode
+      color: darkMode ? '#fff' : '#000',
       paddingHorizontal: 8,
       paddingVertical: 3,
       borderRadius: 12,
       overflow: 'hidden',
     },
     roleBadge: {
-      backgroundColor: darkMode ? '#444' : '#e0e0e0', // gray-ish
+      backgroundColor: darkMode ? '#444' : '#e0e0e0',
     },
     blockedBadge: {
-      backgroundColor: '#d63031', // red stays strong
+      backgroundColor: '#d63031',
     },
     activeBadge: {
-      backgroundColor: darkMode ? '#555' : '#cfcfcf', // soft gray-green
+      backgroundColor: darkMode ? '#555' : '#cfcfcf',
     },
     neuButton: {
       backgroundColor: darkMode ? '#2e2e2e' : '#e6e6e6',

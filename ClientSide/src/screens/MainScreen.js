@@ -1,3 +1,4 @@
+/* eslint-disable react-hooks/exhaustive-deps */
 import React, {useState, useEffect} from 'react';
 import {
   View,
@@ -22,6 +23,7 @@ const MainScreen = ({navigation}) => {
   const {user} = useAuth();
   const {showFrequency, showStatus} = useSettings();
 
+  // Load user's radio channels on mount
   const fetchRadioChannels = async () => {
     try {
       setIsLoading(true);
@@ -43,17 +45,18 @@ const MainScreen = ({navigation}) => {
     if (user?.id) {
       fetchRadioChannels();
     }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [user]);
 
   const handleChannelSelect = id => {
     setSelectedChannel(id);
   };
 
+  // Toggle channel state locally and update on server
   const handleToggleChannelState = async channelId => {
     const current = radioChannels.find(c => c.id === channelId);
     const nextState = getNextState(current.channelState);
 
+    // Optimistic UI update
     const updatedChannels = radioChannels.map(c =>
       c.id === channelId ? {...c, channelState: nextState} : c,
     );
@@ -68,6 +71,7 @@ const MainScreen = ({navigation}) => {
     }
   };
 
+  // Cycle between: Idle → ListenOnly → ListenAndTalk → Idle
   const getNextState = state => {
     switch (state) {
       case 'Idle':
@@ -81,11 +85,13 @@ const MainScreen = ({navigation}) => {
     }
   };
 
+  // Navigate to screen for adding more channels
   const handleAddChannel = () => {
     navigation.navigate('PickRadios');
     console.log('Add channel button pressed');
   };
 
+  // Loading state
   if (isLoading) {
     return (
       <AppLayout navigation={navigation} title={user?.role}>
@@ -97,6 +103,7 @@ const MainScreen = ({navigation}) => {
     );
   }
 
+  // Error state
   if (error) {
     return (
       <AppLayout navigation={navigation} title={user?.role}>
@@ -139,6 +146,7 @@ const MainScreen = ({navigation}) => {
           </View>
         </ScrollView>
 
+        {/* Floating Add Button */}
         <TouchableOpacity style={styles.addButton} onPress={handleAddChannel}>
           <Text style={styles.addButtonText}>+</Text>
         </TouchableOpacity>

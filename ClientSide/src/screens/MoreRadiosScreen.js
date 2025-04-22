@@ -16,6 +16,7 @@ import { useSettings } from '../context/SettingsContext';
 const MoreRadiosScreen = ({navigation}) => {
   const {user} = useAuth();
   const {darkMode} = useSettings();
+
   const [channels, setChannels] = useState([]);
   const [filteredChannels, setFilteredChannels] = useState([]);
   const [search, setSearch] = useState('');
@@ -24,6 +25,7 @@ const MoreRadiosScreen = ({navigation}) => {
   const [frequency, setFrequency] = useState('');
   const [mode, setMode] = useState('');
 
+  // Load all available channels (admin view)
   const loadChannels = async () => {
     try {
       const data = await radioChannelsApi.getAllChannels();
@@ -34,6 +36,7 @@ const MoreRadiosScreen = ({navigation}) => {
     }
   };
 
+  // Create a new radio channel
   const handleAddChannel = async () => {
     if (!name || !frequency || !mode) {
       Alert.alert('Missing Fields', 'All fields are required.');
@@ -53,7 +56,7 @@ const MoreRadiosScreen = ({navigation}) => {
       setName('');
       setFrequency('');
       setMode('');
-      loadChannels();
+      loadChannels(); // Refresh list
     } catch (err) {
       console.error('Add channel failed:', err.response?.data || err.message);
       Alert.alert(
@@ -63,10 +66,11 @@ const MoreRadiosScreen = ({navigation}) => {
     }
   };
 
+  // Delete a channel
   const handleDelete = async id => {
     try {
       await radioChannelsApi.deleteChannel(id);
-      loadChannels();
+      loadChannels(); // Refresh list after deletion
     } catch (err) {
       Alert.alert('Error', 'Failed to delete channel');
     }
@@ -76,6 +80,7 @@ const MoreRadiosScreen = ({navigation}) => {
     loadChannels();
   }, []);
 
+  // Filter channels as user types in search
   useEffect(() => {
     const lowerSearch = search.toLowerCase();
     const filtered = channels.filter(
@@ -86,12 +91,14 @@ const MoreRadiosScreen = ({navigation}) => {
     );
     setFilteredChannels(filtered);
   }, [search, channels]);
+
   const styles = getStyles(darkMode);
 
   return (
     <AppLayout navigation={navigation} title="More Radios">
       <ScrollView contentContainerStyle={styles.container}>
-        {/* Add Channel Section */}
+
+        {/* Channel creation form */}
         <View style={styles.sectionCard}>
           <Text style={styles.title}>Add New Channel</Text>
           <TextInput
@@ -120,7 +127,7 @@ const MoreRadiosScreen = ({navigation}) => {
           </TouchableOpacity>
         </View>
 
-        {/* Search + List Section */}
+        {/* Search and list of channels */}
         <View style={styles.sectionCard}>
           <Text style={styles.title}>Existing Channels</Text>
           <TextInput
@@ -131,12 +138,14 @@ const MoreRadiosScreen = ({navigation}) => {
             onChangeText={setSearch}
           />
 
+          {/* If nothing matches search */}
           {filteredChannels.length === 0 && (
             <Text style={styles.noResultsText}>
               No matching channels found.
             </Text>
           )}
 
+          {/* List of channels */}
           {filteredChannels.map(c => (
             <View key={c.id} style={styles.channelRow}>
               <View>

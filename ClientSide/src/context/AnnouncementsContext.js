@@ -1,4 +1,4 @@
-// context/AnnouncementsContext.js
+/* eslint-disable react-hooks/exhaustive-deps */
 import React, { createContext, useState, useContext, useEffect } from 'react';
 import { announcementsApi } from '../utils/apiService';
 import { useAuth } from './AuthContext';
@@ -11,8 +11,9 @@ export const AnnouncementsProvider = ({ children }) => {
   const [unreadCount, setUnreadCount] = useState(0);
   const [loading, setLoading] = useState(false);
 
+  // Load announcements with their read/unread status
   const fetchAnnouncementsWithStatus = async () => {
-    if (!user) {return;}
+    if (!user) return;
     try {
       setLoading(true);
       const data = await announcementsApi.getAllWithReadStatus(user.id);
@@ -24,8 +25,9 @@ export const AnnouncementsProvider = ({ children }) => {
     }
   };
 
+  // Get number of unread announcements for the current user
   const fetchUnreadCount = async () => {
-    if (!user) {return;}
+    if (!user) return;
     try {
       const { count } = await announcementsApi.getUnreadCount(user.id);
       setUnreadCount(count);
@@ -34,12 +36,13 @@ export const AnnouncementsProvider = ({ children }) => {
     }
   };
 
+  // Mark all announcements as read and update local state
   const markAllAsRead = async () => {
-    if (!user) {return;}
+    if (!user) return;
     try {
       await announcementsApi.markAllAsRead(user.id);
       setUnreadCount(0);
-      setAnnouncements(current => 
+      setAnnouncements(current =>
         current.map(announcement => ({ ...announcement, isRead: true }))
       );
     } catch (err) {
@@ -47,12 +50,11 @@ export const AnnouncementsProvider = ({ children }) => {
     }
   };
 
-  // טעינת נתונים התחלתית
+  // Fetch unread count on initial load when user is available
   useEffect(() => {
     if (user) {
       fetchUnreadCount();
     }
-  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [user]);
 
   return (
@@ -70,6 +72,7 @@ export const AnnouncementsProvider = ({ children }) => {
   );
 };
 
+// Custom hook for accessing the context
 export const useAnnouncements = () => {
   const context = useContext(AnnouncementsContext);
   if (!context) {

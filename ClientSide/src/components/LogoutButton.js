@@ -1,13 +1,14 @@
 import React, {useRef, useState} from 'react';
 import {Animated, Text, StyleSheet, View, Pressable, Image} from 'react-native';
-import Icon from 'react-native-vector-icons/FontAwesome';
 
 const LogoutButton = ({onLogout}) => {
+  // Animated width for hover effect
   const widthAnim = useRef(new Animated.Value(45)).current;
   const [hovering, setHovering] = useState(false);
 
   const handleHoverIn = () => {
     setHovering(true);
+    // Animate width expansion on hover
     Animated.timing(widthAnim, {
       toValue: 120,
       duration: 300,
@@ -17,6 +18,7 @@ const LogoutButton = ({onLogout}) => {
 
   const handleHoverOut = () => {
     setHovering(false);
+    // Animate width contraction when hover ends
     Animated.timing(widthAnim, {
       toValue: 45,
       duration: 300,
@@ -38,6 +40,7 @@ const LogoutButton = ({onLogout}) => {
             resizeMode="contain"
           />
         </View>
+        {/* Only show text when hovering */}
         {hovering && <Text style={styles.text}>Logout</Text>}
       </Animated.View>
     </Pressable>
@@ -69,7 +72,7 @@ const styles = StyleSheet.create({
   icon: {
     width: 22,
     height: 22,
-    color: 'black'
+    color: 'black',
   },
 });
 

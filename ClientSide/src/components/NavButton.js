@@ -5,6 +5,7 @@ const NavButton = ({title, icon, onPress, isActive, darkMode, height, width}) =>
   const scale = useRef(new Animated.Value(1)).current;
   const isLandscape = height < width;
 
+  // Animate scale up on hover
   const handleHoverIn = () => {
     Animated.spring(scale, {
       toValue: 1.1,
@@ -12,6 +13,7 @@ const NavButton = ({title, icon, onPress, isActive, darkMode, height, width}) =>
     }).start();
   };
 
+  // Animate scale down when hover ends
   const handleHoverOut = () => {
     Animated.spring(scale, {
       toValue: 1,
@@ -19,6 +21,7 @@ const NavButton = ({title, icon, onPress, isActive, darkMode, height, width}) =>
     }).start();
   };
 
+  // Dynamic styles based on state
   const backgroundColor = darkMode ? '#2b2b2b' : '#f8f8f8';
   const borderColor = isActive ? '#3b82f6' : darkMode ? '#555' : '#ccc';
   const textColor = darkMode ? '#fff' : '#000';
@@ -34,11 +37,11 @@ const NavButton = ({title, icon, onPress, isActive, darkMode, height, width}) =>
           styles.button,
           {
             height: isLandscape ? height * 0.13 : height * 0.15,
-            width: isLandscape ? width * 0.08: width * 0.14,
-            transform: [{scale}],
+            width: isLandscape ? width * 0.08 : width * 0.14,
+            transform: [{scale}], // Animated scale on hover
             backgroundColor,
             borderColor,
-            borderWidth: isActive ? 2 : 1,
+            borderWidth: isActive ? 2 : 1, // Thicker border if selected
             shadowColor: isActive ? '#3b82f6' : '#000',
             shadowOpacity: isActive ? 0.3 : 0.1,
           },

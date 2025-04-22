@@ -1,21 +1,26 @@
 import axios from 'axios';
 
+// Create a pre-configured axios instance with base URL and timeout
 const api = axios.create({
   baseURL: 'https://proj.ruppin.ac.il/cgroup90/test2/tar1/api',
   timeout: 5000,
 });
 
+// 📻 Radio Channels API
 const radioChannelsApi = {
+  // Get all channels assigned to a specific user
   getUserChannels: async userId => {
     const response = await api.get(`/radiochannels/user/${userId}`);
     return response.data;
   },
 
+  // Get all available radio channels
   getAllChannels: async () => {
     const response = await api.get('/radiochannels');
     return response.data;
   },
 
+  // Update the state of a specific channel for a user
   updateChannelState: async (userId, channelId, newState) => {
     await api.post(
       `/radiochannels/user/${userId}/channel/${channelId}/state`,
@@ -26,20 +31,24 @@ const radioChannelsApi = {
     );
   },
 
+  // Add a new radio channel
   addChannel: async channel => {
     await api.post('/radiochannels', channel, {
       headers: {'Content-Type': 'application/json'},
     });
   },
 
+  // Delete an existing radio channel
   deleteChannel: async channelId => {
     await api.delete(`/radiochannels/${channelId}`);
   },
 
+  // Assign a channel to a specific user
   addUserChannel: async (userId, channelId) => {
     await api.post(`/radiochannels/user/${userId}/add-channel/${channelId}`);
   },
 
+  // Remove a channel from a specific user
   removeUserChannel: async (userId, channelId) => {
     await api.delete(
       `/radiochannels/user/${userId}/remove-channel/${channelId}`,
@@ -47,8 +56,9 @@ const radioChannelsApi = {
   },
 };
 
-// 🔐 Auth API
+// 🔐 Authentication API
 const authApi = {
+  // Handle user login
   login: async (username, password) => {
     try {
       const response = await api.post('/user/login', {
@@ -57,20 +67,22 @@ const authApi = {
       });
       return response.data;
     } catch (error) {
-      // If we have a response with data, return that data
+      // Return specific error from server if exists
       if (error.response && error.response.data) {
         throw {response: {data: error.response.data}};
       }
-      // Otherwise, throw a more general error
+      // Generic fallback error
       throw error;
     }
   },
 
+  // Log out the current user
   logout: async userId => {
     const response = await api.post(`/user/logout/${userId}`);
     return response.data;
   },
 
+  // Handle new user registration
   register: async (username, password, email, group) => {
     try {
       const response = await api.post(
@@ -89,12 +101,12 @@ const authApi = {
       );
       return response.data;
     } catch (error) {
-      // If we have a response with data, return that data
+      // Return detailed error from server if available
       if (error.response && error.response.data) {
         console.error('Registration error (server):', error.response.data);
         return error.response.data;
       }
-      // Otherwise, return a generic error
+      // Return generic error message
       console.error('Registration error:', error);
       return {
         success: false,
@@ -104,17 +116,22 @@ const authApi = {
   },
 };
 
-// 🔒 Admin API
+// 🛡️ Admin API
 const adminApi = {
+  // Get all users in the system
   getAllUsers: async () => {
-    const response = await api.get('/user/all'); // 🔧 FIXED endpoint
+    const response = await api.get('/user/all');
     return response.data;
   },
+
+  // Block or unblock a user
   blockUser: async (userId, isBlocked) => {
     await api.post(`/user/block/${userId}`, isBlocked, {
       headers: {'Content-Type': 'application/json'},
     });
   },
+
+  // Change the role of a user (e.g., Admin, Technician)
   updateUserRole: async (userId, newRole) => {
     await api.post(
       '/user/update-role',
@@ -124,6 +141,8 @@ const adminApi = {
       },
     );
   },
+
+  // Permanently delete a user
   deleteUser: async userId => {
     await api.delete(`/user/${userId}`);
   },
@@ -131,11 +150,13 @@ const adminApi = {
 
 // 📢 Announcements API
 const announcementsApi = {
+  // Fetch all announcements
   getAll: async () => {
     const response = await api.get('/Announcement/announcements');
     return response.data;
   },
 
+  // Post a new announcement
   add: async (title, content, userName) => {
     const response = await api.post('/Announcement/announcement', {
       title,
@@ -144,6 +165,8 @@ const announcementsApi = {
     });
     return response.data;
   },
+
+  // Fetch all announcements including their read/unread status for a user
   getAllWithReadStatus: async userId => {
     const response = await api.get(
       `/Announcement/announcements/withReadStatus/${userId}`,
@@ -151,6 +174,7 @@ const announcementsApi = {
     return response.data;
   },
 
+  // Mark all announcements as read for a user
   markAllAsRead: async userId => {
     const response = await api.post(
       `/Announcement/announcements/markAllAsRead/${userId}`,
@@ -158,6 +182,7 @@ const announcementsApi = {
     return response.data;
   },
 
+  // Get the number of unread announcements for a user
   getUnreadCount: async userId => {
     const response = await api.get(
       `/Announcement/announcements/unreadCount/${userId}`,
@@ -166,12 +191,15 @@ const announcementsApi = {
   },
 };
 
-// 👫 Group Users API
+// 👥 Group Users API
 const groupUsersApi = {
+  // Get all users that belong to a specific group
   getUsersByGroup: async groupName => {
     const response = await api.get(`/user/group/${groupName}`);
     return response.data;
   },
+
+  // Change a user's group (e.g., from A to B)
   changeUserGroup: async (userId, newGroup) => {
     try {
       const response = await api.post(
@@ -189,4 +217,5 @@ const groupUsersApi = {
   },
 };
 
+// Export all API modules for use throughout the app
 export {radioChannelsApi, authApi, adminApi, groupUsersApi, announcementsApi};
