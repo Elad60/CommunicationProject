@@ -12,8 +12,8 @@ import {
 } from 'react-native';
 import authBackgroundPic from '../../assets/images/tank.jpg';
 
-// Imports, state declarations, and styles...
 const RegisterScreen = ({onRegister, onNavigateToLogin}) => {
+  // State to store form data and loading/error states
   const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
@@ -21,8 +21,6 @@ const RegisterScreen = ({onRegister, onNavigateToLogin}) => {
   const [error, setError] = useState('');
   const [group, setGroup] = useState('');
   const [isLoading, setIsLoading] = useState(false);
-
-  // Field-level validation messages
   const [fieldErrors, setFieldErrors] = useState({
     username: '',
     email: '',
@@ -31,25 +29,31 @@ const RegisterScreen = ({onRegister, onNavigateToLogin}) => {
     group: '',
   });
 
-  // Per-field validation logic
+  // Validation logic for each input field
   const validateField = (field, value) => {
     switch (field) {
       case 'username':
         if (!value) return 'Username is required';
         if (value.length < 4) return 'Username must be at least 4 characters';
-        if (!/^[a-zA-Z0-9_]+$/.test(value)) return 'Username can only contain letters, numbers, and underscores';
+        if (!/^[a-zA-Z0-9_]+$/.test(value))
+          return 'Username can only contain letters, numbers, and underscores';
         return '';
       case 'email':
         if (!value) return 'Email is required';
-        if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(value)) return 'Please enter a valid email address';
+        if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(value))
+          return 'Please enter a valid email address';
         return '';
       case 'password':
         if (!value) return 'Password is required';
         if (value.length < 8) return 'Password must be at least 8 characters';
-        if (!/[A-Z]/.test(value)) return 'Password must contain at least one uppercase letter';
-        if (!/[a-z]/.test(value)) return 'Password must contain at least one lowercase letter';
-        if (!/\d/.test(value)) return 'Password must contain at least one number';
-        if (!/[!@#$%^&*(),.?":{}|<>]/.test(value)) return 'Password must contain at least one special character';
+        if (!/[A-Z]/.test(value))
+          return 'Password must contain at least one uppercase letter';
+        if (!/[a-z]/.test(value))
+          return 'Password must contain at least one lowercase letter';
+        if (!/\d/.test(value))
+          return 'Password must contain at least one number';
+        if (!/[!@#$%^&*(),.?":{}|<>]/.test(value))
+          return 'Password must contain at least one special character';
         return '';
       case 'confirmPassword':
         if (!value) return 'Please confirm your password';
@@ -63,22 +67,32 @@ const RegisterScreen = ({onRegister, onNavigateToLogin}) => {
     }
   };
 
-  // Update field value and run validation
+  // Handle changes to input fields and validate
   const handleFieldChange = (field, value) => {
     switch (field) {
-      case 'username': setUsername(value); break;
-      case 'email': setEmail(value); break;
-      case 'password': setPassword(value); break;
-      case 'confirmPassword': setConfirmPassword(value); break;
-      case 'group': setGroup(value); break;
+      case 'username':
+        setUsername(value);
+        break;
+      case 'email':
+        setEmail(value);
+        break;
+      case 'password':
+        setPassword(value);
+        break;
+      case 'confirmPassword':
+        setConfirmPassword(value);
+        break;
+      case 'group':
+        setGroup(value);
+        break;
     }
     setFieldErrors(prev => ({
       ...prev,
-      [field]: validateField(field, value)
+      [field]: validateField(field, value), // Validate field on change
     }));
   };
 
-  // Run validation on all fields before submitting
+  // Validate the entire form before submission
   const validateForm = () => {
     const newFieldErrors = {
       username: validateField('username', username),
@@ -87,60 +101,91 @@ const RegisterScreen = ({onRegister, onNavigateToLogin}) => {
       confirmPassword: validateField('confirmPassword', confirmPassword),
       group: validateField('group', group),
     };
-    setFieldErrors(newFieldErrors);
+
+    setFieldErrors(newFieldErrors); // Update field errors state
+
+    // If any field has an error, return false
     return !Object.values(newFieldErrors).some(error => error !== '');
   };
 
-  // Submit registration
+  // Handle form submission for registration
   const handleRegister = async () => {
-    if (!validateForm()) return;
+    if (!validateForm()) {
+      return;
+    }
 
-    setIsLoading(true);
-    setError('');
+    setIsLoading(true); // Show loading state
+    setError(''); // Clear previous errors
 
     try {
+      // Call the register function passed from parent component
       const result = await onRegister(username, password, email, group);
       console.log('Register result in component:', result);
 
       if (result && result.success) {
+        // Show success message on successful registration
         Alert.alert(
           'Registration Successful',
           result.message || 'Your account has been created successfully!',
           [
-            { text: 'Continue', onPress: () => onNavigateToLogin() }
+            {
+              text: 'Continue',
+              onPress: () => {
+                // Navigate to login screen after success
+                onNavigateToLogin();
+              },
+            },
           ],
-          { cancelable: false }
+          {cancelable: false},
         );
       } else {
+        // Show error message if registration failed
         setError(result?.message || 'Registration failed');
         Alert.alert(
           'Registration Failed',
-          result?.message || 'Registration failed. Please try again.'
+          result?.message || 'Registration failed. Please try again.',
         );
       }
     } catch (err) {
-      // Handle unexpected errors
+      // Error handling in case of failure
     } finally {
-      setIsLoading(false);
+      setIsLoading(false); // Hide loading indicator
     }
   };
 
-  // Show password strength feedback
+  // Calculate password strength based on criteria
   const getPasswordStrength = () => {
-    if (!password) return null;
+    if (!password) {
+      return null;
+    }
+
     let strength = 0;
-    if (password.length >= 8) strength++;
-    if (/[A-Z]/.test(password)) strength++;
-    if (/[a-z]/.test(password)) strength++;
-    if (/\d/.test(password)) strength++;
-    if (/[!@#$%^&*(),.?":{}|<>]/.test(password)) strength++;
-    if (strength < 2) return {text: 'Weak', color: '#ff4d4f'};
-    if (strength < 4) return {text: 'Medium', color: '#faad14'};
+    if (password.length >= 8) {
+      strength += 1;
+    }
+    if (/[A-Z]/.test(password)) {
+      strength += 1;
+    }
+    if (/[a-z]/.test(password)) {
+      strength += 1;
+    }
+    if (/\d/.test(password)) {
+      strength += 1;
+    }
+    if (/[!@#$%^&*(),.?":{}|<>]/.test(password)) {
+      strength += 1;
+    }
+
+    if (strength < 2) {
+      return {text: 'Weak', color: '#ff4d4f'};
+    }
+    if (strength < 4) {
+      return {text: 'Medium', color: '#faad14'};
+    }
     return {text: 'Strong', color: '#52c41a'};
   };
-
-  const letters = ['A', 'B', 'C', 'D', 'E', 'F'];
-  const passwordStrength = getPasswordStrength();
+  const letters = ['A', 'B', 'C', 'D', 'E', 'F']; // Group selection letters
+  const passwordStrength = getPasswordStrength(); // Get password strength
 
   return (
     <ImageBackground
@@ -151,14 +196,98 @@ const RegisterScreen = ({onRegister, onNavigateToLogin}) => {
         <ScrollView contentContainerStyle={styles.scrollContainer}>
           <View style={styles.formContainer}>
             <Text style={styles.title}>Create an Account</Text>
-            <Text style={styles.subtitle}>Register to access the communication system</Text>
+            <Text style={styles.subtitle}>
+              Register to access the communication system
+            </Text>
 
+            {/* Show error message if there is any */}
             {error ? <Text style={styles.errorText}>{error}</Text> : null}
 
-            {/* Input Fields and Validations */}
-            {/* ... all inputs wrapped with handleFieldChange and fieldErrors display */}
+            {/* Username input field */}
+            <TextInput
+              style={[
+                styles.input,
+                fieldErrors.username ? styles.inputError : null,
+              ]}
+              placeholder="Username (min. 4 characters)"
+              placeholderTextColor="#888"
+              value={username}
+              onChangeText={value => handleFieldChange('username', value)}
+              autoCapitalize="none"
+              maxLength={20}
+            />
+            {fieldErrors.username ? (
+              <Text style={styles.fieldError}>{fieldErrors.username}</Text>
+            ) : null}
 
-            {/* Group Selection */}
+            {/* Email input field */}
+            <TextInput
+              style={[
+                styles.input,
+                fieldErrors.email ? styles.inputError : null,
+              ]}
+              placeholder="Email address"
+              placeholderTextColor="#888"
+              keyboardType="email-address"
+              value={email}
+              onChangeText={value => handleFieldChange('email', value)}
+              autoCapitalize="none"
+            />
+            {fieldErrors.email ? (
+              <Text style={styles.fieldError}>{fieldErrors.email}</Text>
+            ) : null}
+
+            {/* Password input field */}
+            <TextInput
+              style={[
+                styles.input,
+                fieldErrors.password ? styles.inputError : null,
+              ]}
+              placeholder="Password (min. 8 characters)"
+              placeholderTextColor="#888"
+              secureTextEntry
+              value={password}
+              onChangeText={value => handleFieldChange('password', value)}
+            />
+            {fieldErrors.password ? (
+              <Text style={styles.fieldError}>{fieldErrors.password}</Text>
+            ) : null}
+
+            {/* Confirm Password input field */}
+            <TextInput
+              style={[
+                styles.input,
+                fieldErrors.confirmPassword ? styles.inputError : null,
+              ]}
+              placeholder="Confirm Password"
+              placeholderTextColor="#888"
+              secureTextEntry
+              value={confirmPassword}
+              onChangeText={value =>
+                handleFieldChange('confirmPassword', value)
+              }
+            />
+            {fieldErrors.confirmPassword ? (
+              <Text style={styles.fieldError}>
+                {fieldErrors.confirmPassword}
+              </Text>
+            ) : null}
+
+            {/* Password requirements */}
+            <View style={styles.passwordRequirements}>
+              <Text style={styles.requirementsTitle}>
+                Password must contain:
+              </Text>
+              <Text style={styles.requirementItem}>
+                • At least 8 characters
+              </Text>
+              <Text style={styles.requirementItem}>• One uppercase letter</Text>
+              <Text style={styles.requirementItem}>• One lowercase letter</Text>
+              <Text style={styles.requirementItem}>• One number</Text>
+              <Text style={styles.requirementItem}>
+                • One special character
+              </Text>
+            </View>
             <Text style={styles.label}>Select Group</Text>
             <View style={styles.letterContainer}>
               {letters.map(letter => (
@@ -180,9 +309,9 @@ const RegisterScreen = ({onRegister, onNavigateToLogin}) => {
               ))}
             </View>
 
-            {/* Register Button */}
-            <TouchableOpacity 
-              style={[styles.button, isLoading && styles.buttonDisabled]} 
+            {/* Register button */}
+            <TouchableOpacity
+              style={[styles.button, isLoading && styles.buttonDisabled]}
               onPress={handleRegister}
               disabled={isLoading}>
               {isLoading ? (
@@ -192,9 +321,11 @@ const RegisterScreen = ({onRegister, onNavigateToLogin}) => {
               )}
             </TouchableOpacity>
 
-            {/* Navigate to Login */}
+            {/* Login navigation */}
             <TouchableOpacity onPress={onNavigateToLogin}>
-              <Text style={styles.loginText}>Already have an account? Login</Text>
+              <Text style={styles.loginText}>
+                Already have an account? Login
+              </Text>
             </TouchableOpacity>
           </View>
         </ScrollView>
@@ -202,7 +333,6 @@ const RegisterScreen = ({onRegister, onNavigateToLogin}) => {
     </ImageBackground>
   );
 };
-
 
 const styles = StyleSheet.create({
   backgroundImage: {
