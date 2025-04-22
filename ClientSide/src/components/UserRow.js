@@ -6,13 +6,13 @@ const UserRow = ({user, darkMode, onBlockToggle, onRoleToggle, onDelete}) => {
 
   return (
     <View style={styles.row}>
-      {/* Left Column */}
+      {/* User Info */}
       <View style={styles.leftSection}>
         <Text style={styles.username}>{user.username}</Text>
         <Text style={styles.email}>{user.email}</Text>
       </View>
 
-      {/* Middle Columns (Role / Date / Status) */}
+      {/* Role, Date, Status */}
       <View style={styles.middleSection}>
         <Text style={[styles.badge, styles.roleBadge]}>{user.role}</Text>
         <Text style={styles.infoText}>
@@ -27,7 +27,7 @@ const UserRow = ({user, darkMode, onBlockToggle, onRoleToggle, onDelete}) => {
         </Text>
       </View>
 
-      {/* Right Column: Buttons */}
+      {/* Action Buttons */}
       <View style={styles.rightSection}>
         {user.role !== 'Admin' && (
           <TouchableOpacity
@@ -47,7 +47,6 @@ const UserRow = ({user, darkMode, onBlockToggle, onRoleToggle, onDelete}) => {
             {user.isBlocked ? 'Unblock' : 'Block'}
           </Text>
         </TouchableOpacity>
-
         <TouchableOpacity
           activeOpacity={0.7}
           onPress={() => onDelete(user)}
@@ -59,6 +58,7 @@ const UserRow = ({user, darkMode, onBlockToggle, onRoleToggle, onDelete}) => {
   );
 };
 
+// Dynamic styles based on dark mode
 const getStyles = darkMode =>
   StyleSheet.create({
     row: {
@@ -95,24 +95,24 @@ const getStyles = darkMode =>
     },
     infoText: {
       fontSize: 12,
-      color: darkMode ? '#aaa' : '#000', // ✅ black in light mode
+      color: darkMode ? '#aaa' : '#000',
     },
     badge: {
       fontSize: 12,
-      color: darkMode ? '#fff' : '#000', // ✅ black in light mode
+      color: darkMode ? '#fff' : '#000',
       paddingHorizontal: 8,
       paddingVertical: 3,
       borderRadius: 12,
       overflow: 'hidden',
     },
     roleBadge: {
-      backgroundColor: darkMode ? '#444' : '#e0e0e0', // gray-ish
+      backgroundColor: darkMode ? '#444' : '#e0e0e0',
     },
     blockedBadge: {
-      backgroundColor: '#d63031', // red stays strong
+      backgroundColor: '#d63031',
     },
     activeBadge: {
-      backgroundColor: darkMode ? '#555' : '#cfcfcf', // soft gray-green
+      backgroundColor: darkMode ? '#555' : '#cfcfcf',
     },
     neuButton: {
       backgroundColor: darkMode ? '#2e2e2e' : '#e6e6e6',

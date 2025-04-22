@@ -14,75 +14,80 @@ import {useAuth} from '../context/AuthContext';
 import {useSettings} from '../context/SettingsContext';
 
 const PickRadiosScreen = ({navigation}) => {
-  const {user} = useAuth();
-  const [allChannels, setAllChannels] = useState([]);
-  const [filteredChannels, setFilteredChannels] = useState([]);
-  const [selected, setSelected] = useState([]);
-  const [originalSelection, setOriginalSelection] = useState([]);
-  const [search, setSearch] = useState('');
-  const {darkMode, showFrequency, showStatus} = useSettings();
+  const {user} = useAuth(); // Fetch user info from authentication context
+  const [allChannels, setAllChannels] = useState([]); // State for all radio channels
+  const [filteredChannels, setFilteredChannels] = useState([]); // State for filtered radio channels based on search
+  const [selected, setSelected] = useState([]); // State for selected radio channels
+  const [originalSelection, setOriginalSelection] = useState([]); // State for original selected channels to compare changes
+  const [search, setSearch] = useState(''); // State for search input
+  const {darkMode, showFrequency, showStatus} = useSettings(); // Fetch dark mode and settings for frequency/status display
 
   useEffect(() => {
+    // Function to load all radio channels and user's selected channels
     const loadChannels = async () => {
       try {
         const [all, userSelected] = await Promise.all([
-          radioChannelsApi.getAllChannels(),
-          radioChannelsApi.getUserChannels(user.id),
+          radioChannelsApi.getAllChannels(), // Fetch all channels
+          radioChannelsApi.getUserChannels(user.id), // Fetch channels user has selected
         ]);
 
-        setAllChannels(all);
-        setFilteredChannels(all);
-        const userSelectedIds = userSelected.map(c => c.id);
-        setSelected(userSelectedIds);
-        setOriginalSelection(userSelectedIds);
+        setAllChannels(all); // Set all channels to state
+        setFilteredChannels(all); // Set filtered channels initially to all channels
+        const userSelectedIds = userSelected.map(c => c.id); // Extract selected channel IDs from response
+        setSelected(userSelectedIds); // Set the selected channels
+        setOriginalSelection(userSelectedIds); // Set the original selection to compare later
       } catch (err) {
-        Alert.alert('Error', 'Failed to load channels');
+        Alert.alert('Error', 'Failed to load channels'); // Error handling
       }
     };
 
     loadChannels();
-  }, [user.id]);
+  }, [user.id]); // Only reload channels when the user ID changes
 
   useEffect(() => {
+    // Filter channels based on search input
     const lowerSearch = search.toLowerCase();
     const filtered = allChannels.filter(
       c =>
-        c.name.toLowerCase().includes(lowerSearch) ||
-        c.frequency.toLowerCase().includes(lowerSearch) ||
-        c.mode.toLowerCase().includes(lowerSearch),
+        c.name.toLowerCase().includes(lowerSearch) || // Match name
+        c.frequency.toLowerCase().includes(lowerSearch) || // Match frequency
+        c.mode.toLowerCase().includes(lowerSearch), // Match mode
     );
-    setFilteredChannels(filtered);
-  }, [search, allChannels]);
+    setFilteredChannels(filtered); // Set the filtered channels to state
+  }, [search, allChannels]); // Re-filter channels when search term or allChannels changes
 
   const toggleSelect = channelId => {
+    // Toggle channel selection
     setSelected(prev =>
       prev.includes(channelId)
-        ? prev.filter(id => id !== channelId)
-        : [...prev, channelId],
+        ? prev.filter(id => id !== channelId) // Remove from selection if already selected
+        : [...prev, channelId], // Add to selection if not selected
     );
   };
 
   const handleSave = async () => {
+    // Save the updated selected channels to the user's list
     try {
-      const toAdd = selected.filter(id => !originalSelection.includes(id));
-      const toRemove = originalSelection.filter(id => !selected.includes(id));
+      const toAdd = selected.filter(id => !originalSelection.includes(id)); // Channels to add
+      const toRemove = originalSelection.filter(id => !selected.includes(id)); // Channels to remove
 
       for (let id of toAdd) {
-        await radioChannelsApi.addUserChannel(user.id, id);
+        await radioChannelsApi.addUserChannel(user.id, id); // Add each new channel
       }
 
       for (let id of toRemove) {
-        await radioChannelsApi.removeUserChannel(user.id, id);
+        await radioChannelsApi.removeUserChannel(user.id, id); // Remove each unselected channel
       }
 
-      Alert.alert('Success', 'Channels saved to your list');
-      navigation.goBack();
+      Alert.alert('Success', 'Channels saved to your list'); // Success alert
+      navigation.goBack(); // Go back to the previous screen
     } catch (err) {
-      Alert.alert('Error', 'Failed to save channels');
+      Alert.alert('Error', 'Failed to save channels'); // Error handling
     }
   };
 
   const dynamicStyles = StyleSheet.create({
+    // Dynamic styling based on dark mode
     sectionCard: {
       backgroundColor: darkMode ? '#2a2a2a' : '#fff',
       borderColor: darkMode ? '#444' : '#ccc',
@@ -104,7 +109,7 @@ const PickRadiosScreen = ({navigation}) => {
     },
     cardSelected: {
       backgroundColor: darkMode ? '#2e2e2e' : '#d0f0e0',
-      borderColor: '#1DB954',
+      borderColor: '#1DB954', // Highlight color for selected channels
     },
     channelName: {
       color: darkMode ? '#fff' : '#000',
@@ -119,10 +124,10 @@ const PickRadiosScreen = ({navigation}) => {
       color: darkMode ? '#bbb' : '#333',
     },
     checkIcon: {
-      color: darkMode ? '#1DB954' : '#007a3d',
+      color: darkMode ? '#1DB954' : '#007a3d', // Checkmark color for selected channels
     },
     saveButton: {
-      backgroundColor: darkMode ? '#1DB954' : '#21bf73',
+      backgroundColor: darkMode ? '#1DB954' : '#21bf73', // Save button color
     },
     saveButtonText: {
       color: darkMode ? '#fff' : '#000',
@@ -143,7 +148,7 @@ const PickRadiosScreen = ({navigation}) => {
             placeholder="🔍 Search by name / frequency / mode"
             placeholderTextColor={darkMode ? '#aaa' : '#888'}
             value={search}
-            onChangeText={setSearch}
+            onChangeText={setSearch} // Update search state on input change
           />
 
           {filteredChannels.length === 0 && (
@@ -153,15 +158,15 @@ const PickRadiosScreen = ({navigation}) => {
           )}
 
           {filteredChannels.map(c => {
-            const isSelected = selected.includes(c.id);
+            const isSelected = selected.includes(c.id); // Check if channel is selected
             return (
               <TouchableOpacity
                 key={c.id}
-                onPress={() => toggleSelect(c.id)}
+                onPress={() => toggleSelect(c.id)} // Toggle selection on press
                 style={[
                   styles.card,
                   dynamicStyles.card,
-                  isSelected && styles.cardSelected,
+                  isSelected && styles.cardSelected, // Highlight selected card
                   isSelected && dynamicStyles.cardSelected,
                 ]}>
                 <View style={styles.cardContent}>
@@ -200,7 +205,7 @@ const PickRadiosScreen = ({navigation}) => {
 
           <TouchableOpacity
             style={[styles.saveButton, dynamicStyles.saveButton]}
-            onPress={handleSave}>
+            onPress={handleSave}> // Save button to submit selection
             <Text style={[styles.saveButtonText, dynamicStyles.saveButtonText]}>
               💾 Save Selection
             </Text>

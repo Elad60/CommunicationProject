@@ -13,6 +13,7 @@ import AppLayout from '../components/AppLayout';
 import { useSettings } from '../context/SettingsContext';
 
 const SettingsScreen = ({ navigation }) => {
+  // Destructure settings values and setters from the context
   const {
     showFrequency,
     setShowFrequency,
@@ -28,13 +29,7 @@ const SettingsScreen = ({ navigation }) => {
     setDarkMode,
   } = useSettings();
 
-  const [settings, setSettings] = useState({
-    notifications: true,
-    autoConnect: false,
-    saveTransmissions: true,
-    lowPowerMode: false,
-  });
-
+  // Toggle setting value for switches
   const toggleSetting = (key) => {
     setSettings({
       ...settings,
@@ -42,9 +37,11 @@ const SettingsScreen = ({ navigation }) => {
     });
   };
 
+  // Set text and button colors based on dark mode
   const textColor = darkMode ? '#fff' : '#000';
   const buttonColor = darkMode ? '#0066cc' : '#91aad4';
 
+  // Render setting item with label, switch, and handler for toggling
   const renderSettingItem = (label, key, value, onToggle) => (
     <View style={styles.settingItem}>
       <Text style={[styles.settingLabel, { color: textColor }]}>{label}</Text>
@@ -64,18 +61,16 @@ const SettingsScreen = ({ navigation }) => {
     <AppLayout navigation={navigation} title="Settings">
       <View style={{ flex: 1 }}>
         <ScrollView style={styles.container}>
+          {/* Display Settings Section */}
           <View style={styles.section}>
             <Text style={[styles.sectionTitle, { color: textColor }]}>Display Settings</Text>
             {renderSettingItem('Show Frequency', 'showFrequency', showFrequency, () => setShowFrequency(!showFrequency))}
             {renderSettingItem('Show Status', 'showStatus', showStatus, () => setShowStatus(!showStatus))}
           </View>
 
+          {/* Radio Settings Section */}
           <View style={styles.section}>
             <Text style={[styles.sectionTitle, { color: textColor }]}>Radio Settings</Text>
-            {renderSettingItem('Notifications', 'notifications', settings.notifications, () => toggleSetting('notifications'))}
-            {renderSettingItem('Auto-Connect', 'autoConnect', settings.autoConnect, () => toggleSetting('autoConnect'))}
-            {renderSettingItem('Save Transmissions', 'saveTransmissions', settings.saveTransmissions, () => toggleSetting('saveTransmissions'))}
-            {renderSettingItem('Low Power Mode', 'lowPowerMode', settings.lowPowerMode, () => toggleSetting('lowPowerMode'))}
             {renderSettingItem('Nav Bar Adjustment ↔️', 'ToolBarAdjustment', toolBarAdjustment, () => setToolBarAdjustment(!toolBarAdjustment))}
             {renderSettingItem('Control Bar Adjustment ↕️', 'controlBarAdjustment', controlBarAdjustment, () => setControlBarAdjustment(!controlBarAdjustment))}
             {renderSettingItem('Dark Mode 🌗', 'darkMode', darkMode, () => setDarkMode(!darkMode))}
@@ -87,20 +82,23 @@ const SettingsScreen = ({ navigation }) => {
             />
           </View>
 
+          {/* System Section */}
           <View style={styles.section}>
             <Text style={[styles.sectionTitle, { color: textColor }]}>System</Text>
+            {/* Button to reset all settings */}
             <TouchableOpacity
-            style={[styles.button, { backgroundColor: buttonColor }]}
-            onPress={() => {
-              setToolBarAdjustment(true);
-              setControlBarAdjustment(true);
-              setDarkMode(true);
-              setBrightness(1);
-            }}
-          >
-            <Text style={[styles.buttonText, { color: textColor }]}>Reset All Settings</Text>
-          </TouchableOpacity>
+              style={[styles.button, { backgroundColor: buttonColor }]}
+              onPress={() => {
+                setToolBarAdjustment(true);
+                setControlBarAdjustment(true);
+                setDarkMode(true);
+                setBrightness(1);
+              }}
+            >
+              <Text style={[styles.buttonText, { color: textColor }]}>Reset All Settings</Text>
+            </TouchableOpacity>
 
+            {/* Button to check for updates */}
             <TouchableOpacity
               style={[styles.button, { backgroundColor: buttonColor }]}
               onPress={() => Linking.openURL('https://github.com/Elad60/CommunicationProject')}
@@ -109,6 +107,7 @@ const SettingsScreen = ({ navigation }) => {
             </TouchableOpacity>
           </View>
 
+          {/* Version Info Section */}
           <View style={styles.versionInfo}>
             <Text style={[styles.versionText, { color: textColor }]}>Communication System v1.0.0</Text>
           </View>

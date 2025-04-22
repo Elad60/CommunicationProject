@@ -14,6 +14,7 @@ const ControlPanel = ({
   height,
   width,
 }) => {
+  // Determine layout orientation and panel dimensions
   let CONTROL_PANEL_HEIGHT;
   let CONTROL_PANEL_WIDTH;
   const isLandscape = height < width;
@@ -28,14 +29,17 @@ const ControlPanel = ({
 
   const [selectedButton, setSelectedButton] = useState(null);
 
+  // Extract settings context values
   const {
     controlBarAdjustment,
     controlPanelPosition,
     setControlPanelPosition,
     toolBarAdjustment,
   } = useSettings();
+
   const position = useRef(new Animated.Value(controlPanelPosition)).current;
 
+  // Control panel horizontal offset based on toolbar visibility
   const controlPanelStyle = {
     marginLeft:
       !toolBarAdjustment && isLandscape
@@ -48,6 +52,7 @@ const ControlPanel = ({
   const backgroundColor = darkMode ? '#1a1a1a' : '#fff';
   const buttonTextColor = darkMode ? '#fff' : '#000';
 
+  // Animate panel position based on control bar toggle
   useEffect(() => {
     const targetPosition = controlBarAdjustment
       ? height - CONTROL_PANEL_HEIGHT
@@ -61,6 +66,7 @@ const ControlPanel = ({
     setControlPanelPosition(targetPosition);
   }, [controlBarAdjustment, height, width]);
 
+  // Define control panel buttons
   const buttons = [
     {
       title: 'Speaker',
@@ -98,6 +104,7 @@ const ControlPanel = ({
     },
   ];
 
+  // Render animated control panel with buttons
   return (
     <Animated.View
       style={[

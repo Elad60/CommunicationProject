@@ -5,21 +5,24 @@ const CustomSlider = ({ value = 0.5, onValueChange = () => {}, label = 'Brightne
   const trackWidth = 300;
   const thumbSize = 18;
 
+  // Utility functions to convert between value [0-1] and X position
   const valueToX = (val) => val * (trackWidth - thumbSize);
   const xToValue = (x) => Math.min(Math.max(x / (trackWidth - thumbSize), 0), 1);
 
   const panX = useRef(valueToX(value));
   const animatedX = useRef(new Animated.Value(panX.current)).current;
 
+  // Animate the thumb when the value prop changes
   useEffect(() => {
     Animated.spring(animatedX, {
       toValue: valueToX(value),
-      friction: 8, // Adjust friction for smoother animation
-      tension: 40, // Adjust tension for responsiveness
+      friction: 8,
+      tension: 40,
       useNativeDriver: false,
     }).start();
   }, [value]);
 
+  // Handle dragging behavior with PanResponder
   const panResponder = useRef(
     PanResponder.create({
       onStartShouldSetPanResponder: () => true,
@@ -51,7 +54,7 @@ const CustomSlider = ({ value = 0.5, onValueChange = () => {}, label = 'Brightne
             styles.track,
             {
               width: trackWidth,
-              backgroundColor: darkMode ? '#0066cc' : '#91aad4', 
+              backgroundColor: darkMode ? '#0066cc' : '#91aad4',
             },
           ]}
         >
@@ -60,7 +63,7 @@ const CustomSlider = ({ value = 0.5, onValueChange = () => {}, label = 'Brightne
               styles.thumb,
               {
                 transform: [{ translateX: animatedX }],
-                backgroundColor: darkMode ? '#fff' : '#000', 
+                backgroundColor: darkMode ? '#fff' : '#000',
               },
             ]}
             {...panResponder.panHandlers}

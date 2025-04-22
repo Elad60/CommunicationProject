@@ -4,6 +4,7 @@ import {Animated, Text, StyleSheet, Image, Pressable} from 'react-native';
 const ControlButton = ({title, icon, value, onPress, darkMode, isSelected, height, width}) => {
   const scale = useRef(new Animated.Value(1)).current;
 
+  // Animates button scale when hovered in
   const handleHoverIn = () => {
     Animated.spring(scale, {
       toValue: 1.1,
@@ -11,6 +12,7 @@ const ControlButton = ({title, icon, value, onPress, darkMode, isSelected, heigh
     }).start();
   };
 
+  // Animates button scale when hovered out
   const handleHoverOut = () => {
     Animated.spring(scale, {
       toValue: 1,
@@ -18,6 +20,7 @@ const ControlButton = ({title, icon, value, onPress, darkMode, isSelected, heigh
     }).start();
   };
 
+  // Styling based on props
   const backgroundColor = darkMode ? '#2b2b2b' : '#f8f8f8';
   const borderColor = isSelected ? '#3b82f6' : darkMode ? '#555' : '#ccc';
   const textColor = darkMode ? '#fff' : '#000';
@@ -28,6 +31,8 @@ const ControlButton = ({title, icon, value, onPress, darkMode, isSelected, heigh
       onHoverIn={handleHoverIn}
       onHoverOut={handleHoverOut}
       style={{marginHorizontal: 8}}>
+      
+      {/* Animated button container */}
       <Animated.View
         style={[
           styles.button,
@@ -43,10 +48,16 @@ const ControlButton = ({title, icon, value, onPress, darkMode, isSelected, heigh
             elevation: isSelected ? 6 : 3,
           },
         ]}>
+
+        {/* Icon */}
         <Image source={icon} style={styles.icon} resizeMode="contain" />
+
+        {/* Optional value (e.g., volume %) */}
         {value !== undefined && (
           <Text style={[styles.value, {color: textColor}]}>{value}%</Text>
         )}
+
+        {/* Title text */}
         <Text style={[styles.title, {color: textColor}]}>{title}</Text>
       </Animated.View>
     </Pressable>

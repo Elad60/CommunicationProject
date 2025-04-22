@@ -22,6 +22,7 @@ const MainScreen = ({navigation}) => {
   const {user} = useAuth();
   const {showFrequency, showStatus} = useSettings();
 
+  // Fetch radio channels for the authenticated user
   const fetchRadioChannels = async () => {
     try {
       setIsLoading(true);
@@ -29,16 +30,17 @@ const MainScreen = ({navigation}) => {
       if (!userId) throw new Error('User ID not found');
 
       const data = await radioChannelsApi.getUserChannels(userId);
-      setRadioChannels(data);
-      setError(null);
+      setRadioChannels(data); // Set the fetched radio channels
+      setError(null); // Reset error state on successful fetch
     } catch (err) {
       console.error('Error fetching radio channels:', err);
-      setError('Failed to load radio channels. Please try again later.');
+      setError('Failed to load radio channels. Please try again later.'); // Set error message if fetch fails
     } finally {
-      setIsLoading(false);
+      setIsLoading(false); // Set loading state to false once fetch is complete
     }
   };
 
+  // Run fetchRadioChannels on component mount or when user changes
   useEffect(() => {
     if (user?.id) {
       fetchRadioChannels();
@@ -46,28 +48,31 @@ const MainScreen = ({navigation}) => {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [user]);
 
+  // Handle selection of a radio channel
   const handleChannelSelect = id => {
-    setSelectedChannel(id);
+    setSelectedChannel(id); // Set selected channel by id
   };
 
+  // Handle toggle of radio channel state (Idle, ListenOnly, ListenAndTalk)
   const handleToggleChannelState = async channelId => {
     const current = radioChannels.find(c => c.id === channelId);
-    const nextState = getNextState(current.channelState);
+    const nextState = getNextState(current.channelState); // Get the next state for the channel
 
     const updatedChannels = radioChannels.map(c =>
       c.id === channelId ? {...c, channelState: nextState} : c,
     );
-    setRadioChannels(updatedChannels);
+    setRadioChannels(updatedChannels); // Update the channel state locally
 
     try {
       const userId = user?.id;
       if (!userId) throw new Error('User ID not found');
-      await radioChannelsApi.updateChannelState(userId, channelId, nextState);
+      await radioChannelsApi.updateChannelState(userId, channelId, nextState); // Update channel state in the backend
     } catch (error) {
-      console.error('Error updating channel state:', error);
+      console.error('Error updating channel state:', error); // Handle errors during state update
     }
   };
 
+  // Helper function to get the next state of a channel
   const getNextState = state => {
     switch (state) {
       case 'Idle':
@@ -81,11 +86,13 @@ const MainScreen = ({navigation}) => {
     }
   };
 
+  // Handle adding a new radio channel
   const handleAddChannel = () => {
-    navigation.navigate('PickRadios');
+    navigation.navigate('PickRadios'); // Navigate to pick radios screen
     console.log('Add channel button pressed');
   };
 
+  // Show loading indicator while data is being fetched
   if (isLoading) {
     return (
       <AppLayout navigation={navigation} title={user?.role}>
@@ -97,6 +104,7 @@ const MainScreen = ({navigation}) => {
     );
   }
 
+  // Show error message and retry button if fetching channels fails
   if (error) {
     return (
       <AppLayout navigation={navigation} title={user?.role}>
@@ -112,6 +120,7 @@ const MainScreen = ({navigation}) => {
     );
   }
 
+  // Render the main content when data is successfully fetched
   return (
     <AppLayout navigation={navigation} title={user?.role}>
       <View style={styles.container}>
@@ -133,6 +142,7 @@ const MainScreen = ({navigation}) => {
                   channelState={channel.channelState}
                   showFrequency={showFrequency}
                   showStatus={showStatus}
+                  numberOfChannels={radioChannels.length}
                 />
               </TouchableOpacity>
             ))}

@@ -2,7 +2,6 @@ import React, {useEffect, useRef} from 'react';
 import {
   Alert,
   Animated,
-  useWindowDimensions,
   View,
   Text,
   StyleSheet,
@@ -11,13 +10,16 @@ import {useRoute} from '@react-navigation/native';
 import NavButton from './NavButton';
 import {useSettings} from '../context/SettingsContext';
 import {useAuth} from '../context/AuthContext';
-import {useAnnouncements} from '../context/AnnouncementsContext'; // הוספת הקונטקסט
+import {useAnnouncements} from '../context/AnnouncementsContext'; // Using announcements context
 
+/* NavPanel - animated toolbar with navigation buttons and access control */
 const NavPanel = ({handleNavigation, darkMode, height, width}) => {
   let NAV_PANEL_HEIGHT;
   let NAV_PANEL_WIDTH;
+
   const isLandscape = height < width;
 
+  /* Set dimensions based on orientation */
   if (isLandscape) {
     NAV_PANEL_HEIGHT = height * 0.7;
     NAV_PANEL_WIDTH = width * 0.082;
@@ -25,34 +27,36 @@ const NavPanel = ({handleNavigation, darkMode, height, width}) => {
     NAV_PANEL_HEIGHT = height * 0.9;
     NAV_PANEL_WIDTH = width * 0.14;
   }
+
   const {toolBarAdjustment, controlBarAdjustment} = useSettings();
   const {user} = useAuth();
-  const {unreadCount, fetchUnreadCount} = useAnnouncements(); // שימוש בקונטקסט ההודעות
+  const {unreadCount, fetchUnreadCount} = useAnnouncements(); // Access announcements context
   const route = useRoute();
   const currentScreen = route.name;
 
+  /* X position for animation */
   const positionX = useRef(
     new Animated.Value(
       toolBarAdjustment ? width - NAV_PANEL_WIDTH : -NAV_PANEL_WIDTH,
     ),
   ).current;
 
+  /* Animate panel position when dimensions or settings change */
   useEffect(() => {
     Animated.spring(positionX, {
       toValue: toolBarAdjustment ? width - NAV_PANEL_WIDTH : -NAV_PANEL_WIDTH,
       useNativeDriver: false,
     }).start();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [toolBarAdjustment, height, width]);
 
-  // טעינת מספר הודעות שלא נקראו בעת טעינת הקומפוננטה
+  /* Fetch unread announcements when user or screen changes */
   useEffect(() => {
     if (user) {
       fetchUnreadCount();
     }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [user, currentScreen]);
 
+  /* Dynamic panel styles */
   const panelStyle = {
     position: 'absolute',
     top: 0,
@@ -76,6 +80,7 @@ const NavPanel = ({handleNavigation, darkMode, height, width}) => {
     transform: [{translateX: positionX}],
   };
 
+  /* Button definitions with optional role and badge */
   const buttons = [
     {
       title: 'Radios',
@@ -91,8 +96,8 @@ const NavPanel = ({handleNavigation, darkMode, height, width}) => {
       title: 'Announcements',
       icon: require('../../assets/logos/announcement.png'),
       screen: 'Announcements',
-      showBadge: unreadCount > 0, // האם להציג תג
-      badgeCount: unreadCount, // מספר ההודעות שלא נקראו
+      showBadge: unreadCount > 0, // Show badge if there are unread messages
+      badgeCount: unreadCount, // Number of unread messages
     },
     {
       title: 'More Radios',
@@ -134,7 +139,7 @@ const NavPanel = ({handleNavigation, darkMode, height, width}) => {
               width={width}
             />
 
-            {/* תג מספר הודעות שלא נקראו */}
+            {/* Unread messages badge */}
             {showBadge && (
               <View style={styles.badge}>
                 <Text style={styles.badgeText}>{badgeCount}</Text>
@@ -147,6 +152,7 @@ const NavPanel = ({handleNavigation, darkMode, height, width}) => {
   );
 };
 
+/* Styles */
 const styles = StyleSheet.create({
   buttonContainer: {
     position: 'relative',
