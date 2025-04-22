@@ -60,21 +60,9 @@ const RadioChannel = ({
   // Destructure icon paths
   const { headphones, mic } = getIconPaths();
 
-  // Dynamically calculate square size based on screen size and number of channels
-  const RadioChannelStyle = useMemo(() => {
-    const size = Math.max(
-      130, // set a minimum size
-      Math.sqrt((width * 0.75 * height * 0.75) / (numberOfChannels + 4)) // responsive calculation
-    );
-    
-    return {
-      width: size,
-      height: size,
-    };
-  }, [width, height, numberOfChannels]);
   
   return (
-    <View style={[styles.container, { backgroundColor: getBackgroundColor() }, RadioChannelStyle]}>
+    <View style={[styles.container, { backgroundColor: getBackgroundColor() }]}>
       {/* Display channel name */}
       <Text style={[styles.name, { color: darkMode ? '#fff' : '#000' }]}>{name}</Text>
       
@@ -108,6 +96,8 @@ const RadioChannel = ({
 // Styles for the component
 const styles = StyleSheet.create({
   container: {
+    width: 120,
+    height: 120,
     margin: 5,
     borderRadius: 5,
     borderWidth: 1,
