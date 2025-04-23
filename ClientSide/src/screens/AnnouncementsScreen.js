@@ -105,10 +105,6 @@ const AnnouncementsScreen = ({ navigation }) => {
 
   return (
     <AppLayout navigation={navigation} title="📋 Announcements">
-      <KeyboardAvoidingView
-        style={styles.container}
-        behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
-
         {/* Form overlay for adding new announcement */}
         {showAddForm && (
           <View style={[styles.formOverlay, { backgroundColor: darkMode ? 'rgba(0,0,0,0.7)' : 'rgba(255,255,255,0.7)' }]}>
@@ -197,7 +193,6 @@ const AnnouncementsScreen = ({ navigation }) => {
             <Text style={styles.addButtonText}>+</Text>
           </TouchableOpacity>
         )}
-      </KeyboardAvoidingView>
     </AppLayout>
   );
 };
