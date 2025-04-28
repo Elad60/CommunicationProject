@@ -19,13 +19,13 @@ npx react-native start
 
 4. In a **separate terminal**, run the Windows app:
 
-npx react-native run-windows
+npx react-native run-windows --release
 
 💡 If you haven't set up React Native for Windows yet, follow the official setup guide:
 https://microsoft.github.io/react-native-windows/docs/rnw-dependencies
 
 5. 🌐 Backend API (Swagger documentation):  
-https://proj.ruppin.ac.il/cgroup90/test2/tar1/swagger/index.html
+   https://proj.ruppin.ac.il/cgroup90/test2/tar1/swagger/index.html
 
 6. 👥 Demo Users
 
@@ -35,10 +35,10 @@ https://proj.ruppin.ac.il/cgroup90/test2/tar1/swagger/index.html
 
 - **Regular Users**  
   Use the desired username (e.g., `nadav`, `ofek`) with the following password format:  
-  `Xx123123!`  
-  - Replace `Xx` with the first letter of the username, uppercase followed by lowercase.  
-  - Example:  
-    - Username: `nadav` → Password: `Nn123123!`  
+  `Xx123123!`
+  - Replace `Xx` with the first letter of the username, uppercase followed by lowercase.
+  - Example:
+    - Username: `nadav` → Password: `Nn123123!`
     - Username: `ofek` → Password: `Oo123123!`
 
 ## 👨‍💻 Built By
