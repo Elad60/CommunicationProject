@@ -47,16 +47,7 @@ const AnnouncementsScreen = ({ navigation }) => {
     };
   }, []);
 
-  // Auto-scroll to bottom when announcements update
-  useEffect(() => {
-    if (announcements.length > 0) {
-      setTimeout(() => {
-        scrollViewRef.current?.scrollToEnd({ animated: false });
-      }, 300);
-    }
-  }, [announcements]);
-
-  // Submit a new announcement
+  // Handle adding a new announcement
   const handleAddAnnouncement = async () => {
     if (!title.trim() || !content.trim()) return;
     setLoading(true);
@@ -76,7 +67,7 @@ const AnnouncementsScreen = ({ navigation }) => {
     }
   };
 
-  // Format date for UI
+  // Format the date to display in a user-friendly format
   const formatDate = (dateString) => {
     const options = {
       year: 'numeric',
@@ -86,7 +77,7 @@ const AnnouncementsScreen = ({ navigation }) => {
       minute: '2-digit',
       hour12: false,
     };
-    return new Date(dateString).toLocaleString('en-US', options);
+    return new Date(dateString).toLocaleDateString('en-US', options);
   };
 
   const textColor = darkMode ? '#fff' : '#000';
@@ -158,34 +149,27 @@ const AnnouncementsScreen = ({ navigation }) => {
           style={styles.scrollView}
           contentContainerStyle={styles.scrollContent}
           ref={scrollViewRef}>
-          {[...announcements]
-            .sort((a, b) => new Date(a.createdAt) - new Date(b.createdAt))
-            .map((a) => (
-              <View
-                key={a.id}
-                style={[
-                  styles.card,
-                  !a.isRead && styles.unreadCard,
-                  {
-                    backgroundColor: !a.isRead
-                      ? (darkMode ? '#262636' : '#e0f7ff')
-                      : (darkMode ? '#121212' : '#fff'),
-                    borderColor: darkMode ? '#555' : '#ccc',
-                  },
-                ]}>
-                <View style={styles.titleContainer}>
-                  <Text style={[styles.title, { color: textColor }]}>{a.title}</Text>
-                  {!a.isRead && (
-                    <View style={styles.newBadge}>
-                      <Text style={styles.newBadgeText}>NEW</Text>
-                    </View>
-                  )}
-                </View>
-                <Text style={[styles.content, { color: darkMode ? '#ccc' : '#aaa' }]}>{a.content}</Text>
-                <View style={[styles.metaRow, { borderTopColor: textColor }]}>
-                  <Text style={[styles.metaUser, { color: darkMode ? '#00ccff' : '#91aad4' }]}>{a.userName}</Text>
-                  <Text style={[styles.metaTime, { color: darkMode ? '#999' : '#aaa' }]}>{formatDate(a.createdAt)}</Text>
-                </View>
+          {announcements.map((a) => (
+            <View
+              key={a.id}
+              style={[
+                styles.card,
+                !a.isRead && styles.unreadCard,
+                {
+                  backgroundColor: !a.isRead
+                    ? (darkMode ? '#262636' : '#e0f7ff')
+                    : (darkMode ? '#121212' : '#fff'),
+                  borderColor: darkMode ? '#555' : '#ccc',
+                },
+              ]}>
+              <View style={styles.titleContainer}>
+                <Text style={[styles.title, { color: textColor }]}>{a.title}</Text>
+                {/* Display 'NEW' badge for unread announcements */}
+                {!a.isRead && (
+                  <View style={styles.newBadge}>
+                    <Text style={styles.newBadgeText}>NEW</Text>
+                  </View>
+                )}
               </View>
             ))}
         </ScrollView>

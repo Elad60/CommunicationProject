@@ -214,7 +214,7 @@ const PickRadiosScreen = ({navigation}) => {
 
           <TouchableOpacity
             style={[styles.saveButton, dynamicStyles.saveButton]}
-            onPress={handleSave}> // Save button to submit selection
+            onPress={handleSave}>
             <Text style={[styles.saveButtonText, dynamicStyles.saveButtonText]}>
               💾 Save Selection
             </Text>
