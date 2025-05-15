@@ -1,3 +1,4 @@
+/* eslint-disable react-hooks/exhaustive-deps */
 import React, { useRef, useEffect } from 'react';
 import { View, Text, StyleSheet, PanResponder, Animated } from 'react-native';
 
@@ -5,8 +6,9 @@ const CustomSlider = ({ value = 0.5, onValueChange = () => {}, label = 'Brightne
   const trackWidth = 300;
   const thumbSize = 18;
 
-  // Utility functions to convert between value [0-1] and X position
+  // Convert value [0–1] to X position on the track
   const valueToX = (val) => val * (trackWidth - thumbSize);
+  // Convert X position to value [0–1]
   const xToValue = (x) => Math.min(Math.max(x / (trackWidth - thumbSize), 0), 1);
 
   const panX = useRef(valueToX(value));
@@ -14,32 +16,36 @@ const CustomSlider = ({ value = 0.5, onValueChange = () => {}, label = 'Brightne
 
   // Animate the thumb when the value prop changes
   useEffect(() => {
+    // Animate thumb position if value is updated externally
     Animated.spring(animatedX, {
       toValue: valueToX(value),
-      friction: 8,
-      tension: 40,
+      friction: 8, // Controls smoothness
+      tension: 40, // Controls responsiveness
       useNativeDriver: false,
     }).start();
   }, [value]);
 
-  // Handle dragging behavior with PanResponder
+  // Create gesture handler for dragging the thumb
   const panResponder = useRef(
     PanResponder.create({
       onStartShouldSetPanResponder: () => true,
       onMoveShouldSetPanResponder: () => true,
       onPanResponderGrant: () => {
+        // Start tracking movement
         animatedX.setOffset(panX.current);
         animatedX.setValue(0);
       },
       onPanResponderMove: (evt, gesture) => {
+        // Calculate new X while staying within bounds
         let newX = Math.min(Math.max(panX.current + gesture.dx, 0), trackWidth - thumbSize);
         animatedX.setValue(newX - panX.current);
-        onValueChange(xToValue(newX));
+        onValueChange(xToValue(newX)); // Update external value
       },
       onPanResponderRelease: (evt, gesture) => {
+        // Finalize position
         const currentX = Math.min(Math.max(panX.current + gesture.dx, 0), trackWidth - thumbSize);
         panX.current = currentX;
-        animatedX.flattenOffset();
+        animatedX.flattenOffset(); // Reset offset
         onValueChange(xToValue(currentX));
       },
     })
@@ -66,7 +72,7 @@ const CustomSlider = ({ value = 0.5, onValueChange = () => {}, label = 'Brightne
                 backgroundColor: darkMode ? '#fff' : '#000',
               },
             ]}
-            {...panResponder.panHandlers}
+            {...panResponder.panHandlers} // Attach drag handlers
           />
         </View>
       </View>
@@ -104,7 +110,7 @@ const styles = StyleSheet.create({
     borderRadius: 12,
     backgroundColor: '#fff',
     top: '50%',
-    marginTop: -9,
+    marginTop: -9, // Center the thumb vertically
   },
 });
 

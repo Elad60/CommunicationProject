@@ -1,27 +1,27 @@
 import axios from 'axios';
 
-// Create a base axios instance for API calls
+// Create a pre-configured axios instance with base URL and timeout
 const api = axios.create({
-  baseURL: 'http://localhost:7220/api',
-  // 'http://194.90.158.74/cgroup90/test2/tar1/api'
+  baseURL: 'https://proj.ruppin.ac.il/cgroup90/test2/tar1/api',
+  //'http://localhost:7220/api'
   timeout: 5000,
 });
 
-// 📡 Radio Channels API
+// 📻 Radio Channels API
 const radioChannelsApi = {
-  // Fetch channels associated with a specific user
+  // Get all channels assigned to a specific user
   getUserChannels: async userId => {
     const response = await api.get(`/radiochannels/user/${userId}`);
     return response.data;
   },
 
-  // Fetch all available channels
+  // Get all available radio channels
   getAllChannels: async () => {
     const response = await api.get('/radiochannels');
     return response.data;
   },
 
-  // Update a user's channel state
+  // Update the state of a specific channel for a user
   updateChannelState: async (userId, channelId, newState) => {
     await api.post(
       `/radiochannels/user/${userId}/channel/${channelId}/state`,
@@ -32,24 +32,24 @@ const radioChannelsApi = {
     );
   },
 
-  // Add a new channel
+  // Add a new radio channel
   addChannel: async channel => {
     await api.post('/radiochannels', channel, {
       headers: {'Content-Type': 'application/json'},
     });
   },
 
-  // Delete a channel by its ID
+  // Delete an existing radio channel
   deleteChannel: async channelId => {
     await api.delete(`/radiochannels/${channelId}`);
   },
 
-  // Add a specific channel to a user's list
+  // Assign a channel to a specific user
   addUserChannel: async (userId, channelId) => {
     await api.post(`/radiochannels/user/${userId}/add-channel/${channelId}`);
   },
 
-  // Remove a specific channel from a user's list
+  // Remove a channel from a specific user
   removeUserChannel: async (userId, channelId) => {
     await api.delete(
       `/radiochannels/user/${userId}/remove-channel/${channelId}`,
@@ -57,9 +57,9 @@ const radioChannelsApi = {
   },
 };
 
-// 🔐 Auth API
+// 🔐 Authentication API
 const authApi = {
-  // User login with credentials
+  // Handle user login
   login: async (username, password) => {
     try {
       const response = await api.post('/user/login', {
@@ -68,20 +68,22 @@ const authApi = {
       });
       return response.data;
     } catch (error) {
+      // Return specific error from server if exists
       if (error.response && error.response.data) {
         throw {response: {data: error.response.data}};
       }
+      // Generic fallback error
       throw error;
     }
   },
 
-  // User logout by ID
+  // Log out the current user
   logout: async userId => {
     const response = await api.post(`/user/logout/${userId}`);
     return response.data;
   },
 
-  // Register a new user
+  // Handle new user registration
   register: async (username, password, email, group) => {
     try {
       const response = await api.post(
@@ -100,10 +102,12 @@ const authApi = {
       );
       return response.data;
     } catch (error) {
+      // Return detailed error from server if available
       if (error.response && error.response.data) {
         console.error('Registration error (server):', error.response.data);
         return error.response.data;
       }
+      // Return generic error message
       console.error('Registration error:', error);
       return {
         success: false,
@@ -113,9 +117,9 @@ const authApi = {
   },
 };
 
-// 🔒 Admin API
+// 🛡️ Admin API
 const adminApi = {
-  // Fetch all registered users
+  // Get all users in the system
   getAllUsers: async () => {
     const response = await api.get('/user/all');
     return response.data;
@@ -128,7 +132,7 @@ const adminApi = {
     });
   },
 
-  // Update the role of a user
+  // Change the role of a user (e.g., Admin, Technician)
   updateUserRole: async (userId, newRole) => {
     await api.post(
       '/user/update-role',
@@ -139,7 +143,7 @@ const adminApi = {
     );
   },
 
-  // Delete a user by ID
+  // Permanently delete a user
   deleteUser: async userId => {
     await api.delete(`/user/${userId}`);
   },
@@ -153,7 +157,7 @@ const announcementsApi = {
     return response.data;
   },
 
-  // Create a new announcement
+  // Post a new announcement
   add: async (title, content, userName) => {
     const response = await api.post('/Announcement/announcement', {
       title,
@@ -163,7 +167,7 @@ const announcementsApi = {
     return response.data;
   },
 
-  // Fetch announcements with read status for a user
+  // Fetch all announcements including their read/unread status for a user
   getAllWithReadStatus: async userId => {
     const response = await api.get(
       `/Announcement/announcements/withReadStatus/${userId}`,
@@ -179,7 +183,7 @@ const announcementsApi = {
     return response.data;
   },
 
-  // Get count of unread announcements for a user
+  // Get the number of unread announcements for a user
   getUnreadCount: async userId => {
     const response = await api.get(
       `/Announcement/announcements/unreadCount/${userId}`,
@@ -188,15 +192,15 @@ const announcementsApi = {
   },
 };
 
-// 👫 Group Users API
+// 👥 Group Users API
 const groupUsersApi = {
-  // Get all users in a specific group
+  // Get all users that belong to a specific group
   getUsersByGroup: async groupName => {
     const response = await api.get(`/user/group/${groupName}`);
     return response.data;
   },
 
-  // Change the group of a specific user
+  // Change a user's group (e.g., from A to B)
   changeUserGroup: async (userId, newGroup) => {
     try {
       const response = await api.post(
@@ -214,5 +218,5 @@ const groupUsersApi = {
   },
 };
 
-// Export all grouped APIs
+// Export all API modules for use throughout the app
 export {radioChannelsApi, authApi, adminApi, groupUsersApi, announcementsApi};

@@ -1,3 +1,4 @@
+/* eslint-disable react-hooks/exhaustive-deps */
 /* eslint-disable react-native/no-inline-styles */
 /* eslint-disable no-alert */
 import React, {useRef, useEffect, useState} from 'react';
@@ -19,6 +20,7 @@ const ControlPanel = ({
   let CONTROL_PANEL_WIDTH;
   const isLandscape = height < width;
 
+  // Responsive sizing for control panel based on orientation
   if (isLandscape) {
     CONTROL_PANEL_HEIGHT = height * 0.13;
     CONTROL_PANEL_WIDTH = width * 0.92;
@@ -39,7 +41,7 @@ const ControlPanel = ({
 
   const position = useRef(new Animated.Value(controlPanelPosition)).current;
 
-  // Control panel horizontal offset based on toolbar visibility
+  // Adjust horizontal margin if toolbar is not adjusted
   const controlPanelStyle = {
     marginLeft:
       !toolBarAdjustment && isLandscape
@@ -54,9 +56,10 @@ const ControlPanel = ({
 
   // Animate panel position based on control bar toggle
   useEffect(() => {
+    // Animate control panel vertical position
     const targetPosition = controlBarAdjustment
-      ? height - CONTROL_PANEL_HEIGHT
-      : height * 0.05;
+      ? height - CONTROL_PANEL_HEIGHT // Bottom of screen
+      : height * 0.05; // Just below header
 
     Animated.spring(position, {
       toValue: targetPosition,
@@ -66,7 +69,7 @@ const ControlPanel = ({
     setControlPanelPosition(targetPosition);
   }, [controlBarAdjustment, height, width]);
 
-  // Define control panel buttons
+  // Define control buttons with behavior
   const buttons = [
     {
       title: 'Speaker',
@@ -123,7 +126,7 @@ const ControlPanel = ({
           paddingHorizontal: 10,
           paddingVertical: 10,
           overflow: 'visible',
-          transform: [{translateY: position}],
+          transform: [{translateY: position}], // Animate vertical position
         },
         controlPanelStyle,
       ]}>

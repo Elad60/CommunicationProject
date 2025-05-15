@@ -1,4 +1,4 @@
-/* eslint-disable react-native/no-inline-styles */
+/* eslint-disable react-hooks/exhaustive-deps */
 import React, {useState, useEffect} from 'react';
 import {
   View,
@@ -37,19 +37,19 @@ const GroupsScreen = ({navigation}) => {
   // Debounced dimensions for responsive UI
   const { height, width } = useDebouncedDimensions(300);
 
-  // Function to fetch users for the current group
+  // Fetch users in the same group as current user
   const fetchGroupUsers = async () => {
     try {
       setLoading(true);
       const groupName = user?.group;
-      if (!groupName) {throw new Error('Group not found');}
+      if (!groupName) throw new Error('Group not found');
 
       // API call to get users by group
       const users = await groupUsersApi.getUsersByGroup(groupName);
       const filtered = users.filter(u => u.id !== user.id); // Excluding the current user
       setGroupUsers(filtered);
 
-      // Initialize user states as 'Idle'
+      // Initialize per-user channel state (Idle by default)
       const initialStates = {};
       filtered.forEach(u => {
         initialStates[u.id] = 'Idle';
@@ -69,15 +69,14 @@ const GroupsScreen = ({navigation}) => {
     if (user?.group) {
       fetchGroupUsers();
     }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [user?.group]);
 
-  // Handler to change the group
+  // Allow user to switch group (A–F)
   const handleGroupChange = newGroup => {
     changeGroup(newGroup);
   };
 
-  // Function to return appropriate icon paths based on user state
+  // Return icon paths for each channel state
   const getIconPaths = channelState => {
     switch (channelState) {
       case 'Idle':
@@ -103,20 +102,20 @@ const GroupsScreen = ({navigation}) => {
     }
   };
 
-  // Function to get background color based on user state
+  // Return background color based on channel state
   const getBackgroundColor = state => {
     switch (state) {
       case 'ListenOnly':
-        return darkMode ? '#1f3d1f' : '#99cc99'; // green
+        return darkMode ? '#1f3d1f' : '#99cc99';
       case 'ListenAndTalk':
-        return darkMode ? '#1e2f4d' : '#91aad4'; // blue
+        return darkMode ? '#1e2f4d' : '#91aad4';
       case 'Idle':
       default:
-        return darkMode ? '#222' : '#ddd'; // default
+        return darkMode ? '#222' : '#ddd';
     }
   };
 
-  // Function to cycle through states: Idle -> ListenOnly -> ListenAndTalk
+  // Toggle between Idle → ListenOnly → ListenAndTalk → Idle
   const cycleState = state => {
     switch (state) {
       case 'Idle':
@@ -225,6 +224,7 @@ const GroupsScreen = ({navigation}) => {
         </View>
       </ScrollView>
 
+      {/* Section to change group manually */}
       <View style={{backgroundColor: darkMode ? '#000' : '#d9d9d9'}}>
         <Text style={[styles.label, {color: textColor}]}>
           Change Your Group:

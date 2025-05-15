@@ -13,7 +13,7 @@ import AppLayout from '../components/AppLayout';
 import { useSettings } from '../context/SettingsContext';
 
 const SettingsScreen = ({ navigation }) => {
-  // Destructure settings values and setters from the context
+  // Access global settings from context
   const {
     showFrequency,
     setShowFrequency,
@@ -31,17 +31,17 @@ const SettingsScreen = ({ navigation }) => {
 
   // Toggle setting value for switches
   const toggleSetting = (key) => {
-    setSettings({
-      ...settings,
-      [key]: !settings[key],
-    });
+    setSettings(prev => ({
+      ...prev,
+      [key]: !prev[key],
+    }));
   };
 
   // Set text and button colors based on dark mode
   const textColor = darkMode ? '#fff' : '#000';
   const buttonColor = darkMode ? '#0066cc' : '#91aad4';
 
-  // Render setting item with label, switch, and handler for toggling
+  // Generic setting item renderer
   const renderSettingItem = (label, key, value, onToggle) => (
     <View style={styles.settingItem}>
       <Text style={[styles.settingLabel, { color: textColor }]}>{label}</Text>
@@ -61,19 +61,22 @@ const SettingsScreen = ({ navigation }) => {
     <AppLayout navigation={navigation} title="Settings">
       <View style={{ flex: 1 }}>
         <ScrollView style={styles.container}>
-          {/* Display Settings Section */}
+
+          {/* Display Preferences */}
           <View style={styles.section}>
             <Text style={[styles.sectionTitle, { color: textColor }]}>Display Settings</Text>
             {renderSettingItem('Show Frequency', 'showFrequency', showFrequency, () => setShowFrequency(!showFrequency))}
             {renderSettingItem('Show Status', 'showStatus', showStatus, () => setShowStatus(!showStatus))}
           </View>
 
-          {/* Radio Settings Section */}
+          {/* Radio & UI Behavior Settings */}
           <View style={styles.section}>
             <Text style={[styles.sectionTitle, { color: textColor }]}>Radio Settings</Text>
             {renderSettingItem('Nav Bar Adjustment ↔️', 'ToolBarAdjustment', toolBarAdjustment, () => setToolBarAdjustment(!toolBarAdjustment))}
             {renderSettingItem('Control Bar Adjustment ↕️', 'controlBarAdjustment', controlBarAdjustment, () => setControlBarAdjustment(!controlBarAdjustment))}
             {renderSettingItem('Dark Mode 🌗', 'darkMode', darkMode, () => setDarkMode(!darkMode))}
+
+            {/* Brightness Slider */}
             <CustomSlider
               value={brightness}
               onValueChange={setBrightness}
@@ -101,13 +104,24 @@ const SettingsScreen = ({ navigation }) => {
             {/* Button to check for updates */}
             <TouchableOpacity
               style={[styles.button, { backgroundColor: buttonColor }]}
-              onPress={() => Linking.openURL('https://github.com/Elad60/CommunicationProject')}
-            >
+              onPress={() => {
+                setToolBarAdjustment(true);
+                setControlBarAdjustment(true);
+                setDarkMode(true);
+                setBrightness(1);
+              }}>
+              <Text style={[styles.buttonText, { color: textColor }]}>Reset All Settings</Text>
+            </TouchableOpacity>
+
+            {/* Link to GitHub (simulate update check) */}
+            <TouchableOpacity
+              style={[styles.button, { backgroundColor: buttonColor }]}
+              onPress={() => Linking.openURL('https://github.com/Elad60/CommunicationProject')}>
               <Text style={[styles.buttonText, { color: textColor }]}>Check for Updates</Text>
             </TouchableOpacity>
           </View>
 
-          {/* Version Info Section */}
+          {/* Version Info */}
           <View style={styles.versionInfo}>
             <Text style={[styles.versionText, { color: textColor }]}>Communication System v1.0.0</Text>
           </View>
@@ -116,6 +130,7 @@ const SettingsScreen = ({ navigation }) => {
     </AppLayout>
   );
 };
+
 
 const styles = StyleSheet.create({
   container: {

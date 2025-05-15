@@ -27,11 +27,11 @@ const RadioChannel = ({
         return darkMode ? '#1e2f4d' : '#91aad4'; // blue shades
       case 'Idle':
       default:
-        return darkMode ? '#222' : '#ddd'; // default gray
+        return darkMode ? '#222' : '#ddd'; // gray
     }
   };
 
-  // Return icon paths based on channel state
+  // Return proper icon paths for headphones and mic based on channel state
   const getIconPaths = () => {
     switch (channelState) {
       case 'Idle':
@@ -77,26 +77,28 @@ const RadioChannel = ({
     <View style={[styles.container, { backgroundColor: getBackgroundColor() }, RadioChannelStyle]}>
       {/* Display channel name */}
       <Text style={[styles.name, { color: darkMode ? '#fff' : '#000' }]}>{name}</Text>
-      
-      {/* Conditionally show frequency and mode */}
+
+      {/* Optionally show frequency and mode */}
       {showFrequency && (
-        <Text style={[styles.frequency, { color: darkMode ? '#fff' : '#000' }]}>{frequency}{' '}{mode}</Text>
+        <Text style={[styles.frequency, { color: darkMode ? '#fff' : '#000' }]}>
+          {frequency} {mode}
+        </Text>
       )}
-      
-      {/* Conditionally show status */}
+
+      {/* Optionally show usage status */}
       {showStatus && (
         <Text style={[styles.status, { color: darkMode ? '#fff' : '#000' }]}>
           {isActive ? 'Active' : 'Not used'}
         </Text>
       )}
 
-      {/* Display headphone and mic icons with status indicator */}
+      {/* Display icons + activity indicator */}
       <View style={styles.iconContainer}>
         <Image source={headphones} style={styles.iconImage} />
         <View
           style={[
             styles.statusIndicator,
-            { backgroundColor: isActive ? '#00cc00' : '#555' }, // green if active, gray otherwise
+            { backgroundColor: isActive ? '#00cc00' : '#555' }, // Green if active
           ]}
         />
         <Image source={mic} style={styles.iconImage} />

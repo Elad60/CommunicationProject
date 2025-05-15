@@ -1,3 +1,4 @@
+/* eslint-disable react-hooks/exhaustive-deps */
 import React, {useEffect, useRef} from 'react';
 import {
   Alert,
@@ -10,7 +11,7 @@ import {useRoute} from '@react-navigation/native';
 import NavButton from './NavButton';
 import {useSettings} from '../context/SettingsContext';
 import {useAuth} from '../context/AuthContext';
-import {useAnnouncements} from '../context/AnnouncementsContext'; // Using announcements context
+import {useAnnouncements} from '../context/AnnouncementsContext';
 
 /* NavPanel - animated toolbar with navigation buttons and access control */
 const NavPanel = ({handleNavigation, darkMode, height, width}) => {
@@ -30,11 +31,11 @@ const NavPanel = ({handleNavigation, darkMode, height, width}) => {
 
   const {toolBarAdjustment, controlBarAdjustment} = useSettings();
   const {user} = useAuth();
-  const {unreadCount, fetchUnreadCount} = useAnnouncements(); // Access announcements context
+  const {unreadCount, fetchUnreadCount} = useAnnouncements();
   const route = useRoute();
   const currentScreen = route.name;
 
-  /* X position for animation */
+  // Animate the X position of the panel (slide-in/out)
   const positionX = useRef(
     new Animated.Value(
       toolBarAdjustment ? width - NAV_PANEL_WIDTH : -NAV_PANEL_WIDTH,
@@ -49,17 +50,15 @@ const NavPanel = ({handleNavigation, darkMode, height, width}) => {
     }).start();
   }, [toolBarAdjustment, height, width]);
 
-  /* Fetch unread announcements when user or screen changes */
   useEffect(() => {
     if (user) {
-      fetchUnreadCount();
+      fetchUnreadCount(); // Refresh unread badge when screen/user changes
     }
   }, [user, currentScreen]);
 
   /* Dynamic panel styles */
   const panelStyle = {
     position: 'absolute',
-    top: 0,
     top: controlBarAdjustment
       ? 0
       : isLandscape
@@ -96,8 +95,8 @@ const NavPanel = ({handleNavigation, darkMode, height, width}) => {
       title: 'Announcements',
       icon: require('../../assets/logos/announcement.png'),
       screen: 'Announcements',
-      showBadge: unreadCount > 0, // Show badge if there are unread messages
-      badgeCount: unreadCount, // Number of unread messages
+      showBadge: unreadCount > 0,
+      badgeCount: unreadCount,
     },
     {
       title: 'More Radios',
@@ -139,7 +138,7 @@ const NavPanel = ({handleNavigation, darkMode, height, width}) => {
               width={width}
             />
 
-            {/* Unread messages badge */}
+            {/* Badge for unread announcement count */}
             {showBadge && (
               <View style={styles.badge}>
                 <Text style={styles.badgeText}>{badgeCount}</Text>

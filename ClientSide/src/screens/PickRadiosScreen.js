@@ -22,6 +22,7 @@ const PickRadiosScreen = ({navigation}) => {
   const [search, setSearch] = useState(''); // State for search input
   const {darkMode, showFrequency, showStatus} = useSettings(); // Fetch dark mode and settings for frequency/status display
 
+  // Load all channels and the user's selected channels on mount
   useEffect(() => {
     // Function to load all radio channels and user's selected channels
     const loadChannels = async () => {
@@ -31,11 +32,13 @@ const PickRadiosScreen = ({navigation}) => {
           radioChannelsApi.getUserChannels(user.id), // Fetch channels user has selected
         ]);
 
-        setAllChannels(all); // Set all channels to state
-        setFilteredChannels(all); // Set filtered channels initially to all channels
-        const userSelectedIds = userSelected.map(c => c.id); // Extract selected channel IDs from response
-        setSelected(userSelectedIds); // Set the selected channels
-        setOriginalSelection(userSelectedIds); // Set the original selection to compare later
+        setAllChannels(all);
+        setFilteredChannels(all);
+
+        // Save selected channel IDs to compare later for changes
+        const userSelectedIds = userSelected.map(c => c.id);
+        setSelected(userSelectedIds);
+        setOriginalSelection(userSelectedIds);
       } catch (err) {
         Alert.alert('Error', 'Failed to load channels'); // Error handling
       }
@@ -44,6 +47,7 @@ const PickRadiosScreen = ({navigation}) => {
     loadChannels();
   }, [user.id]); // Only reload channels when the user ID changes
 
+  // Filter channels when search input changes
   useEffect(() => {
     // Filter channels based on search input
     const lowerSearch = search.toLowerCase();
@@ -56,6 +60,7 @@ const PickRadiosScreen = ({navigation}) => {
     setFilteredChannels(filtered); // Set the filtered channels to state
   }, [search, allChannels]); // Re-filter channels when search term or allChannels changes
 
+  // Toggle channel selection on press
   const toggleSelect = channelId => {
     // Toggle channel selection
     setSelected(prev =>
@@ -65,6 +70,7 @@ const PickRadiosScreen = ({navigation}) => {
     );
   };
 
+  // Save updated selection to backend
   const handleSave = async () => {
     // Save the updated selected channels to the user's list
     try {
@@ -86,6 +92,7 @@ const PickRadiosScreen = ({navigation}) => {
     }
   };
 
+  // Dynamic styles based on darkMode
   const dynamicStyles = StyleSheet.create({
     // Dynamic styling based on dark mode
     sectionCard: {
@@ -151,12 +158,14 @@ const PickRadiosScreen = ({navigation}) => {
             onChangeText={setSearch} // Update search state on input change
           />
 
+          {/* No matching channels */}
           {filteredChannels.length === 0 && (
             <Text style={[styles.noResults, dynamicStyles.noResults]}>
               No matching channels found.
             </Text>
           )}
 
+          {/* List of all available channels */}
           {filteredChannels.map(c => {
             const isSelected = selected.includes(c.id); // Check if channel is selected
             return (
@@ -215,6 +224,7 @@ const PickRadiosScreen = ({navigation}) => {
     </AppLayout>
   );
 };
+
 
 const styles = StyleSheet.create({
   container: {

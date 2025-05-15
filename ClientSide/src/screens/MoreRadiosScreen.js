@@ -14,28 +14,29 @@ import {radioChannelsApi} from '../utils/apiService';
 import { useSettings } from '../context/SettingsContext';
 
 const MoreRadiosScreen = ({navigation}) => {
-  const {user} = useAuth();  // Fetching user data from AuthContext
-  const {darkMode} = useSettings();  // Fetching dark mode setting from SettingsContext
-  const [channels, setChannels] = useState([]);  // State to hold all channels
-  const [filteredChannels, setFilteredChannels] = useState([]);  // State to hold filtered channels based on search
-  const [search, setSearch] = useState('');  // Search term for filtering channels
+  const {user} = useAuth();
+  const {darkMode} = useSettings();
 
-  const [name, setName] = useState('');  // State to hold new channel name input
-  const [frequency, setFrequency] = useState('');  // State to hold new channel frequency input
-  const [mode, setMode] = useState('');  // State to hold new channel mode input
+  const [channels, setChannels] = useState([]);
+  const [filteredChannels, setFilteredChannels] = useState([]);
+  const [search, setSearch] = useState('');
 
-  // Function to load all channels from the API
+  const [name, setName] = useState('');  
+  const [frequency, setFrequency] = useState('');  
+  const [mode, setMode] = useState('');  
+
+  // Load all available channels (admin view)
   const loadChannels = async () => {
     try {
       const data = await radioChannelsApi.getAllChannels();  // Fetching channels
-      setChannels(data);  // Storing channels in state
-      setFilteredChannels(data);  // Also setting filtered channels to all channels initially
+      setChannels(data);  
+      setFilteredChannels(data);  
     } catch (err) {
-      Alert.alert('Error', 'Failed to load channels');  // Alert in case of failure
+      Alert.alert('Error', 'Failed to load channels');  
     }
   };
 
-  // Function to handle adding a new channel
+  // Create a new radio channel
   const handleAddChannel = async () => {
     // Validation check for input fields
     if (!name || !frequency || !mode) {
@@ -57,7 +58,7 @@ const MoreRadiosScreen = ({navigation}) => {
       setName('');  // Resetting inputs
       setFrequency('');
       setMode('');
-      loadChannels();  // Reload channels after adding
+      loadChannels(); // Refresh list
     } catch (err) {
       console.error('Add channel failed:', err.response?.data || err.message);
       Alert.alert(
@@ -67,11 +68,11 @@ const MoreRadiosScreen = ({navigation}) => {
     }
   };
 
-  // Function to handle deleting a channel
+  // Delete a channel
   const handleDelete = async id => {
     try {
-      await radioChannelsApi.deleteChannel(id);  // Deleting the channel
-      loadChannels();  // Reload channels after deletion
+      await radioChannelsApi.deleteChannel(id);
+      loadChannels(); // Refresh list after deletion
     } catch (err) {
       Alert.alert('Error', 'Failed to delete channel');  // Alert in case of failure
     }
@@ -82,7 +83,7 @@ const MoreRadiosScreen = ({navigation}) => {
     loadChannels();
   }, []);
 
-  // useEffect hook to filter channels whenever search term or channels change
+  // Filter channels as user types in search
   useEffect(() => {
     const lowerSearch = search.toLowerCase();  // Converting search term to lowercase
     const filtered = channels.filter(
@@ -94,13 +95,13 @@ const MoreRadiosScreen = ({navigation}) => {
     setFilteredChannels(filtered);  // Updating filtered channels
   }, [search, channels]);
 
-  // Getting styles based on dark mode
   const styles = getStyles(darkMode);
 
   return (
     <AppLayout navigation={navigation} title="More Radios">
       <ScrollView contentContainerStyle={styles.container}>
-        {/* Add Channel Section */}
+
+        {/* Channel creation form */}
         <View style={styles.sectionCard}>
           <Text style={styles.title}>Add New Channel</Text>
           <TextInput
@@ -129,7 +130,7 @@ const MoreRadiosScreen = ({navigation}) => {
           </TouchableOpacity>
         </View>
 
-        {/* Search + List Section */}
+        {/* Search and list of channels */}
         <View style={styles.sectionCard}>
           <Text style={styles.title}>Existing Channels</Text>
           <TextInput
@@ -140,12 +141,14 @@ const MoreRadiosScreen = ({navigation}) => {
             onChangeText={setSearch}
           />
 
+          {/* If nothing matches search */}
           {filteredChannels.length === 0 && (
             <Text style={styles.noResultsText}>
               No matching channels found.
             </Text>
           )}
 
+          {/* List of channels */}
           {filteredChannels.map(c => (
             <View key={c.id} style={styles.channelRow}>
               <View>

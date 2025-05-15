@@ -1,10 +1,8 @@
-import React, { useRef, useState } from 'react';
-import { Animated, Text, StyleSheet, View, Pressable, Image } from 'react-native';
-import Icon from 'react-native-vector-icons/FontAwesome';
+import React, {useRef, useState} from 'react';
+import {Animated, Text, StyleSheet, View, Pressable, Image} from 'react-native';
 
-// LogoutButton component - expands on hover to reveal "Logout" text
-const LogoutButton = ({ onLogout }) => {
-  // Animated value for controlling the button width
+const LogoutButton = ({onLogout}) => {
+  // Animated width for hover effect
   const widthAnim = useRef(new Animated.Value(45)).current;
   
   // State to track hover status
@@ -13,6 +11,7 @@ const LogoutButton = ({ onLogout }) => {
   // Handle hover-in effect: expands button width and shows label
   const handleHoverIn = () => {
     setHovering(true);
+    // Animate width expansion on hover
     Animated.timing(widthAnim, {
       toValue: 120,  // Expanded width
       duration: 300, 
@@ -23,6 +22,7 @@ const LogoutButton = ({ onLogout }) => {
   // Handle hover-out effect: shrinks button back to original size
   const handleHoverOut = () => {
     setHovering(false);
+    // Animate width contraction when hover ends
     Animated.timing(widthAnim, {
       toValue: 45,  // Original width
       duration: 300,
@@ -48,8 +48,7 @@ const LogoutButton = ({ onLogout }) => {
             resizeMode="contain"
           />
         </View>
-
-        {/* Text Section (visible when hovered) */}
+        {/* Only show text when hovering */}
         {hovering && <Text style={styles.text}>Logout</Text>}
       </Animated.View>
     </Pressable>
@@ -82,7 +81,7 @@ const styles = StyleSheet.create({
   icon: {
     width: 22,
     height: 22,
-    color: 'black', 
+    color: 'black',
   },
 });
 

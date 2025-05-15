@@ -6,13 +6,13 @@ const UserRow = ({user, darkMode, onBlockToggle, onRoleToggle, onDelete}) => {
 
   return (
     <View style={styles.row}>
-      {/* User Info */}
+      {/* Left: Basic user info */}
       <View style={styles.leftSection}>
         <Text style={styles.username}>{user.username}</Text>
         <Text style={styles.email}>{user.email}</Text>
       </View>
 
-      {/* Role, Date, Status */}
+      {/* Middle: Role, creation date, block status */}
       <View style={styles.middleSection}>
         <Text style={[styles.badge, styles.roleBadge]}>{user.role}</Text>
         <Text style={styles.infoText}>
@@ -27,8 +27,9 @@ const UserRow = ({user, darkMode, onBlockToggle, onRoleToggle, onDelete}) => {
         </Text>
       </View>
 
-      {/* Action Buttons */}
+      {/* Right: Action buttons */}
       <View style={styles.rightSection}>
+        {/* Show role toggle only for non-admins */}
         {user.role !== 'Admin' && (
           <TouchableOpacity
             activeOpacity={0.7}
@@ -39,6 +40,7 @@ const UserRow = ({user, darkMode, onBlockToggle, onRoleToggle, onDelete}) => {
             </Text>
           </TouchableOpacity>
         )}
+
         <TouchableOpacity
           activeOpacity={0.7}
           onPress={() => onBlockToggle(user)}
@@ -58,7 +60,7 @@ const UserRow = ({user, darkMode, onBlockToggle, onRoleToggle, onDelete}) => {
   );
 };
 
-// Dynamic styles based on dark mode
+// Styles are theme-aware (light/dark)
 const getStyles = darkMode =>
   StyleSheet.create({
     row: {
@@ -82,7 +84,7 @@ const getStyles = darkMode =>
     rightSection: {
       flex: 3,
       alignItems: 'flex-end',
-      gap: 6,
+      gap: 6, // spacing between buttons
     },
     username: {
       fontSize: 16,

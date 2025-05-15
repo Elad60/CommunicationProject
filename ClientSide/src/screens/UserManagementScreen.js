@@ -1,3 +1,4 @@
+/* eslint-disable react-hooks/exhaustive-deps */
 import React, {useEffect, useState} from 'react';
 import {
   View,
@@ -16,14 +17,14 @@ import {useAuth} from '../context/AuthContext';
 import {useSettings} from '../context/SettingsContext';
 
 const UserManagementScreen = ({navigation}) => {
-  const {darkMode} = useSettings(); // Access dark mode setting
-  const [users, setUsers] = useState([]); // State for all users
-  const [filteredUsers, setFilteredUsers] = useState([]); // State for filtered users
-  const [searchQuery, setSearchQuery] = useState(''); // Search query for filtering users
-  const [loading, setLoading] = useState(true); // Loading state for fetching data
-  const {user: currentUser} = useAuth(); // Access current authenticated user
+  const {darkMode} = useSettings();
+  const [users, setUsers] = useState([]); // All users (excluding self)
+  const [filteredUsers, setFilteredUsers] = useState([]); // Search-filtered list
+  const [searchQuery, setSearchQuery] = useState('');
+  const [loading, setLoading] = useState(true);
+  const {user: currentUser} = useAuth();
 
-  // Function to load all users from the API
+  // Fetch all users from the server (excluding the current admin)
   const loadUsers = async () => {
     try {
       setLoading(true); // Set loading to true before fetching data
@@ -40,10 +41,10 @@ const UserManagementScreen = ({navigation}) => {
   };
 
   useEffect(() => {
-    loadUsers(); // Load users on component mount
+    loadUsers(); // Initial load on mount
   }, []);
 
-  // Filter users based on search query
+  // Filter users based on search query (username or email)
   useEffect(() => {
     const lower = searchQuery.toLowerCase(); // Convert query to lowercase for case-insensitive search
     const filtered = users.filter(
@@ -54,17 +55,17 @@ const UserManagementScreen = ({navigation}) => {
     setFilteredUsers(filtered);
   }, [searchQuery, users]);
 
-  // Handle toggling block status for a user
+  // Toggle block/unblock user
   const handleToggleBlock = async user => {
     try {
       await adminApi.blockUser(user.id, !user.isBlocked);
-      loadUsers(); // Reload users after toggling block status
+      loadUsers(); // Refresh list
     } catch (err) {
       Alert.alert('Error', 'Failed to update block status.');
     }
   };
 
-  // Handle toggling role for a user
+  // Toggle user role between Operator and Technician
   const handleToggleRole = async user => {
     const newRole =
       user.role === 'Operator'
@@ -80,7 +81,7 @@ const UserManagementScreen = ({navigation}) => {
     }
   };
 
-  // Handle deleting a user
+  // Delete user with confirmation prompt
   const handleDelete = async user => {
     Alert.alert(
       'Confirm Delete',
@@ -103,11 +104,12 @@ const UserManagementScreen = ({navigation}) => {
     );
   };
 
-  const styles = getStyles(darkMode); // Get styles based on dark mode
+  const styles = getStyles(darkMode); // Apply styling based on theme
 
   return (
     <AppLayout navigation={navigation} title="User Management">
       <View style={{flex: 1}}>
+        {/* Search bar */}
         <TextInput
           style={styles.searchInput}
           placeholder="Search by username or email"
@@ -133,7 +135,7 @@ const UserManagementScreen = ({navigation}) => {
               </Text>
             </View>
 
-            {/* Map over filtered users and display them */}
+            {/* List of users */}
             {filteredUsers.map(user => (
               <UserRow
                 key={user.id}
@@ -144,6 +146,8 @@ const UserManagementScreen = ({navigation}) => {
                 onDelete={handleDelete}
               />
             ))}
+
+            {/* No users found message */}
             {filteredUsers.length === 0 && (
               <Text style={styles.noUsersText}>No users found.</Text> // Display message if no users match the search
             )}
@@ -153,6 +157,7 @@ const UserManagementScreen = ({navigation}) => {
     </AppLayout>
   );
 };
+
 
 const getStyles = darkMode =>
   StyleSheet.create({

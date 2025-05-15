@@ -8,7 +8,7 @@ const NavButton = ({title, icon, onPress, isActive, darkMode, height, width}) =>
   /* Determine orientation for responsive sizing */
   const isLandscape = height < width;
 
-  /* Scale up on hover */
+  // Animate scale up on hover
   const handleHoverIn = () => {
     Animated.spring(scale, {
       toValue: 1.1,
@@ -16,7 +16,7 @@ const NavButton = ({title, icon, onPress, isActive, darkMode, height, width}) =>
     }).start();
   };
 
-  /* Scale back down on hover out */
+  // Animate scale down when hover ends
   const handleHoverOut = () => {
     Animated.spring(scale, {
       toValue: 1,
@@ -24,7 +24,7 @@ const NavButton = ({title, icon, onPress, isActive, darkMode, height, width}) =>
     }).start();
   };
 
-  /* Dynamic colors based on dark mode and active state */
+  // Dynamic styles based on state
   const backgroundColor = darkMode ? '#2b2b2b' : '#f8f8f8';
   const borderColor = isActive ? '#3b82f6' : darkMode ? '#555' : '#ccc';
   const textColor = darkMode ? '#fff' : '#000';
@@ -43,10 +43,10 @@ const NavButton = ({title, icon, onPress, isActive, darkMode, height, width}) =>
           {
             height: isLandscape ? height * 0.13 : height * 0.15,
             width: isLandscape ? width * 0.08 : width * 0.14,
-            transform: [{scale}],
+            transform: [{scale}], // Animated scale on hover
             backgroundColor,
             borderColor,
-            borderWidth: isActive ? 2 : 1,
+            borderWidth: isActive ? 2 : 1, // Thicker border if selected
             shadowColor: isActive ? '#3b82f6' : '#000',
             shadowOpacity: isActive ? 0.3 : 0.1,
           },

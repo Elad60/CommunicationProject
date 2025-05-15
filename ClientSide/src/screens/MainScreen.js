@@ -1,3 +1,4 @@
+/* eslint-disable react-hooks/exhaustive-deps */
 import React, {useState, useEffect} from 'react';
 import {
   View,
@@ -22,7 +23,7 @@ const MainScreen = ({navigation}) => {
   const {user} = useAuth();
   const {showFrequency, showStatus} = useSettings();
 
-  // Fetch radio channels for the authenticated user
+  // Load user's radio channels on mount
   const fetchRadioChannels = async () => {
     try {
       setIsLoading(true);
@@ -45,7 +46,6 @@ const MainScreen = ({navigation}) => {
     if (user?.id) {
       fetchRadioChannels();
     }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [user]);
 
   // Handle selection of a radio channel
@@ -53,11 +53,12 @@ const MainScreen = ({navigation}) => {
     setSelectedChannel(id); // Set selected channel by id
   };
 
-  // Handle toggle of radio channel state (Idle, ListenOnly, ListenAndTalk)
+  // Toggle channel state locally and update on server
   const handleToggleChannelState = async channelId => {
     const current = radioChannels.find(c => c.id === channelId);
     const nextState = getNextState(current.channelState); // Get the next state for the channel
 
+    // Optimistic UI update
     const updatedChannels = radioChannels.map(c =>
       c.id === channelId ? {...c, channelState: nextState} : c,
     );
@@ -72,7 +73,7 @@ const MainScreen = ({navigation}) => {
     }
   };
 
-  // Helper function to get the next state of a channel
+  // Cycle between: Idle → ListenOnly → ListenAndTalk → Idle
   const getNextState = state => {
     switch (state) {
       case 'Idle':
@@ -86,13 +87,13 @@ const MainScreen = ({navigation}) => {
     }
   };
 
-  // Handle adding a new radio channel
+  // Navigate to screen for adding more channels
   const handleAddChannel = () => {
     navigation.navigate('PickRadios'); // Navigate to pick radios screen
     console.log('Add channel button pressed');
   };
 
-  // Show loading indicator while data is being fetched
+  // Loading state
   if (isLoading) {
     return (
       <AppLayout navigation={navigation} title={user?.role}>
@@ -104,7 +105,7 @@ const MainScreen = ({navigation}) => {
     );
   }
 
-  // Show error message and retry button if fetching channels fails
+  // Error state
   if (error) {
     return (
       <AppLayout navigation={navigation} title={user?.role}>
@@ -149,6 +150,7 @@ const MainScreen = ({navigation}) => {
           </View>
         </ScrollView>
 
+        {/* Floating Add Button */}
         <TouchableOpacity style={styles.addButton} onPress={handleAddChannel}>
           <Text style={styles.addButtonText}>+</Text>
         </TouchableOpacity>

@@ -1,10 +1,10 @@
-// AppLayout.js
+/* eslint-disable react-hooks/exhaustive-deps */
+/* eslint-disable react-native/no-inline-styles */
 import React, {useState, useMemo} from 'react';
 import {
   View,
   Text,
   StyleSheet,
-  TouchableOpacity,
   StatusBar,
 } from 'react-native';
 import {useDebouncedDimensions} from '../utils/useDebouncedDimensions';
@@ -21,6 +21,7 @@ const AppLayout = ({
   showControls = true,
   showNavPanel = true,
 }) => {
+  // Responsive layout: updates only after resizing stops (debounced)
   const {height, width} = useDebouncedDimensions(300);
   const isLandscape = width > height;
 
@@ -46,6 +47,7 @@ const AppLayout = ({
   const {controlBarAdjustment, toolBarAdjustment, brightness, darkMode} =
     useSettings();
 
+  // Handles screen change when user clicks a nav item
   const handleNavigation = screen => {
     setActiveNav(screen);
     navigation.navigate(screen);
@@ -62,7 +64,7 @@ const AppLayout = ({
         backgroundColor={backgroundColor}
       />
 
-      {/* Header */}
+      {/* Top Header Bar */}
       <View style={[styles.header, {backgroundColor, height: height * 0.05}]}>
         <View style={styles.headerSection}>
           <Text style={[styles.headerText, {color: textColor}]}>
@@ -81,6 +83,7 @@ const AppLayout = ({
         <View style={[styles.headerSection, {alignItems: 'flex-end'}]}>
           <LogoutButton
             onLogout={async () => {
+              // When logging out, always reset to group A
               if (user?.group !== 'A') {
                 await changeGroup('A');
               }
@@ -114,7 +117,7 @@ const AppLayout = ({
         )}
       </View>
 
-      {/* Control Panel */}
+      {/* Optional Control Panel (bottom bar) */}
       {showControls && (
         <ControlPanel
           speakerVolume={speakerVolume}
@@ -128,7 +131,7 @@ const AppLayout = ({
         />
       )}
 
-      {/* Global Brightness Overlay */}
+      {/* Brightness overlay simulating screen dimming */}
       <View
         pointerEvents="none"
         style={[

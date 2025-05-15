@@ -1,5 +1,5 @@
 import React, {createContext, useState, useEffect, useContext} from 'react';
-import {authApi,groupUsersApi} from '../utils/apiService';
+import {authApi, groupUsersApi} from '../utils/apiService';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 
 const AuthContext = createContext();
@@ -9,7 +9,7 @@ export const AuthProvider = ({children}) => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
 
-  // Load current user from storage on app start
+  // Load user from persistent storage on initial mount
   useEffect(() => {
     const loadUser = async () => {
       try {
@@ -26,22 +26,22 @@ export const AuthProvider = ({children}) => {
     loadUser();
   }, []);
 
+  // Register a new user
   const register = async (username, password, email, group) => {
     setLoading(true);
     setError('');
     try {
       const result = await authApi.register(username, password, email, group);
       console.log('Register result:', result);
-  
+
       if (result.success) {
         if (result.user) {
-          // If the server returned user data, store it and set the user
+          // Save user returned by server
           await AsyncStorage.setItem('user', JSON.stringify(result.user));
           setUser(result.user);
           return { success: true, user: result.user };
         } else {
-          // If server didn't return user data but registration was successful,
-          // we'll need to do a separate login
+          // Registration successful but no user data returned
           return { success: true };
         }
       } else {
@@ -57,6 +57,7 @@ export const AuthProvider = ({children}) => {
     }
   };
 
+  // Log in user
   const login = async (username, password) => {
     setLoading(true);
     setError('');
@@ -73,18 +74,18 @@ export const AuthProvider = ({children}) => {
         return {
           success: false,
           message,
-          errorCode: result.errorCode        };
+          errorCode: result.errorCode,
+        };
       }
     } catch (err) {
-      // Extract error information from the response
+      // Handle known error response from server
       const errorResponse = err?.response?.data;
-      // Handle different error types
       if (errorResponse) {
         const { message, errorCode } = errorResponse;
-        // Set user-friendly error message based on error code
         let userMessage = message || 'Login failed';
-        // Create more user-friendly messages
-        switch(errorCode) {
+
+        // Customize messages based on backend error codes
+        switch (errorCode) {
           case 'USER_NOT_FOUND':
             userMessage = 'User not found. Please check your username.';
             break;
@@ -103,27 +104,28 @@ export const AuthProvider = ({children}) => {
         return {
           success: false,
           message: userMessage,
-          errorCode      };
+          errorCode,
+        };
       }
 
-      // Fallback for network or other errors
+      // Generic fallback for network/server issues
       setError('Unable to connect to the server. Please try again later.');
       return {
         success: false,
         message: 'Unable to connect to the server. Please try again later.',
-        errorCode: 'NETWORK_ERROR'      };
+        errorCode: 'NETWORK_ERROR',
+      };
     } finally {
       setLoading(false);
     }
   };
 
-
-
+  // Logout: remove local user and notify backend
   const logout = async () => {
     setLoading(true);
     try {
       if (user?.id) {
-        await authApi.logout(user.id); // ← notify backend to set IsActive = 0
+        await authApi.logout(user.id);
       }
       await AsyncStorage.removeItem('user');
       setUser(null);
@@ -134,33 +136,33 @@ export const AuthProvider = ({children}) => {
       setLoading(false);
     }
   };
-  
-const changeGroup = async (newGroup) => {
-  try {
-    const response = await groupUsersApi.changeUserGroup(user.id, newGroup);
-    if (response.success) {
-      const updatedUser = { ...user, group: newGroup };
-      setUser(updatedUser); // עדכון המשתמש בקונטקסט
-      await AsyncStorage.setItem('user', JSON.stringify(updatedUser));
-      console.log('Group changed successfully to:', newGroup);
-    } else {
-      console.error('Failed to change group:', response.message);
-    }
-  // eslint-disable-next-line no-catch-shadow, no-shadow
-  } catch (error) {
-    console.error('Error changing group:', error);
-  }
-};
 
+  // Change user's group (e.g., from 'B' to 'A')
+  const changeGroup = async (newGroup) => {
+    try {
+      const response = await groupUsersApi.changeUserGroup(user.id, newGroup);
+      if (response.success) {
+        const updatedUser = { ...user, group: newGroup };
+        setUser(updatedUser);
+        await AsyncStorage.setItem('user', JSON.stringify(updatedUser));
+        console.log('Group changed successfully to:', newGroup);
+      } else {
+        console.error('Failed to change group:', response.message);
+      }
+    } catch (error) {
+      console.error('Error changing group:', error);
+    }
+  };
 
   return (
     <AuthContext.Provider
-      value={{user, loading, error, login, register, logout, changeGroup}}>
+      value={{ user, loading, error, login, register, logout, changeGroup }}>
       {children}
     </AuthContext.Provider>
   );
 };
 
+// Hook to use authentication context
 export const useAuth = () => {
   const context = useContext(AuthContext);
   if (!context) {
