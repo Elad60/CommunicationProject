@@ -1,4 +1,4 @@
-# Communication System Interface
+# Communication System Interface (Ongoing)
 
 ## Overview
 This project is a secure and user-friendly communication system developed as a final academic project in collaboration with a defense company. Designed to operate in classified and sensitive environments, the system focuses on both security and usability. It provides real-time communication capabilities for personnel via a robust and intuitive interface, optimized for both performance and operational needs.
@@ -14,19 +14,21 @@ This project is a secure and user-friendly communication system developed as a f
 - **Custom Settings**: Toggle dark mode, save transmissions, control power/brightness levels, and more.
 - **Dynamic Channel Management**: Create, update, and delete radio channels from within the interface.
 
-## Technologies Used
-- **Frontend**: React & React Native
-- **API Communication**: REST API
-- **Communication Protocol**: Protocol Buffers (Protobuf), custom network protocols
-- **Platform**: Migrated from Linux to Windows for improved compatibility and deployment
+## 🛠 Tech Stack
 
-## Skills Demonstrated
-- Software Architecture & Component Design
-- React UI/UX Design
-- Authentication & Role Management
-- Protocol Design with Protobuf
-- Cross-Platform Optimization
-- Secure Programming Practices
+- **Languages**: JavaScript, TypeScript
+- **Frameworks & Libraries**: React Native
+- **API Communication**: REST API
+- **Platform**: Windows
+- **Design & Architecture**:
+  - Component-Based Architecture
+  - Role-Based Access Control
+  - Secure Authentication
+- **Tools & Concepts**:
+  - Version Control (Git & GitHub)
+  - UI/UX Design Principles
+  - Light Mode / Dark Mode and Accessibility Features
+  - Customizable Settings and Real-Time Data Handling
 
 ## Screenshots
 
