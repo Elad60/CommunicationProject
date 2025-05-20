@@ -4,7 +4,7 @@
 This project is a secure and user-friendly communication system developed as a final academic project in collaboration with a defense company. Designed to operate in classified and sensitive environments, the system focuses on both security and usability. It provides real-time communication capabilities for personnel via a robust and intuitive interface, optimized for both performance and operational needs.
 
 ## Project Timeline
-**Duration:** October 2024 – Present
+**Duration:** March 2025 – Present
 
 ## Key Features
 - **Secure User Authentication**: Supports login and registration flows with validation rules.
@@ -55,9 +55,6 @@ This project is a secure and user-friendly communication system developed as a f
 
 ### 8. Announcements Panel
 ![Announcements](Screenshots/a8.png)
-
-## Credits
-Developed by Elad Aharon as part of the final year project in partnership with a defense technology company.
 
 ---
 
