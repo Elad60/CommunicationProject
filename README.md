@@ -54,6 +54,9 @@ This project is a secure and user-friendly communication system developed as a f
 ![User Management](Screenshots/a10.png)
 
 ### 8. Announcements Panel
+![Announcements](Screenshots/a11.png)
+
+### 9. Create Channel Panel
 ![Announcements](Screenshots/a8.png)
 
 ---
