@@ -38,7 +38,7 @@ This project is a secure and user-friendly communication system developed as a f
 ### 2. Registration Interface
 ![Registration](Screenshots/a2.png)
 
-### 3. Admin Main Panel
+### 3. Radios Main Panel
 ![Admin Dashboard](Screenshots/a3.png)
 
 ### 4. Pick Radios
@@ -47,11 +47,11 @@ This project is a secure and user-friendly communication system developed as a f
 ### 5. Settings Page
 ![Settings](Screenshots/a5.png)
 
-### 6. Add Radios
+### 6. Groups Page
 ![Add Radios](Screenshots/a6.png)
 
 ### 7. User Management
-![User Management](Screenshots/a7.png)
+![User Management](Screenshots/a10.png)
 
 ### 8. Announcements Panel
 ![Announcements](Screenshots/a8.png)
