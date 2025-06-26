@@ -101,18 +101,6 @@ const SettingsScreen = ({ navigation }) => {
               <Text style={[styles.buttonText, { color: textColor }]}>Reset All Settings</Text>
             </TouchableOpacity>
 
-            {/* Button to check for updates */}
-            <TouchableOpacity
-              style={[styles.button, { backgroundColor: buttonColor }]}
-              onPress={() => {
-                setToolBarAdjustment(true);
-                setControlBarAdjustment(true);
-                setDarkMode(true);
-                setBrightness(1);
-              }}>
-              <Text style={[styles.buttonText, { color: textColor }]}>Reset All Settings</Text>
-            </TouchableOpacity>
-
             {/* Link to GitHub (simulate update check) */}
             <TouchableOpacity
               style={[styles.button, { backgroundColor: buttonColor }]}
