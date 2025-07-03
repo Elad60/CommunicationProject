@@ -40,12 +40,7 @@ const radioChannelsApi = {
     await api.post(`/radiochannels/user/${userId}/add-channel/${channelId}`);
   },
 
-<<<<<<< Updated upstream
   removeUserChannel: async (userId, channelId) => {
-=======
-  // Remove a channel from a specific user
-  removeUserChannel: async (userId, channelId) => { 
->>>>>>> Stashed changes
     await api.delete(
       `/radiochannels/user/${userId}/remove-channel/${channelId}`,
     );
