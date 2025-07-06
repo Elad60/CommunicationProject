@@ -6,6 +6,8 @@ import {
   TouchableOpacity,
   ActivityIndicator,
   Text,
+  NativeModules,
+  Alert,
 } from 'react-native';
 import RadioChannel from '../components/RadioChannel';
 import AppLayout from '../components/AppLayout';
@@ -13,11 +15,14 @@ import {useAuth} from '../context/AuthContext';
 import {radioChannelsApi} from '../utils/apiService';
 import {useSettings} from '../context/SettingsContext';
 
+const {AgoraModule, TestModule} = NativeModules;
+
 const MainScreen = ({navigation}) => {
   const [selectedChannel, setSelectedChannel] = useState(null);
   const [radioChannels, setRadioChannels] = useState([]);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState(null);
+  const [moduleStatus, setModuleStatus] = useState('Not tested yet');
 
   const {user} = useAuth();
   const {showFrequency, showStatus} = useSettings();
@@ -92,6 +97,68 @@ const MainScreen = ({navigation}) => {
     console.log('Add channel button pressed');
   };
 
+  // Test function to verify native module is working
+  const testAgoraModule = () => {
+    // Alert to confirm button press
+    Alert.alert(
+      'Test Started',
+      'Test button pressed! Check console for details.',
+    );
+
+    console.log('==========================================');
+    console.log('🔍 TESTING NATIVE MODULES...');
+    console.log('==========================================');
+
+    let statusText = '';
+
+    try {
+      // Check TestModule first
+      console.log('🔍 TestModule:', TestModule);
+      if (TestModule) {
+        console.log('✅ TestModule is registered correctly!');
+        console.log('🔍 Calling TestModule.TestMethod()...');
+        TestModule.TestMethod();
+        console.log('✅ TestModule.TestMethod() called successfully');
+        statusText += '✅ TestModule: WORKING\n';
+      } else {
+        console.error('❌ TestModule is null or undefined');
+        statusText += '❌ TestModule: NULL\n';
+      }
+
+      // Check AgoraModule
+      console.log('🔍 AgoraModule:', AgoraModule);
+      if (!AgoraModule) {
+        console.error(
+          '❌ AgoraModule is null or undefined - module not registered properly',
+        );
+        statusText += '❌ AgoraModule: NULL\n';
+        setModuleStatus(statusText);
+        return;
+      }
+
+      console.log('✅ AgoraModule found:', AgoraModule);
+      statusText += '✅ AgoraModule: WORKING\n';
+
+      // Test with the real App ID - now using stub implementation
+      console.log('🔍 Calling AgoraModule.InitializeAgoraEngine()...');
+      AgoraModule.InitializeAgoraEngine('bf0d04d525da4bcb8f7abab286f4fc11');
+      console.log('✅ AgoraModule.InitializeAgoraEngine() called successfully');
+      statusText += '✅ Initialize: SUCCESS';
+
+      console.log('==========================================');
+      console.log('✅ MODULE TESTING COMPLETED');
+      console.log('==========================================');
+
+      setModuleStatus(statusText);
+    } catch (error) {
+      console.error('❌ Error testing Native Modules:', error);
+      console.error('❌ Error details:', error.message);
+      console.error('❌ Error stack:', error.stack);
+      statusText += `❌ ERROR: ${error.message}`;
+      setModuleStatus(statusText);
+    }
+  };
+
   // Show loading indicator while data is being fetched
   if (isLoading) {
     return (
@@ -152,6 +219,16 @@ const MainScreen = ({navigation}) => {
         <TouchableOpacity style={styles.addButton} onPress={handleAddChannel}>
           <Text style={styles.addButtonText}>+</Text>
         </TouchableOpacity>
+
+        <TouchableOpacity style={styles.testButton} onPress={testAgoraModule}>
+          <Text style={styles.testButtonText}>Test Agora</Text>
+        </TouchableOpacity>
+
+        {/* Module Status Display */}
+        <View style={styles.statusContainer}>
+          <Text style={styles.statusTitle}>Module Status:</Text>
+          <Text style={styles.statusText}>{moduleStatus}</Text>
+        </View>
       </View>
     </AppLayout>
   );
@@ -220,6 +297,47 @@ const styles = StyleSheet.create({
     fontSize: 30,
     fontWeight: 'bold',
     lineHeight: 30,
+  },
+  testButton: {
+    position: 'absolute',
+    left: 20,
+    bottom: 30,
+    backgroundColor: '#FF5722',
+    padding: 10,
+    borderRadius: 5,
+    elevation: 5,
+  },
+  testButtonText: {
+    color: '#fff',
+    fontSize: 14,
+    fontWeight: 'bold',
+  },
+  testText: {
+    fontSize: 24,
+    textAlign: 'center',
+    marginTop: 100,
+    color: '#333',
+  },
+  statusContainer: {
+    position: 'absolute',
+    top: 20,
+    left: 20,
+    right: 20,
+    backgroundColor: 'rgba(0, 0, 0, 0.8)',
+    padding: 10,
+    borderRadius: 5,
+    zIndex: 1001,
+  },
+  statusTitle: {
+    color: '#fff',
+    fontSize: 14,
+    fontWeight: 'bold',
+    marginBottom: 5,
+  },
+  statusText: {
+    color: '#fff',
+    fontSize: 12,
+    fontFamily: 'monospace',
   },
 });
 
