@@ -100,35 +100,32 @@ const MainScreen = ({navigation}) => {
   // Test function to verify native module is working
   const testAgoraModule = () => {
     // Alert to confirm button press
-    Alert.alert(
-      'Test Started',
-      'Test button pressed! Check console for details.',
-    );
-
-    console.log('==========================================');
-    console.log('🔍 TESTING NATIVE MODULES...');
-    console.log('==========================================');
+    Alert.alert('Test Started', '🔍 TESTING NATIVE MODULES...');
 
     let statusText = '';
 
     try {
       // Check TestModule first
-      console.log('🔍 TestModule:', TestModule);
       if (TestModule) {
-        console.log('✅ TestModule is registered correctly!');
-        console.log('🔍 Calling TestModule.TestMethod()...');
+        Alert.alert(
+          'TestModule Status',
+          '✅ TestModule is registered correctly!\n🔍 Calling TestModule.TestMethod()...',
+        );
         TestModule.TestMethod();
-        console.log('✅ TestModule.TestMethod() called successfully');
+        Alert.alert(
+          'TestModule Success',
+          '✅ TestModule.TestMethod() called successfully',
+        );
         statusText += '✅ TestModule: WORKING\n';
       } else {
-        console.error('❌ TestModule is null or undefined');
+        Alert.alert('TestModule Error', '❌ TestModule is null or undefined');
         statusText += '❌ TestModule: NULL\n';
       }
 
       // Check AgoraModule
-      console.log('🔍 AgoraModule:', AgoraModule);
       if (!AgoraModule) {
-        console.error(
+        Alert.alert(
+          'AgoraModule Error',
           '❌ AgoraModule is null or undefined - module not registered properly',
         );
         statusText += '❌ AgoraModule: NULL\n';
@@ -136,24 +133,31 @@ const MainScreen = ({navigation}) => {
         return;
       }
 
-      console.log('✅ AgoraModule found:', AgoraModule);
+      Alert.alert(
+        'AgoraModule Status',
+        '✅ AgoraModule found!\n🔍 Calling AgoraModule.InitializeAgoraEngine()...',
+      );
       statusText += '✅ AgoraModule: WORKING\n';
 
       // Test with the real App ID - now using stub implementation
-      console.log('🔍 Calling AgoraModule.InitializeAgoraEngine()...');
       AgoraModule.InitializeAgoraEngine('bf0d04d525da4bcb8f7abab286f4fc11');
-      console.log('✅ AgoraModule.InitializeAgoraEngine() called successfully');
+      Alert.alert(
+        'AgoraModule Success',
+        '✅ AgoraModule.InitializeAgoraEngine() called successfully',
+      );
       statusText += '✅ Initialize: SUCCESS';
 
-      console.log('==========================================');
-      console.log('✅ MODULE TESTING COMPLETED');
-      console.log('==========================================');
+      Alert.alert(
+        'Test Complete',
+        '✅ MODULE TESTING COMPLETED\n\n' + statusText,
+      );
 
       setModuleStatus(statusText);
     } catch (error) {
-      console.error('❌ Error testing Native Modules:', error);
-      console.error('❌ Error details:', error.message);
-      console.error('❌ Error stack:', error.stack);
+      Alert.alert(
+        'Test Error',
+        `❌ Error testing Native Modules:\n${error.message}`,
+      );
       statusText += `❌ ERROR: ${error.message}`;
       setModuleStatus(statusText);
     }

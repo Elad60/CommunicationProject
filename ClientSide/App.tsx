@@ -14,6 +14,16 @@ import {AuthProvider, useAuth} from './src/context/AuthContext';
 import {SettingsProvider} from './src/context/SettingsContext';
 import {AnnouncementsProvider} from './src/context/AnnouncementsContext';
 
+// Connect to React DevTools
+if (__DEV__) {
+  const connectToDevTools = require('react-devtools-core').connectToDevTools;
+  connectToDevTools({
+    host: 'localhost',
+    port: 8097,
+    resolveRNStyle: require('react-native/Libraries/StyleSheet/flattenStyle'),
+  });
+}
+
 // Component that handles auth flow
 const AppContent = () => {
   const {user, loading, login, register} = useAuth();
@@ -30,7 +40,12 @@ const AppContent = () => {
   if (!user) {
     return isRegistering ? (
       <RegisterScreen
-        onRegister={async (username: any, password: any, email: any, group: any) => {
+        onRegister={async (
+          username: any,
+          password: any,
+          email: any,
+          group: any,
+        ) => {
           const result = await register(username, password, email, group);
           if (result?.success) {
             setIsRegistering(false);
@@ -63,14 +78,13 @@ const App = () => {
   return (
     <SafeAreaView style={styles.container}>
       <StatusBar barStyle="light-content" backgroundColor="#000" />
-        <SettingsProvider>
-          <AuthProvider>
-            <AnnouncementsProvider>
-              <AppContent />
-            </AnnouncementsProvider>
-          </AuthProvider>
-        </SettingsProvider>
-
+      <SettingsProvider>
+        <AuthProvider>
+          <AnnouncementsProvider>
+            <AppContent />
+          </AnnouncementsProvider>
+        </AuthProvider>
+      </SettingsProvider>
     </SafeAreaView>
   );
 };
