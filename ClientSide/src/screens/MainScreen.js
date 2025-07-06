@@ -145,11 +145,38 @@ const MainScreen = ({navigation}) => {
         'AgoraModule Success',
         '✅ AgoraModule.InitializeAgoraEngine() called successfully',
       );
-      statusText += '✅ Initialize: SUCCESS';
+      statusText += '✅ Initialize: SUCCESS\n';
+
+      // Test JoinChannel method
+      Alert.alert('Channel Test', '🔍 Testing AgoraModule.JoinChannel()...');
+      AgoraModule.JoinChannel('test-voice-channel');
+      Alert.alert(
+        'Channel Success',
+        '✅ AgoraModule.JoinChannel() called successfully',
+      );
+      statusText += '✅ JoinChannel: SUCCESS\n';
+
+      // Test LeaveChannel method (NEW)
+      Alert.alert('Leave Test', '🔍 Testing AgoraModule.LeaveChannel()...');
+      AgoraModule.LeaveChannel();
+      Alert.alert(
+        'Leave Success',
+        '✅ AgoraModule.LeaveChannel() called successfully',
+      );
+      statusText += '✅ LeaveChannel: SUCCESS\n';
+
+      // Test ReleaseEngine method (NEW)
+      Alert.alert('Release Test', '🔍 Testing AgoraModule.ReleaseEngine()...');
+      AgoraModule.ReleaseEngine();
+      Alert.alert(
+        'Release Success',
+        '✅ AgoraModule.ReleaseEngine() called successfully',
+      );
+      statusText += '✅ ReleaseEngine: SUCCESS';
 
       Alert.alert(
         'Test Complete',
-        '✅ MODULE TESTING COMPLETED\n\n' + statusText,
+        '✅ VOICE COMMUNICATION CYCLE TESTED\n\n' + statusText,
       );
 
       setModuleStatus(statusText);
@@ -160,6 +187,66 @@ const MainScreen = ({navigation}) => {
       );
       statusText += `❌ ERROR: ${error.message}`;
       setModuleStatus(statusText);
+    }
+  };
+
+  // Individual test functions for detailed debugging
+  const testJoinChannel = () => {
+    try {
+      if (!AgoraModule) {
+        Alert.alert('Error', '❌ AgoraModule not available');
+        return;
+      }
+      Alert.alert('Join Test', '🔍 Testing JoinChannel only...');
+      AgoraModule.JoinChannel('test-voice-channel');
+      Alert.alert('Success', '✅ JoinChannel called successfully');
+    } catch (error) {
+      Alert.alert('Error', `❌ JoinChannel failed: ${error.message}`);
+    }
+  };
+
+  const testLeaveChannel = () => {
+    try {
+      if (!AgoraModule) {
+        Alert.alert('Error', '❌ AgoraModule not available');
+        return;
+      }
+      Alert.alert('Leave Test', '🔍 Testing LeaveChannel only...');
+      AgoraModule.LeaveChannel();
+      Alert.alert('Success', '✅ LeaveChannel called successfully');
+    } catch (error) {
+      Alert.alert('Error', `❌ LeaveChannel failed: ${error.message}`);
+    }
+  };
+
+  const testReleaseEngine = () => {
+    try {
+      if (!AgoraModule) {
+        Alert.alert('Error', '❌ AgoraModule not available');
+        return;
+      }
+      Alert.alert('Release Test', '🔍 Testing ReleaseEngine only...');
+      AgoraModule.ReleaseEngine();
+      Alert.alert('Success', '✅ ReleaseEngine called successfully');
+    } catch (error) {
+      Alert.alert('Error', `❌ ReleaseEngine failed: ${error.message}`);
+    }
+  };
+
+  // Check function loading status
+  const checkFunctionStatus = () => {
+    try {
+      if (!AgoraModule) {
+        Alert.alert('Error', '❌ AgoraModule not available');
+        return;
+      }
+
+      // Use callback pattern for React Native method
+      AgoraModule.GetFunctionLoadingStatus(status => {
+        Alert.alert('Function Loading Status', status);
+      });
+    } catch (error) {
+      Alert.alert('Error', `❌ Failed to get status: ${error.message}`);
     }
   };
 
@@ -226,6 +313,28 @@ const MainScreen = ({navigation}) => {
 
         <TouchableOpacity style={styles.testButton} onPress={testAgoraModule}>
           <Text style={styles.testButtonText}>Test Agora</Text>
+        </TouchableOpacity>
+
+        {/* Individual test buttons for detailed testing */}
+        <TouchableOpacity style={styles.joinButton} onPress={testJoinChannel}>
+          <Text style={styles.testButtonText}>Join</Text>
+        </TouchableOpacity>
+
+        <TouchableOpacity style={styles.leaveButton} onPress={testLeaveChannel}>
+          <Text style={styles.testButtonText}>Leave</Text>
+        </TouchableOpacity>
+
+        <TouchableOpacity
+          style={styles.releaseButton}
+          onPress={testReleaseEngine}>
+          <Text style={styles.testButtonText}>Release</Text>
+        </TouchableOpacity>
+
+        {/* Function Status Check Button */}
+        <TouchableOpacity
+          style={styles.statusCheckButton}
+          onPress={checkFunctionStatus}>
+          <Text style={styles.testButtonText}>Status</Text>
         </TouchableOpacity>
 
         {/* Module Status Display */}
@@ -342,6 +451,46 @@ const styles = StyleSheet.create({
     color: '#fff',
     fontSize: 12,
     fontFamily: 'monospace',
+  },
+  joinButton: {
+    position: 'absolute',
+    left: 20,
+    bottom: 90,
+    backgroundColor: '#4CAF50',
+    padding: 8,
+    borderRadius: 5,
+    elevation: 5,
+    minWidth: 60,
+  },
+  leaveButton: {
+    position: 'absolute',
+    left: 90,
+    bottom: 90,
+    backgroundColor: '#FF9800',
+    padding: 8,
+    borderRadius: 5,
+    elevation: 5,
+    minWidth: 60,
+  },
+  releaseButton: {
+    position: 'absolute',
+    left: 160,
+    bottom: 90,
+    backgroundColor: '#F44336',
+    padding: 8,
+    borderRadius: 5,
+    elevation: 5,
+    minWidth: 60,
+  },
+  statusCheckButton: {
+    position: 'absolute',
+    left: 220,
+    bottom: 90,
+    backgroundColor: '#FF5722',
+    padding: 8,
+    borderRadius: 5,
+    elevation: 5,
+    minWidth: 60,
   },
 });
 
