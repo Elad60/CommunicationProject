@@ -17,7 +17,13 @@ import {useSettings} from '../context/SettingsContext';
 
 const {AgoraModule, TestModule} = NativeModules;
 
+// Log available modules
+console.log('Available Native Modules:', Object.keys(NativeModules));
+console.log('AgoraModule:', AgoraModule);
+console.log('TestModule:', TestModule);
+
 const MainScreen = ({navigation}) => {
+  console.log('MainScreen rendered');
   const [selectedChannel, setSelectedChannel] = useState(null);
   const [radioChannels, setRadioChannels] = useState([]);
   const [isLoading, setIsLoading] = useState(true);
@@ -103,6 +109,17 @@ const MainScreen = ({navigation}) => {
     Alert.alert('Test Started', '🔍 TESTING NATIVE MODULES...');
     console.log('🔍 testAgoraModule called - starting test');
 
+    // Check if module exists
+    if (!NativeModules.AgoraModule) {
+      console.error('❌ AgoraModule not found in NativeModules!');
+      Alert.alert(
+        'Critical Error',
+        'AgoraModule not found in NativeModules. Available modules: ' +
+          Object.keys(NativeModules).join(', '),
+      );
+      return;
+    }
+
     let statusText = '';
 
     try {
@@ -144,9 +161,7 @@ const MainScreen = ({navigation}) => {
 
       // Test with the real App ID - now using proper C++ SDK
       console.log('🔧 About to call InitializeAgoraEngine with App ID');
-      alert('DEBUG: About to call InitializeAgoraEngine');
-      AgoraModule.InitializeAgoraEngine('06b3fb2ecc694ca38c7b2e44c52e2d57');
-      alert('DEBUG: InitializeAgoraEngine called - check C:\\temp\\agora_debug.log');
+      AgoraModule.InitializeAgoraEngine('bf0d04d525da4bcb8f7abab286f4fc11');
       console.log('✅ InitializeAgoraEngine called successfully');
       Alert.alert(
         'AgoraModule Success',
@@ -172,14 +187,14 @@ const MainScreen = ({navigation}) => {
       );
       statusText += '✅ LeaveChannel: SUCCESS\n';
 
-      // Test ReleaseEngine method (NEW)
-      Alert.alert('Release Test', '🔍 Testing AgoraModule.ReleaseEngine()...');
-      AgoraModule.ReleaseEngine();
-      Alert.alert(
-        'Release Success',
-        '✅ AgoraModule.ReleaseEngine() called successfully',
-      );
-      statusText += '✅ ReleaseEngine: SUCCESS';
+      // Skip ReleaseEngine to keep engine initialized for echo test
+      // Alert.alert('Release Test', '🔍 Testing AgoraModule.ReleaseEngine()...');
+      // AgoraModule.ReleaseEngine();
+      // Alert.alert(
+      //   'Release Success',
+      //   '✅ AgoraModule.ReleaseEngine() called successfully',
+      // );
+      statusText += '✅ Engine: READY FOR ECHO TEST';
 
       Alert.alert(
         'Test Complete',

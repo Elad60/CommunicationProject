@@ -6,6 +6,7 @@ import {
   StyleSheet,
   View,
   ActivityIndicator,
+  AppRegistry,
 } from 'react-native';
 import AppNavigator from './src/navigation/AppNavigator';
 import LoginScreen from './src/screens/LoginScreen';
@@ -13,14 +14,16 @@ import RegisterScreen from './src/screens/RegisterScreen';
 import {AuthProvider, useAuth} from './src/context/AuthContext';
 import {SettingsProvider} from './src/context/SettingsContext';
 import {AnnouncementsProvider} from './src/context/AnnouncementsContext';
+import {name as appName} from './app.json';
 
-// Connect to React DevTools
+// Enable remote debugging
 if (__DEV__) {
-  const connectToDevTools = require('react-devtools-core').connectToDevTools;
+  const websocket = require('ws');
+  const {connectToDevTools} = require('react-devtools-core');
   connectToDevTools({
     host: 'localhost',
-    port: 8097,
-    resolveRNStyle: require('react-native/Libraries/StyleSheet/flattenStyle'),
+    port: 8082,
+    websocket: websocket,
   });
 }
 
@@ -75,16 +78,18 @@ const AppContent = () => {
 
 // Root app with all providers
 const App = () => {
+  console.log('Testing debug connection');
+  console.log('App is rendering!');
   return (
     <SafeAreaView style={styles.container}>
       <StatusBar barStyle="light-content" backgroundColor="#000" />
-      <SettingsProvider>
-        <AuthProvider>
+      <AuthProvider>
+        <SettingsProvider>
           <AnnouncementsProvider>
             <AppContent />
           </AnnouncementsProvider>
-        </AuthProvider>
-      </SettingsProvider>
+        </SettingsProvider>
+      </AuthProvider>
     </SafeAreaView>
   );
 };
@@ -103,3 +108,6 @@ const styles = StyleSheet.create({
 });
 
 export default App;
+
+// Register the app
+AppRegistry.registerComponent(appName, () => App);

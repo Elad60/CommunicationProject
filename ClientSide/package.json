@@ -44,7 +44,8 @@
     "prettier": "2.8.8",
     "react-devtools-core": "^6.1.5",
     "react-test-renderer": "19.0.0",
-    "typescript": "5.0.4"
+    "typescript": "5.0.4",
+    "ws": "^8.18.3"
   },
   "engines": {
     "node": ">=18"
