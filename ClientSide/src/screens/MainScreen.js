@@ -101,6 +101,7 @@ const MainScreen = ({navigation}) => {
   const testAgoraModule = () => {
     // Alert to confirm button press
     Alert.alert('Test Started', '🔍 TESTING NATIVE MODULES...');
+    console.log('🔍 testAgoraModule called - starting test');
 
     let statusText = '';
 
@@ -124,6 +125,7 @@ const MainScreen = ({navigation}) => {
 
       // Check AgoraModule
       if (!AgoraModule) {
+        console.log('❌ AgoraModule is null or undefined');
         Alert.alert(
           'AgoraModule Error',
           '❌ AgoraModule is null or undefined - module not registered properly',
@@ -133,14 +135,19 @@ const MainScreen = ({navigation}) => {
         return;
       }
 
+      console.log('✅ AgoraModule found, calling InitializeAgoraEngine');
       Alert.alert(
         'AgoraModule Status',
         '✅ AgoraModule found!\n🔍 Calling AgoraModule.InitializeAgoraEngine()...',
       );
       statusText += '✅ AgoraModule: WORKING\n';
 
-      // Test with the real App ID - now using stub implementation
-      AgoraModule.InitializeAgoraEngine('bf0d04d525da4bcb8f7abab286f4fc11');
+      // Test with the real App ID - now using proper C++ SDK
+      console.log('🔧 About to call InitializeAgoraEngine with App ID');
+      alert('DEBUG: About to call InitializeAgoraEngine');
+      AgoraModule.InitializeAgoraEngine('06b3fb2ecc694ca38c7b2e44c52e2d57');
+      alert('DEBUG: InitializeAgoraEngine called - check C:\\temp\\agora_debug.log');
+      console.log('✅ InitializeAgoraEngine called successfully');
       Alert.alert(
         'AgoraModule Success',
         '✅ AgoraModule.InitializeAgoraEngine() called successfully',
@@ -250,6 +257,41 @@ const MainScreen = ({navigation}) => {
     }
   };
 
+  // Echo test functions
+  const startEchoTest = () => {
+    try {
+      console.log('🎤 startEchoTest called');
+      if (!AgoraModule) {
+        console.log('❌ AgoraModule not available in startEchoTest');
+        Alert.alert('Error', '❌ AgoraModule not available');
+        return;
+      }
+      console.log('🔧 About to call StartEchoTest');
+      Alert.alert(
+        'Echo Test',
+        '🎤 Starting echo test...\n\nSpeak into your microphone - you should hear your voice after 3 seconds!',
+      );
+      AgoraModule.StartEchoTest();
+      console.log('✅ StartEchoTest called successfully');
+    } catch (error) {
+      console.log('❌ StartEchoTest error:', error.message);
+      Alert.alert('Error', `❌ StartEchoTest failed: ${error.message}`);
+    }
+  };
+
+  const stopEchoTest = () => {
+    try {
+      if (!AgoraModule) {
+        Alert.alert('Error', '❌ AgoraModule not available');
+        return;
+      }
+      Alert.alert('Echo Test', '🛑 Stopping echo test...');
+      AgoraModule.StopEchoTest();
+    } catch (error) {
+      Alert.alert('Error', `❌ StopEchoTest failed: ${error.message}`);
+    }
+  };
+
   // Show loading indicator while data is being fetched
   if (isLoading) {
     return (
@@ -335,6 +377,17 @@ const MainScreen = ({navigation}) => {
           style={styles.statusCheckButton}
           onPress={checkFunctionStatus}>
           <Text style={styles.testButtonText}>Status</Text>
+        </TouchableOpacity>
+
+        {/* Echo Test Buttons */}
+        <TouchableOpacity
+          style={styles.startEchoButton}
+          onPress={startEchoTest}>
+          <Text style={styles.testButtonText}>Start Echo</Text>
+        </TouchableOpacity>
+
+        <TouchableOpacity style={styles.stopEchoButton} onPress={stopEchoTest}>
+          <Text style={styles.testButtonText}>Stop Echo</Text>
         </TouchableOpacity>
 
         {/* Module Status Display */}
@@ -491,6 +544,26 @@ const styles = StyleSheet.create({
     borderRadius: 5,
     elevation: 5,
     minWidth: 60,
+  },
+  startEchoButton: {
+    position: 'absolute',
+    left: 20,
+    bottom: 150,
+    backgroundColor: '#9C27B0',
+    padding: 8,
+    borderRadius: 5,
+    elevation: 5,
+    minWidth: 80,
+  },
+  stopEchoButton: {
+    position: 'absolute',
+    left: 110,
+    bottom: 150,
+    backgroundColor: '#E91E63',
+    padding: 8,
+    borderRadius: 5,
+    elevation: 5,
+    minWidth: 80,
   },
 });
 
