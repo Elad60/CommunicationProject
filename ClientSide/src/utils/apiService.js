@@ -189,4 +189,163 @@ const groupUsersApi = {
   },
 };
 
-export {radioChannelsApi, authApi, adminApi, groupUsersApi, announcementsApi};
+// 📞 Private Call API
+const privateCallApi = {
+  // Send call invitation to another user
+  sendCallInvitation: async (callerId, receiverId) => {
+    try {
+      console.log('🔧 API: Sending call invitation...');
+      console.log('📊 API: callerId:', callerId, 'receiverId:', receiverId);
+      console.log('🌐 API: URL:', api.defaults.baseURL + '/private-call/invite');
+      
+      const requestData = {
+        callerId,
+        receiverId,
+        timestamp: new Date().toISOString(),
+        status: 'pending',
+      };
+      console.log('📤 API: Request data:', requestData);
+      
+      const response = await api.post('/private-call/invite', requestData);
+      console.log('✅ API: Success response:', response.data);
+      return response.data;
+    } catch (error) {
+      console.error('❌ API: Error sending call invitation');
+      console.error('📋 API: Error status:', error.response?.status);
+      console.error('📋 API: Error data:', error.response?.data);
+      console.error('📋 API: Error message:', error.message);
+      console.error('📋 API: Full error:', error);
+      
+      // Create a more informative error
+      const enhancedError = new Error(
+        `API Error: ${error.response?.status || 'Network'} - ${error.response?.data?.message || error.message}`
+      );
+      enhancedError.originalError = error;
+      throw enhancedError;
+    }
+  },
+
+  // Accept incoming call invitation
+  acceptCallInvitation: async (invitationId) => {
+    try {
+      const response = await api.post(`/private-call/accept/${invitationId}`, {
+        timestamp: new Date().toISOString(),
+      });
+      return response.data;
+    } catch (error) {
+      console.error('Error accepting call invitation:', error);
+      throw error;
+    }
+  },
+
+  // Reject incoming call invitation
+  rejectCallInvitation: async (invitationId) => {
+    try {
+      const response = await api.post(`/private-call/reject/${invitationId}`, {
+        timestamp: new Date().toISOString(),
+      });
+      return response.data;
+    } catch (error) {
+      console.error('Error rejecting call invitation:', error);
+      throw error;
+    }
+  },
+
+  // Cancel outgoing call invitation
+  cancelCallInvitation: async (invitationId) => {
+    try {
+      const response = await api.post(`/private-call/cancel/${invitationId}`, {
+        timestamp: new Date().toISOString(),
+      });
+      return response.data;
+    } catch (error) {
+      console.error('Error canceling call invitation:', error);
+      throw error;
+    }
+  },
+
+  // Check for incoming call invitations
+  checkIncomingCalls: async (userId) => {
+    try {
+      const response = await api.get(`/private-call/incoming/${userId}`);
+      return response.data;
+    } catch (error) {
+      console.error('Error checking incoming calls:', error);
+      throw error;
+    }
+  },
+
+  // Check outgoing call status
+  checkOutgoingCallStatus: async (invitationId) => {
+    try {
+      const response = await api.get(`/private-call/status/${invitationId}`);
+      return response.data;
+    } catch (error) {
+      console.error('Error checking outgoing call status:', error);
+      throw error;
+    }
+  },
+
+  // Start a private call between two users (legacy - after both accepted)
+  startCall: async (callerId, receiverId) => {
+    try {
+      const response = await api.post('/private-call/start', {
+        callerId,
+        receiverId,
+        timestamp: new Date().toISOString(),
+      });
+      return response.data;
+    } catch (error) {
+      console.error('Error starting private call:', error);
+      throw error;
+    }
+  },
+
+  // End a private call
+  endCall: async (callId) => {
+    try {
+      const response = await api.post(`/private-call/end/${callId}`, {
+        endTime: new Date().toISOString(),
+      });
+      return response.data;
+    } catch (error) {
+      console.error('Error ending private call:', error);
+      throw error;
+    }
+  },
+
+  // Get call status
+  getCallStatus: async (callId) => {
+    try {
+      const response = await api.get(`/private-call/status/${callId}`);
+      return response.data;
+    } catch (error) {
+      console.error('Error getting call status:', error);
+      throw error;
+    }
+  },
+
+  // Get call history for a user
+  getCallHistory: async (userId) => {
+    try {
+      const response = await api.get(`/private-call/history/${userId}`);
+      return response.data;
+    } catch (error) {
+      console.error('Error getting call history:', error);
+      throw error;
+    }
+  },
+
+  // Check if user is available for calls
+  checkUserAvailability: async (userId) => {
+    try {
+      const response = await api.get(`/private-call/availability/${userId}`);
+      return response.data;
+    } catch (error) {
+      console.error('Error checking user availability:', error);
+      throw error;
+    }
+  },
+};
+
+export {radioChannelsApi, authApi, adminApi, groupUsersApi, announcementsApi, privateCallApi};

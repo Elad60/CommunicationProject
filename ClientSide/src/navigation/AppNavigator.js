@@ -12,6 +12,9 @@ import RegisterScreen from '../screens/RegisterScreen';
 import {useAuth} from '../context/AuthContext';
 import UserManagementScreen from '../screens/UserManagementScreen';
 import PickRadiosScreen from '../screens/PickRadiosScreen';
+import PrivateCallScreen from '../screens/PrivateCallScreen';
+import WaitingForCallScreen from '../screens/WaitingForCallScreen';
+import IncomingCallScreen from '../screens/IncomingCallScreen';
 
 const Stack = createStackNavigator();
 
@@ -61,6 +64,9 @@ const AppNavigator = () => {
           <Stack.Screen name="Announcements" component={AnnouncementsScreen} />
           <Stack.Screen name="UserManagement" component={UserManagementScreen}/>
           <Stack.Screen name="PickRadios" component={PickRadiosScreen} />
+          <Stack.Screen name="PrivateCall" component={PrivateCallScreen} />
+          <Stack.Screen name="WaitingForCall" component={WaitingForCallScreen} />
+          <Stack.Screen name="IncomingCall" component={IncomingCallScreen} />
         </Stack.Navigator>
       )}
     </NavigationContainer>
