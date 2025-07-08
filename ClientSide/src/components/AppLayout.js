@@ -47,8 +47,8 @@ const AppLayout = ({
   const {controlBarAdjustment, toolBarAdjustment, brightness, darkMode} =
     useSettings();
   
-  // Listen for incoming calls
-  useIncomingCallListener();
+  // Listen for incoming calls - DISABLED until backend is ready
+  // useIncomingCallListener();
 
   const handleNavigation = screen => {
     setActiveNav(screen);
