@@ -73,6 +73,10 @@ namespace winrt::FinalProject::implementation
         void EnableLocalAudio(bool enabled);
         void AdjustRecordingVolume(int volume);
         void SetClientRole(int role);
+        
+        // Audio quality methods
+        void EnableNoiseSuppressionMode(bool enabled, int mode);
+        void SetAudioScenario(int scenario);
 
         ~AgoraManager() {
             ReleaseEngine();
@@ -153,6 +157,19 @@ namespace winrt::FinalProject::implementation
         void SetClientRole(int role) noexcept
         {
             AgoraManager::GetInstance()->SetClientRole(role);
+        }
+
+        // Audio quality React Native methods
+        REACT_METHOD(EnableNoiseSuppressionMode)
+        void EnableNoiseSuppressionMode(bool enabled, int mode) noexcept
+        {
+            AgoraManager::GetInstance()->EnableNoiseSuppressionMode(enabled, mode);
+        }
+
+        REACT_METHOD(SetAudioScenario)
+        void SetAudioScenario(int scenario) noexcept
+        {
+            AgoraManager::GetInstance()->SetAudioScenario(scenario);
         }
 
     private:

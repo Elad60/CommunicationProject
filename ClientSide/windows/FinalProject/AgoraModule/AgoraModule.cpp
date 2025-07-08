@@ -129,6 +129,16 @@ namespace winrt::FinalProject::implementation
             result = m_rtcEngine->enableAudio();
             OutputDebugStringA(("🔍 EnableAudio result: " + std::to_string(result) + "\n").c_str());
 
+            // Enable AI Noise Suppression for better audio quality
+            OutputDebugStringA("🤖 Enabling AI Noise Suppression...\n");
+            result = m_rtcEngine->setAINSMode(true, AINS_MODE_AGGRESSIVE);
+            OutputDebugStringA(("🔍 AI Noise Suppression result: " + std::to_string(result) + "\n").c_str());
+
+            // Set audio scenario for communication (optimizes for voice)
+            OutputDebugStringA("🎤 Setting audio scenario for communication...\n");
+            result = m_rtcEngine->setAudioScenario(AUDIO_SCENARIO_CHATROOM);
+            OutputDebugStringA(("🔍 Audio scenario result: " + std::to_string(result) + "\n").c_str());
+
             // Set client role
             OutputDebugStringA("🔧 Setting client role...\n");
             result = m_rtcEngine->setClientRole(CLIENT_ROLE_BROADCASTER);
@@ -257,6 +267,18 @@ namespace winrt::FinalProject::implementation
             OutputDebugStringA("  🎤 Publishing microphone: YES\n");
             OutputDebugStringA("  👂 Auto-subscribe to remote audio: YES\n");
             OutputDebugStringA("  👤 Client role: BROADCASTER\n");
+
+            // Optimize audio quality before joining channel
+            OutputDebugStringA("🎵 Optimizing audio quality for voice communication...\n");
+            
+            // Set recording volume to optimal level (reduce background noise pickup)
+            m_rtcEngine->adjustRecordingSignalVolume(80); // Slightly reduce from default 100
+            OutputDebugStringA("🔊 Recording volume set to 80 (reduces background noise)\n");
+            
+            // Enable local voice effects for cleaner sound
+            m_rtcEngine->setLocalVoiceEqualization(AUDIO_EQUALIZATION_BAND_125, -15);
+            m_rtcEngine->setLocalVoiceEqualization(AUDIO_EQUALIZATION_BAND_250, -10);
+            OutputDebugStringA("🎚️ Voice equalization applied for cleaner sound\n");
 
             OutputDebugStringA("🔗 CALLING joinChannel()...\n");
             // New project in testing mode - no token required
@@ -392,6 +414,50 @@ namespace winrt::FinalProject::implementation
             }
         } catch (...) {
             OutputDebugStringA("❌ Exception in SetClientRole\n");
+        }
+    }
+
+    void AgoraManager::EnableNoiseSuppressionMode(bool enabled, int mode)
+    {
+        try {
+            OutputDebugStringA(("🤖 EnableNoiseSuppressionMode - " + std::string(enabled ? "ENABLING" : "DISABLING") + " mode: " + std::to_string(mode) + "\n").c_str());
+            
+            if (!m_isInitialized || !m_rtcEngine) {
+                OutputDebugStringA("❌ Engine not initialized\n");
+                return;
+            }
+
+            AINS_MODE ainsMode = static_cast<AINS_MODE>(mode);
+            int result = m_rtcEngine->setAINSMode(enabled, ainsMode);
+            if (result == 0) {
+                OutputDebugStringA(("✅ Noise suppression " + std::string(enabled ? "ENABLED" : "DISABLED") + " successfully\n").c_str());
+            } else {
+                OutputDebugStringA(("❌ Failed to set noise suppression, error: " + std::to_string(result) + "\n").c_str());
+            }
+        } catch (...) {
+            OutputDebugStringA("❌ Exception in EnableNoiseSuppressionMode\n");
+        }
+    }
+
+    void AgoraManager::SetAudioScenario(int scenario)
+    {
+        try {
+            OutputDebugStringA(("🎵 SetAudioScenario - Setting to " + std::to_string(scenario) + "\n").c_str());
+            
+            if (!m_isInitialized || !m_rtcEngine) {
+                OutputDebugStringA("❌ Engine not initialized\n");
+                return;
+            }
+
+            AUDIO_SCENARIO_TYPE audioScenario = static_cast<AUDIO_SCENARIO_TYPE>(scenario);
+            int result = m_rtcEngine->setAudioScenario(audioScenario);
+            if (result == 0) {
+                OutputDebugStringA("✅ Audio scenario set successfully\n");
+            } else {
+                OutputDebugStringA(("❌ Failed to set audio scenario, error: " + std::to_string(result) + "\n").c_str());
+            }
+        } catch (...) {
+            OutputDebugStringA("❌ Exception in SetAudioScenario\n");
         }
     }
 
