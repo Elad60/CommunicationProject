@@ -753,5 +753,466 @@ namespace CommunicationServer.DAL
             }
             return count;
         }
+
+        // ================================================
+        // Private Calls Methods
+        // ================================================
+
+        // 1. Send private call invitation
+        public SendCallInvitationResponse SendPrivateCallInvitation(int callerId, int receiverId)
+        {
+            SqlConnection con = null;
+            try
+            {
+                con = Connect("myProjDB");
+
+                var parameters = new Dictionary<string, object>
+                {
+                    { "@CallerId", callerId },
+                    { "@ReceiverId", receiverId }
+                };
+
+                SqlCommand cmd = CreateCommandWithStoredProcedure("SP_SendPrivateCallInvitation", con, parameters);
+                
+                // הוספת OUTPUT parameter
+                SqlParameter outputParam = new SqlParameter("@InvitationId", SqlDbType.NVarChar, 50);
+                outputParam.Direction = ParameterDirection.Output;
+                cmd.Parameters.Add(outputParam);
+
+                SqlDataReader reader = cmd.ExecuteReader();
+                
+                if (reader.Read())
+                {
+                    return new SendCallInvitationResponse
+                    {
+                        InvitationId = reader["InvitationId"].ToString(),
+                        ChannelName = reader["ChannelName"].ToString(),
+                        Message = reader["Message"].ToString(),
+                        Success = true
+                    };
+                }
+
+                return new SendCallInvitationResponse
+                {
+                    Success = false,
+                    Message = "Failed to send invitation"
+                };
+            }
+            catch (Exception ex)
+            {
+                return new SendCallInvitationResponse
+                {
+                    Success = false,
+                    Message = "Error sending invitation: " + ex.Message
+                };
+            }
+            finally
+            {
+                con?.Close();
+            }
+        }
+
+        // 2. Get incoming calls for user
+        public GetIncomingCallsResponse GetIncomingCalls(int userId)
+        {
+            SqlConnection con = null;
+            try
+            {
+                con = Connect("myProjDB");
+
+                var parameters = new Dictionary<string, object>
+                {
+                    { "@UserId", userId }
+                };
+
+                SqlCommand cmd = CreateCommandWithStoredProcedure("SP_GetIncomingCalls", con, parameters);
+                SqlDataReader reader = cmd.ExecuteReader();
+
+                var incomingCalls = new List<IncomingCallInvitation>();
+
+                while (reader.Read())
+                {
+                    incomingCalls.Add(new IncomingCallInvitation
+                    {
+                        Id = reader["Id"].ToString(),
+                        CallerId = Convert.ToInt32(reader["CallerId"]),
+                        CallerName = reader["CallerName"].ToString(),
+                        CallerEmail = reader["CallerEmail"].ToString(),
+                        CallerRole = reader["CallerRole"].ToString(),
+                        ChannelName = reader["ChannelName"].ToString(),
+                        Timestamp = Convert.ToDateTime(reader["Timestamp"]),
+                        ExpiresAt = Convert.ToDateTime(reader["ExpiresAt"]),
+                        Status = reader["Status"].ToString()
+                    });
+                }
+
+                reader.Close();
+
+                return new GetIncomingCallsResponse
+                {
+                    IncomingCalls = incomingCalls,
+                    Count = incomingCalls.Count,
+                    Success = true
+                };
+            }
+            catch (Exception ex)
+            {
+                return new GetIncomingCallsResponse
+                {
+                    IncomingCalls = new List<IncomingCallInvitation>(),
+                    Count = 0,
+                    Success = false
+                };
+            }
+            finally
+            {
+                con?.Close();
+            }
+        }
+
+        // 3. Accept call invitation
+        public AcceptCallInvitationResponse AcceptCallInvitation(string invitationId, int userId)
+        {
+            SqlConnection con = null;
+            try
+            {
+                con = Connect("myProjDB");
+
+                var parameters = new Dictionary<string, object>
+                {
+                    { "@InvitationId", invitationId },
+                    { "@UserId", userId }
+                };
+
+                SqlCommand cmd = CreateCommandWithStoredProcedure("SP_AcceptCallInvitation", con, parameters);
+                SqlDataReader reader = cmd.ExecuteReader();
+
+                if (reader.Read())
+                {
+                    return new AcceptCallInvitationResponse
+                    {
+                        InvitationId = reader["InvitationId"].ToString(),
+                        ChannelName = reader["ChannelName"].ToString(),
+                        Message = reader["Message"].ToString(),
+                        Status = reader["Status"].ToString(),
+                        Success = true
+                    };
+                }
+
+                return new AcceptCallInvitationResponse
+                {
+                    Success = false,
+                    Message = "Failed to accept invitation"
+                };
+            }
+            catch (Exception ex)
+            {
+                return new AcceptCallInvitationResponse
+                {
+                    Success = false,
+                    Message = "Error accepting invitation: " + ex.Message
+                };
+            }
+            finally
+            {
+                con?.Close();
+            }
+        }
+
+        // 4. Reject call invitation
+        public RejectCallInvitationResponse RejectCallInvitation(string invitationId, int userId)
+        {
+            SqlConnection con = null;
+            try
+            {
+                con = Connect("myProjDB");
+
+                var parameters = new Dictionary<string, object>
+                {
+                    { "@InvitationId", invitationId },
+                    { "@UserId", userId }
+                };
+
+                SqlCommand cmd = CreateCommandWithStoredProcedure("SP_RejectCallInvitation", con, parameters);
+                SqlDataReader reader = cmd.ExecuteReader();
+
+                if (reader.Read())
+                {
+                    return new RejectCallInvitationResponse
+                    {
+                        InvitationId = reader["InvitationId"].ToString(),
+                        Message = reader["Message"].ToString(),
+                        Status = reader["Status"].ToString(),
+                        Success = true
+                    };
+                }
+
+                return new RejectCallInvitationResponse
+                {
+                    Success = false,
+                    Message = "Failed to reject invitation"
+                };
+            }
+            catch (Exception ex)
+            {
+                return new RejectCallInvitationResponse
+                {
+                    Success = false,
+                    Message = "Error rejecting invitation: " + ex.Message
+                };
+            }
+            finally
+            {
+                con?.Close();
+            }
+        }
+
+        // 5. Cancel call invitation
+        public CancelCallInvitationResponse CancelCallInvitation(string invitationId, int userId)
+        {
+            SqlConnection con = null;
+            try
+            {
+                con = Connect("myProjDB");
+
+                var parameters = new Dictionary<string, object>
+                {
+                    { "@InvitationId", invitationId },
+                    { "@UserId", userId }
+                };
+
+                SqlCommand cmd = CreateCommandWithStoredProcedure("SP_CancelCallInvitation", con, parameters);
+                SqlDataReader reader = cmd.ExecuteReader();
+
+                if (reader.Read())
+                {
+                    return new CancelCallInvitationResponse
+                    {
+                        InvitationId = reader["InvitationId"].ToString(),
+                        Message = reader["Message"].ToString(),
+                        Status = reader["Status"].ToString(),
+                        Success = true
+                    };
+                }
+
+                return new CancelCallInvitationResponse
+                {
+                    Success = false,
+                    Message = "Failed to cancel invitation"
+                };
+            }
+            catch (Exception ex)
+            {
+                return new CancelCallInvitationResponse
+                {
+                    Success = false,
+                    Message = "Error cancelling invitation: " + ex.Message
+                };
+            }
+            finally
+            {
+                con?.Close();
+            }
+        }
+
+        // 6. Get call status
+        public GetCallStatusResponse GetCallStatus(string invitationId, int userId)
+        {
+            SqlConnection con = null;
+            try
+            {
+                con = Connect("myProjDB");
+
+                var parameters = new Dictionary<string, object>
+                {
+                    { "@InvitationId", invitationId },
+                    { "@UserId", userId }
+                };
+
+                SqlCommand cmd = CreateCommandWithStoredProcedure("SP_GetCallStatus", con, parameters);
+                SqlDataReader reader = cmd.ExecuteReader();
+
+                if (reader.Read())
+                {
+                    return new GetCallStatusResponse
+                    {
+                        InvitationId = reader["InvitationId"].ToString(),
+                        Status = reader["Status"].ToString(),
+                        ChannelName = reader["ChannelName"].ToString(),
+                        Timestamp = Convert.ToDateTime(reader["Timestamp"]),
+                        UpdatedAt = Convert.ToDateTime(reader["UpdatedAt"]),
+                        ExpiresAt = Convert.ToDateTime(reader["ExpiresAt"]),
+                        Direction = reader["Direction"].ToString(),
+                        Success = true
+                    };
+                }
+
+                return new GetCallStatusResponse
+                {
+                    Success = false
+                };
+            }
+            catch (Exception ex)
+            {
+                return new GetCallStatusResponse
+                {
+                    Success = false
+                };
+            }
+            finally
+            {
+                con?.Close();
+            }
+        }
+
+        // 7. End private call
+        public EndCallResponse EndPrivateCall(string invitationId, string endReason = "completed")
+        {
+            SqlConnection con = null;
+            try
+            {
+                con = Connect("myProjDB");
+
+                var parameters = new Dictionary<string, object>
+                {
+                    { "@InvitationId", invitationId },
+                    { "@EndReason", endReason }
+                };
+
+                SqlCommand cmd = CreateCommandWithStoredProcedure("SP_EndPrivateCall", con, parameters);
+                SqlDataReader reader = cmd.ExecuteReader();
+
+                if (reader.Read())
+                {
+                    return new EndCallResponse
+                    {
+                        InvitationId = reader["InvitationId"].ToString(),
+                        Message = reader["Message"].ToString(),
+                        EndReason = reader["EndReason"].ToString(),
+                        Success = true
+                    };
+                }
+
+                return new EndCallResponse
+                {
+                    Success = false,
+                    Message = "Failed to end call"
+                };
+            }
+            catch (Exception ex)
+            {
+                return new EndCallResponse
+                {
+                    Success = false,
+                    Message = "Error ending call: " + ex.Message
+                };
+            }
+            finally
+            {
+                con?.Close();
+            }
+        }
+
+        // 8. Cleanup old invitations
+        public CleanupOldInvitationsResponse CleanupOldInvitations(int daysToKeep = 7)
+        {
+            SqlConnection con = null;
+            try
+            {
+                con = Connect("myProjDB");
+
+                var parameters = new Dictionary<string, object>
+                {
+                    { "@DaysToKeep", daysToKeep }
+                };
+
+                SqlCommand cmd = CreateCommandWithStoredProcedure("SP_CleanupOldInvitations", con, parameters);
+                SqlDataReader reader = cmd.ExecuteReader();
+
+                if (reader.Read())
+                {
+                    return new CleanupOldInvitationsResponse
+                    {
+                        DeletedInvitations = Convert.ToInt32(reader["DeletedInvitations"]),
+                        CutoffDate = Convert.ToDateTime(reader["CutoffDate"]),
+                        Message = reader["Message"].ToString(),
+                        Success = true
+                    };
+                }
+
+                return new CleanupOldInvitationsResponse
+                {
+                    Success = false,
+                    Message = "Failed to cleanup old invitations"
+                };
+            }
+            catch (Exception ex)
+            {
+                return new CleanupOldInvitationsResponse
+                {
+                    Success = false,
+                    Message = "Error cleaning up old invitations: " + ex.Message
+                };
+            }
+            finally
+            {
+                con?.Close();
+            }
+        }
+
+        // 9. Get user call statistics
+        public GetUserCallStatsResponse GetUserCallStats(int userId, int daysBack = 30)
+        {
+            SqlConnection con = null;
+            try
+            {
+                con = Connect("myProjDB");
+
+                var parameters = new Dictionary<string, object>
+                {
+                    { "@UserId", userId },
+                    { "@DaysBack", daysBack }
+                };
+
+                SqlCommand cmd = CreateCommandWithStoredProcedure("SP_GetUserCallStats", con, parameters);
+                SqlDataReader reader = cmd.ExecuteReader();
+
+                if (reader.Read())
+                {
+                    return new GetUserCallStatsResponse
+                    {
+                        Stats = new UserCallStats
+                        {
+                            UserId = Convert.ToInt32(reader["UserId"]),
+                            Username = reader["Username"].ToString(),
+                            CallsMade = Convert.ToInt32(reader["CallsMade"]),
+                            CallsReceived = Convert.ToInt32(reader["CallsReceived"]),
+                            CallsAccepted = Convert.ToInt32(reader["CallsAccepted"]),
+                            CallsRejected = Convert.ToInt32(reader["CallsRejected"]),
+                            CallsTimedOut = Convert.ToInt32(reader["CallsTimedOut"]),
+                            AvgCallDurationSeconds = reader["AvgCallDurationSeconds"] != DBNull.Value ? 
+                                Convert.ToDouble(reader["AvgCallDurationSeconds"]) : (double?)null
+                        },
+                        Success = true
+                    };
+                }
+
+                return new GetUserCallStatsResponse
+                {
+                    Success = false
+                };
+            }
+            catch (Exception ex)
+            {
+                return new GetUserCallStatsResponse
+                {
+                    Success = false
+                };
+            }
+            finally
+            {
+                con?.Close();
+            }
+        }
     }
 }
