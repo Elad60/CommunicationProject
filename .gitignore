@@ -121,11 +121,14 @@ ScaffoldingReadMe.txt
 # MSBuild logs
 ClientSide/msbuild.binlog
 
-# Keep these essential Agora files (override above blocks):
+# Block project files to avoid version conflicts
+**/windows/FinalProject/FinalProject.vcxproj
+**/windows/FinalProject/FinalProject.vcxproj.filters
+**/windows/FinalProject/PropertySheet.props
+**/windows/FinalProject/packages.lock.json
+
+# Keep ONLY AgoraModule files and essential assets:
 !ClientSide/windows/FinalProject/AgoraModule/
 !ClientSide/windows/FinalProject/AgoraModule/*
-!ClientSide/windows/FinalProject/FinalProject.vcxproj
-!ClientSide/windows/FinalProject/PropertySheet.props
 !ClientSide/windows/FinalProject/Package.appxmanifest
-!ClientSide/windows/FinalProject/packages.lock.json
 !ClientSide/windows/FinalProject/Assets/
