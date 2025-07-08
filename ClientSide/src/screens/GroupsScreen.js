@@ -20,9 +20,8 @@ const GroupsScreen = ({navigation}) => {
   // Destructuring user and changeGroup from AuthContext
   const {user, changeGroup} = useAuth();
   
-  // States for managing group users, user states, loading status, and errors
+  // States for managing group users, loading status, and errors
   const [groupUsers, setGroupUsers] = useState([]);
-  const [userStates, setUserStates] = useState({});
   const [loading, setLoading] = useState(true);
   const [, setError] = useState(null);
   
@@ -49,13 +48,6 @@ const GroupsScreen = ({navigation}) => {
       const users = await groupUsersApi.getUsersByGroup(groupName);
       const filtered = users.filter(u => u.id !== user.id); // Excluding the current user
       setGroupUsers(filtered);
-
-      // Initialize user states as 'Idle'
-      const initialStates = {};
-      filtered.forEach(u => {
-        initialStates[u.id] = 'Idle';
-      });
-      setUserStates(initialStates);
       setError(null);
     } catch (err) {
       console.error('Error fetching group users:', err);
@@ -78,78 +70,19 @@ const GroupsScreen = ({navigation}) => {
     changeGroup(newGroup);
   };
 
-  // Function to return appropriate icon paths based on user state
-  const getIconPaths = channelState => {
-    switch (channelState) {
-      case 'Idle':
-        return {
-          headphones: require('../../assets/logos/crossed-HF.png'),
-          mic: require('../../assets/logos/crossed-mic.png'),
-        };
-      case 'ListenOnly':
-        return {
-          headphones: require('../../assets/logos/headphones.png'),
-          mic: require('../../assets/logos/crossed-mic.png'),
-        };
-      case 'ListenAndTalk':
-        return {
-          headphones: require('../../assets/logos/headphones.png'),
-          mic: require('../../assets/logos/microphone.png'),
-        };
-      default:
-        return {
-          headphones: require('../../assets/logos/crossed-HF.png'),
-          mic: require('../../assets/logos/microphone.png'),
-        };
-    }
+  // Function to get simple background color for user cards
+  const getBackgroundColor = () => {
+    return darkMode ? '#333' : '#f5f5f5'; // Simple consistent color
   };
 
-  // Function to get background color based on user state
-  const getBackgroundColor = state => {
-    switch (state) {
-      case 'ListenOnly':
-        return darkMode ? '#1f3d1f' : '#99cc99'; // green
-      case 'ListenAndTalk':
-        return darkMode ? '#1e2f4d' : '#91aad4'; // blue
-      case 'Idle':
-      default:
-        return darkMode ? '#222' : '#ddd'; // default
-    }
-  };
-
-  // Function to cycle through states: Idle -> ListenOnly -> ListenAndTalk
-  const cycleState = state => {
-    switch (state) {
-      case 'Idle':
-        return 'ListenOnly';
-      case 'ListenOnly':
-        return 'ListenAndTalk';
-      case 'ListenAndTalk':
-      default:
-        return 'Idle';
-    }
-  };
-
-  // Function to handle user press event to change their state
+  // Function to handle user press for private call options
   const onUserPress = userId => {
-    setUserStates(prev => ({
-      ...prev,
-      [userId]: cycleState(prev[userId] || 'Idle'), // Toggle user state
-    }));
-  };
-
-  // Function to handle long press for private call options
-  const onUserLongPress = userId => {
     const selectedUser = groupUsers.find(u => u.id === userId);
     
     Alert.alert(
-      'User Options',
+      'Call Options',
       `What would you like to do with ${selectedUser.username}?`,
       [
-        {
-          text: 'Change Status',
-          onPress: () => onUserPress(userId),
-        },
         {
           text: 'Private Call',
           onPress: () => startPrivateCall(selectedUser),
@@ -191,6 +124,20 @@ const GroupsScreen = ({navigation}) => {
     );
   };
 
+  // Function to show instructions in an alert
+  const showInstructions = () => {
+    Alert.alert(
+      '💡 How to make Private Calls',
+      '• Tap on any user for call options\n\n' +
+      '📞 Private Call - Send invitation & wait for response\n\n' +
+      '🔗 Direct Call (Test) - Start call immediately for testing\n\n' +
+      '• 🟢 Online users are available\n' +
+      '• 🔴 Offline users may not respond\n\n' +
+      '• Use mute/speaker controls during calls',
+      [{text: 'Got it!', style: 'default'}]
+    );
+  };
+
   // Loading state display
   if (loading) {
     return (
@@ -217,7 +164,11 @@ const GroupsScreen = ({navigation}) => {
 
   // Main screen layout
   return (
-    <AppLayout navigation={navigation} title={`Group: ${user?.group}`}>
+    <AppLayout 
+      navigation={navigation} 
+      title={`Group: ${user?.group}`}
+      onShowInstructions={showInstructions}
+    >
       <ScrollView
         style={[
           styles.scrollView,
@@ -226,9 +177,7 @@ const GroupsScreen = ({navigation}) => {
         <View style={styles.mainGrid}>
           {groupUsers.length > 0 ? (
             groupUsers.map(u => {
-              const channelState = userStates[u.id] || 'Idle';
-              const icons = getIconPaths(channelState);
-              const bgColor = getBackgroundColor(channelState);
+              const bgColor = getBackgroundColor();
 
               return (
                 <TouchableOpacity
@@ -237,32 +186,32 @@ const GroupsScreen = ({navigation}) => {
                     styles.userCard,
                     {
                       backgroundColor: bgColor,
-                      borderColor: darkMode ? '#888' : '#333',
+                      borderColor: darkMode ? '#555' : '#ddd',
                       width: CardSize,
                       height: CardSize,
                     },
                   ]}
-                  onPress={() => onUserPress(u.id)}
-                  onLongPress={() => onUserLongPress(u.id)}>
-                  <Text style={{color: textColor, fontWeight: 'bold'}}>
+                  onPress={() => onUserPress(u.id)}>
+                  <Text style={{color: textColor, fontWeight: 'bold', fontSize: 16}}>
                     {u.username}
                   </Text>
-                  <Text style={{color: darkMode ? '#ccc' : '#333'}}>
+                  <Text style={{color: darkMode ? '#ccc' : '#666', fontSize: 12}}>
                     {u.email}
                   </Text>
-                  <Text style={{color: darkMode ? '#91aad4' : '#004080'}}>
+                  <Text style={{color: darkMode ? '#91aad4' : '#004080', fontSize: 12}}>
                     Role: {u.role}
                   </Text>
 
-                  <View style={styles.iconRow}>
-                    <Image source={icons.headphones} style={styles.icon} />
+                  <View style={styles.statusContainer}>
                     <View
                       style={[
                         styles.statusDot,
-                        {backgroundColor: u.isActive ? '#00cc00' : '#555'},
+                        {backgroundColor: u.isActive ? '#00cc00' : '#ff4444'},
                       ]}
                     />
-                    <Image source={icons.mic} style={styles.icon} />
+                    <Text style={{color: darkMode ? '#ccc' : '#666', fontSize: 10}}>
+                      {u.isActive ? 'Online' : 'Offline'}
+                    </Text>
                   </View>
                 </TouchableOpacity>
               );
@@ -284,29 +233,6 @@ const GroupsScreen = ({navigation}) => {
         <Text style={[styles.label, {color: textColor}]}>
           Change Your Group:
         </Text>
-        <View style={styles.instructionsContainer}>
-          <Text style={[styles.instructionText, {color: darkMode ? '#ccc' : '#666'}]}>
-            💡 <Text style={{fontWeight: 'bold'}}>How to use Private Calls:</Text>
-          </Text>
-          <Text style={[styles.instructionText, {color: darkMode ? '#ccc' : '#666'}]}>
-            • <Text style={{fontWeight: 'bold'}}>Tap</Text> a user to change their status
-          </Text>
-          <Text style={[styles.instructionText, {color: darkMode ? '#ccc' : '#666'}]}>
-            • <Text style={{fontWeight: 'bold'}}>Long press</Text> a user for call options:
-          </Text>
-          <Text style={[styles.instructionText, {color: darkMode ? '#ccc' : '#666'}]}>
-            &nbsp;&nbsp;&nbsp;&nbsp;📞 <Text style={{fontWeight: 'bold'}}>Private Call</Text> - Send invitation & wait
-          </Text>
-          <Text style={[styles.instructionText, {color: darkMode ? '#ccc' : '#666'}]}>
-            &nbsp;&nbsp;&nbsp;&nbsp;🔗 <Text style={{fontWeight: 'bold'}}>Direct Call (Test)</Text> - Jump to call immediately
-          </Text>
-          <Text style={[styles.instructionText, {color: darkMode ? '#ccc' : '#666'}]}>
-            • Use <Text style={{fontWeight: 'bold'}}>Direct Call</Text> for testing until server is ready
-          </Text>
-          <Text style={[styles.instructionText, {color: darkMode ? '#ccc' : '#666'}]}>
-            • Use mute/speaker controls during the call
-          </Text>
-        </View>
       </View>
       <View
         style={[
@@ -367,24 +293,18 @@ const styles = StyleSheet.create({
     fontSize: 12,
     textAlign: 'center',
   },
-  iconRow: {
+  statusContainer: {
     flexDirection: 'row',
-    justifyContent: 'space-between',
+    justifyContent: 'center',
     alignItems: 'center',
     marginTop: 10,
-    width: '100%',
     paddingHorizontal: 10,
   },
-  icon: {
-    width: 24,
-    height: 24,
-    resizeMode: 'contain',
-  },
   statusDot: {
-    width: 14,
-    height: 14,
-    borderRadius: 7,
-    marginHorizontal: 5,
+    width: 10,
+    height: 10,
+    borderRadius: 5,
+    marginRight: 5,
   },
   label: {
     fontSize: 18,
@@ -413,16 +333,6 @@ const styles = StyleSheet.create({
     textAlign: 'center',
     marginTop: 20,
     width: '100%',
-  },
-  instructionsContainer: {
-    margin: 10,
-    padding: 15,
-    borderRadius: 10,
-    backgroundColor: 'rgba(100, 100, 100, 0.1)',
-  },
-  instructionText: {
-    fontSize: 14,
-    marginBottom: 5,
   },
 });
 

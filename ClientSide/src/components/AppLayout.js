@@ -21,6 +21,7 @@ const AppLayout = ({
   title,
   showControls = true,
   showNavPanel = true,
+  onShowInstructions,
 }) => {
   const {height, width} = useDebouncedDimensions(300);
   const isLandscape = width > height;
@@ -129,6 +130,7 @@ const AppLayout = ({
           navigation={navigation}
           height={height}
           width={width}
+          onShowInstructions={onShowInstructions}
         />
       )}
 

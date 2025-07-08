@@ -13,6 +13,7 @@ const ControlPanel = ({
   darkMode,
   height,
   width,
+  onShowInstructions,
 }) => {
   // Determine layout orientation and panel dimensions
   let CONTROL_PANEL_HEIGHT;
@@ -94,6 +95,15 @@ const ControlPanel = ({
         setSelectedButton('Mute All');
       },
     },
+    // Add Details button only when onShowInstructions is available (Groups screen)
+    ...(onShowInstructions ? [{
+      title: 'Details',
+      icon: require('../../assets/logos/announcement.png'),
+      onPress: () => {
+        setSelectedButton('Details');
+        onShowInstructions();
+      },
+    }] : []),
     {
       title: 'Settings',
       icon: require('../../assets/logos/settings.png'),

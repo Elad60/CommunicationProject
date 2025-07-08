@@ -47,18 +47,37 @@ const PrivateCallScreen = ({route, navigation}) => {
   // Handle back button
   useEffect(() => {
     const backHandler = BackHandler.addEventListener('hardwareBackPress', () => {
+      console.log('🔙 Back button pressed');
+      console.log(`📊 Back button - isCallActive: ${isCallActive}`);
+      
       if (isCallActive) {
+        console.log('⚠️ Active call detected - showing confirmation dialog');
         Alert.alert(
           'End Call',
           'Are you sure you want to end this call?',
           [
-            {text: 'Cancel', style: 'cancel'},
-            {text: 'End Call', onPress: endCall, style: 'destructive'},
+            {text: 'Cancel', style: 'cancel', onPress: () => console.log('❌ User cancelled back button')},
+            {text: 'End Call', onPress: () => {
+              console.log('✅ User confirmed - ending call via back button');
+              endCall();
+            }, style: 'destructive'},
           ]
         );
         return true;
+      } else {
+        console.log('✅ No active call - allowing back navigation');
+        // Even if not active, check if we're in a channel and leave it
+        if (AgoraModule) {
+          AgoraModule.GetCurrentChannel((currentChannel) => {
+            console.log(`📊 Back button - current channel: ${currentChannel}`);
+            if (currentChannel && currentChannel !== '') {
+              console.log('⚠️ Found active channel during back navigation - leaving it');
+              AgoraModule.LeaveChannel();
+            }
+          });
+        }
+        return false;
       }
-      return false;
     });
 
     return () => backHandler.remove();
@@ -76,11 +95,35 @@ const PrivateCallScreen = ({route, navigation}) => {
       // Initialize Agora if not already done
       if (AgoraModule) {
         console.log('🔧 Initializing Agora for private call...');
-        await AgoraModule.InitializeAgoraEngine('bf0d04d525da4bcb8f7abab286f4fc11');
+        
+        // Check if we're already in a channel
+        AgoraModule.GetCurrentChannel((currentChannel) => {
+          console.log(`📊 Current channel before initialization: ${currentChannel}`);
+          if (currentChannel && currentChannel !== '') {
+            console.log('⚠️ Already in a channel, leaving it first');
+            AgoraModule.LeaveChannel();
+          }
+        });
+        
+        await AgoraModule.InitializeAgoraEngine('e5631d55e8a24b08b067bb73f8797fe3');
+        console.log('✅ Agora engine initialized');
         
         // Join the private channel
         console.log(`🎯 Joining private channel: ${privateChannelName}`);
         await AgoraModule.JoinChannel(privateChannelName);
+        console.log('✅ JoinChannel method called');
+        
+        // Verify we joined the channel
+        setTimeout(() => {
+          AgoraModule.GetCurrentChannel((verifyChannel) => {
+            console.log(`📊 Verification - joined channel: ${verifyChannel}`);
+            if (verifyChannel === privateChannelName) {
+              console.log('✅ VERIFIED: Successfully joined private channel');
+            } else {
+              console.log('⚠️ WARNING: Failed to join private channel or wrong channel!');
+            }
+          });
+        }, 1000);
         
         setIsCallActive(true);
         setIsConnecting(false);
@@ -115,10 +158,28 @@ const PrivateCallScreen = ({route, navigation}) => {
   const endCall = async () => {
     try {
       console.log('🔚 Ending private call...');
+      console.log(`📞 Current channel: ${privateChannelName}`);
       
       if (AgoraModule) {
+        // Check current channel before leaving
+        AgoraModule.GetCurrentChannel((currentChannel) => {
+          console.log(`📊 Current channel before leaving: ${currentChannel}`);
+        });
+        
         await AgoraModule.LeaveChannel();
         console.log('✅ Left private channel successfully');
+        
+        // Verify we left the channel
+        setTimeout(() => {
+          AgoraModule.GetCurrentChannel((currentChannel) => {
+            console.log(`📊 Current channel after leaving: ${currentChannel}`);
+            if (currentChannel === '' || currentChannel === null) {
+              console.log('✅ VERIFIED: Successfully left channel');
+            } else {
+              console.log('⚠️ WARNING: Still in channel after leaving!');
+            }
+          });
+        }, 500);
       }
       
       setIsCallActive(false);
@@ -131,6 +192,15 @@ const PrivateCallScreen = ({route, navigation}) => {
       
     } catch (error) {
       console.error('❌ Error ending call:', error);
+      // Even if there's an error, try to leave channel
+      if (AgoraModule) {
+        try {
+          await AgoraModule.LeaveChannel();
+          console.log('✅ Left channel during error handling');
+        } catch (leaveError) {
+          console.error('❌ Failed to leave channel during error handling:', leaveError);
+        }
+      }
       navigation.goBack();
     }
   };
@@ -164,6 +234,71 @@ const PrivateCallScreen = ({route, navigation}) => {
     return `${mins.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`;
   };
 
+  // Emergency function to force close all channels
+  const forceCloseAllChannels = async () => {
+    try {
+      Alert.alert(
+        'Force Close All Channels',
+        'This will close ALL active Agora channels. Are you sure?',
+        [
+          {text: 'Cancel', style: 'cancel'},
+          {
+            text: 'Force Close',
+            style: 'destructive',
+            onPress: async () => {
+              console.log('🚨 Force closing all channels...');
+              
+              if (AgoraModule) {
+                // Leave current channel
+                await AgoraModule.LeaveChannel();
+                console.log('✅ Left current channel');
+                
+                // Release entire engine (this closes all channels)
+                await AgoraModule.ReleaseEngine();
+                console.log('✅ Released Agora engine');
+                
+                Alert.alert('Success', 'All channels have been closed!');
+                
+                // Navigate back
+                navigation.goBack();
+              }
+            }
+          }
+        ]
+      );
+    } catch (error) {
+      console.error('❌ Error force closing channels:', error);
+      Alert.alert('Error', 'Failed to close channels: ' + error.message);
+    }
+  };
+
+  // Function to check current channel status
+  const checkChannelStatus = () => {
+    if (AgoraModule) {
+      console.log('🔍 Checking channel status...');
+      
+      AgoraModule.GetCurrentChannel((currentChannel) => {
+        console.log(`📊 Current channel: ${currentChannel}`);
+        
+        AgoraModule.GetConnectionState((connectionState) => {
+          console.log(`📊 Connection state: ${connectionState}`);
+          
+          const statusMessage = `Current Channel: ${currentChannel || 'None'}\n` +
+                               `Connection State: ${connectionState}\n` +
+                               `Expected Channel: ${privateChannelName}\n` +
+                               `Call Active: ${isCallActive}`;
+          
+          Alert.alert('Channel Status', statusMessage, [
+            {text: 'OK'},
+            {text: 'Copy to Console', onPress: () => console.log('📋 CHANNEL STATUS:\n' + statusMessage)}
+          ]);
+        });
+      });
+    } else {
+      Alert.alert('Error', 'AgoraModule not available');
+    }
+  };
+
   // Auto-start call when component mounts (only if call was accepted)
   useEffect(() => {
     if (route.params?.isCallAccepted) {
@@ -175,6 +310,42 @@ const PrivateCallScreen = ({route, navigation}) => {
       setIsConnecting(false);
     }
   }, [route.params?.isCallAccepted]);
+
+  // Cleanup function to ensure we always leave the channel when component unmounts
+  useEffect(() => {
+    return () => {
+      console.log('🧹 PrivateCallScreen cleanup - ensuring channel is left');
+      console.log(`📊 Cleanup - isCallActive: ${isCallActive}`);
+      console.log(`📞 Cleanup - privateChannelName: ${privateChannelName}`);
+      
+      if (AgoraModule) {
+        // Check current channel before cleanup
+        AgoraModule.GetCurrentChannel((currentChannel) => {
+          console.log(`📊 Cleanup - current channel: ${currentChannel}`);
+          
+          if (currentChannel && currentChannel !== '') {
+            console.log('⚠️ Found active channel during cleanup - leaving it');
+            AgoraModule.LeaveChannel();
+            console.log('✅ Left channel during cleanup');
+            
+            // Verify cleanup worked
+            setTimeout(() => {
+              AgoraModule.GetCurrentChannel((verifyChannel) => {
+                console.log(`📊 Cleanup verification - channel after cleanup: ${verifyChannel}`);
+                if (verifyChannel === '' || verifyChannel === null) {
+                  console.log('✅ CLEANUP VERIFIED: Channel successfully closed');
+                } else {
+                  console.log('⚠️ CLEANUP WARNING: Channel still active after cleanup!');
+                }
+              });
+            }, 300);
+          } else {
+            console.log('✅ No active channel found during cleanup');
+          }
+        });
+      }
+    };
+  }, [isCallActive, privateChannelName]);
 
   const backgroundColor = darkMode ? '#1a1a1a' : '#f0f0f0';
   const textColor = darkMode ? '#fff' : '#000';
@@ -284,6 +455,21 @@ const PrivateCallScreen = ({route, navigation}) => {
           onPress={endCall}>
           <Text style={[styles.controlText, {fontSize: 18}]}>📞</Text>
           <Text style={styles.controlText}>End Call</Text>
+        </TouchableOpacity>
+      </View>
+
+      {/* Debug Buttons */}
+      <View style={styles.debugContainer}>
+        <TouchableOpacity
+          style={[styles.debugButton, {backgroundColor: '#4CAF50'}]}
+          onPress={checkChannelStatus}>
+          <Text style={styles.debugButtonText}>🔍 Check Channel Status</Text>
+        </TouchableOpacity>
+        
+        <TouchableOpacity
+          style={[styles.debugButton, {backgroundColor: '#ff6600'}]}
+          onPress={forceCloseAllChannels}>
+          <Text style={styles.debugButtonText}>🚨 Force Close All Channels</Text>
         </TouchableOpacity>
       </View>
 
@@ -454,6 +640,30 @@ const styles = StyleSheet.create({
     color: '#fff',
     fontSize: 16,
     fontWeight: 'bold',
+  },
+  debugContainer: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    marginVertical: 10,
+    paddingHorizontal: 10,
+  },
+  debugButton: {
+    flex: 1,
+    padding: 12,
+    borderRadius: 8,
+    alignItems: 'center',
+    marginHorizontal: 5,
+    elevation: 3,
+    shadowColor: '#000',
+    shadowOffset: {width: 0, height: 2},
+    shadowOpacity: 0.2,
+    shadowRadius: 4,
+  },
+  debugButtonText: {
+    color: '#fff',
+    fontSize: 12,
+    fontWeight: 'bold',
+    textAlign: 'center',
   },
 });
 
