@@ -129,14 +129,14 @@ namespace winrt::FinalProject::implementation
             result = m_rtcEngine->enableAudio();
             OutputDebugStringA(("🔍 EnableAudio result: " + std::to_string(result) + "\n").c_str());
 
-            // Enable AI Noise Suppression for better audio quality
+            // Enable AI Noise Suppression for better audio quality (Windows compatible)
             OutputDebugStringA("🤖 Enabling AI Noise Suppression...\n");
-            result = m_rtcEngine->setAINSMode(true, AINS_MODE_AGGRESSIVE);
+            result = m_rtcEngine->setAINSMode(true, 2); // 2 = Aggressive mode
             OutputDebugStringA(("🔍 AI Noise Suppression result: " + std::to_string(result) + "\n").c_str());
 
             // Set audio scenario for communication (optimizes for voice)
             OutputDebugStringA("🎤 Setting audio scenario for communication...\n");
-            result = m_rtcEngine->setAudioScenario(AUDIO_SCENARIO_CHATROOM);
+            result = m_rtcEngine->setAudioScenario(agora::rtc::AUDIO_SCENARIO_CHATROOM);
             OutputDebugStringA(("🔍 Audio scenario result: " + std::to_string(result) + "\n").c_str());
 
             // Set client role
