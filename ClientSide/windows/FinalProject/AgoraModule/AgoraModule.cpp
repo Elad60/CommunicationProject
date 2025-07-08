@@ -21,21 +21,29 @@ namespace winrt::FinalProject::implementation
     // AgoraEventHandler implementation
     void AgoraEventHandler::onJoinChannelSuccess(const char* channel, uid_t uid, int elapsed)
     {
-        std::string msg = "✅ Successfully joined channel: " + std::string(channel) + 
-                         " with UID: " + std::to_string(uid) + 
-                         " in " + std::to_string(elapsed) + "ms";
+        std::string msg = std::string("🎉 SUCCESSFULLY JOINED CHANNEL!") + 
+                         std::string("\n  📺 Channel: ") + std::string(channel) + 
+                         std::string("\n  👤 My UID: ") + std::to_string(uid) + 
+                         std::string("\n  ⏱️ Time: ") + std::to_string(elapsed) + std::string("ms") +
+                         std::string("\n  🎤 Ready to publish microphone!") +
+                         std::string("\n  👂 Ready to receive remote audio!");
         OutputDebugStringA(("AgoraEventHandler::onJoinChannelSuccess - " + msg + "\n").c_str());
     }
 
     void AgoraEventHandler::onLeaveChannel(const RtcStats& stats)
     {
-        std::string msg = "✅ Successfully left channel. Duration: " + std::to_string(stats.duration) + "s";
+        std::string msg = std::string("👋 LEFT CHANNEL SUCCESSFULLY!") +
+                         std::string("\n  ⏱️ Duration: ") + std::to_string(stats.duration) + std::string("s");
         OutputDebugStringA(("AgoraEventHandler::onLeaveChannel - " + msg + "\n").c_str());
     }
 
     void AgoraEventHandler::onUserJoined(uid_t uid, int elapsed)
     {
-        std::string msg = "👤 User joined: " + std::to_string(uid) + " (elapsed: " + std::to_string(elapsed) + "ms)";
+        std::string msg = std::string("🔥 REMOTE USER JOINED! THIS IS CRUCIAL!") +
+                         std::string("\n  👤 Remote UID: ") + std::to_string(uid) + 
+                         std::string("\n  ⏱️ Elapsed: ") + std::to_string(elapsed) + std::string("ms") +
+                         std::string("\n  🎉 You should now be able to hear each other!") +
+                         std::string("\n  🎤 Both devices can now communicate!");
         OutputDebugStringA(("AgoraEventHandler::onUserJoined - " + msg + "\n").c_str());
     }
 
@@ -43,13 +51,19 @@ namespace winrt::FinalProject::implementation
     {
         std::string reasonStr = (reason == USER_OFFLINE_QUIT) ? "QUIT" : 
                                (reason == USER_OFFLINE_DROPPED) ? "DROPPED" : "BECOME_AUDIENCE";
-        std::string msg = "👤 User offline: " + std::to_string(uid) + " (reason: " + reasonStr + ")";
+        std::string msg = std::string("😢 REMOTE USER LEFT!") +
+                         std::string("\n  👤 UID: ") + std::to_string(uid) + 
+                         std::string("\n  📝 Reason: ") + reasonStr +
+                         std::string("\n  ⚠️ Voice communication ended with this user");
         OutputDebugStringA(("AgoraEventHandler::onUserOffline - " + msg + "\n").c_str());
     }
 
     void AgoraEventHandler::onError(int err, const char* msg)
     {
-        std::string errorMsg = "❌ Agora Error " + std::to_string(err) + ": " + std::string(msg ? msg : "Unknown error");
+        std::string errorMsg = std::string("💥 CRITICAL AGORA ERROR!") +
+                              std::string("\n  🔢 Error Code: ") + std::to_string(err) + 
+                              std::string("\n  📝 Message: ") + std::string(msg ? msg : "Unknown error") +
+                              std::string("\n  ⚠️ This may prevent voice communication!");
         OutputDebugStringA(("AgoraEventHandler::onError - " + errorMsg + "\n").c_str());
     }
 
@@ -211,22 +225,72 @@ namespace winrt::FinalProject::implementation
     void AgoraManager::JoinChannel(const std::string& channelName)
     {
         try {
-            if (!m_isInitialized || !m_rtcEngine) return;
+            OutputDebugStringA(("🚀 ATTEMPTING TO JOIN CHANNEL: " + channelName + "\n").c_str());
+            
+            if (!m_isInitialized || !m_rtcEngine) {
+                OutputDebugStringA("❌ Engine not initialized - CANNOT JOIN CHANNEL\n");
+                return;
+            }
 
+            // Stop echo test if running (critical requirement)
+            if (m_isEchoTestRunning) {
+                OutputDebugStringA("⚠️ Stopping echo test before joining channel\n");
+                StopEchoTest();
+            }
+
+            // Leave current channel if in one
+            if (!m_currentChannel.empty()) {
+                OutputDebugStringA("⚠️ Already in channel, leaving current channel first\n");
+                m_rtcEngine->leaveChannel();
+                m_currentChannel.clear();
+            }
+
+            OutputDebugStringA("🔧 CONFIGURING CHANNEL OPTIONS FOR VOICE COMMUNICATION...\n");
             ChannelMediaOptions options;
-            options.publishMicrophoneTrack = true;
-            options.autoSubscribeAudio = true;
-            options.autoSubscribeVideo = false;
-            options.enableAudioRecordingOrPlayout = true;
-            options.clientRoleType = CLIENT_ROLE_BROADCASTER;
+            options.publishMicrophoneTrack = true;          // 🎤 PUBLISH YOUR VOICE
+            options.autoSubscribeAudio = true;             // 👂 HEAR OTHERS
+            options.autoSubscribeVideo = false;            // ❌ NO VIDEO
+            options.enableAudioRecordingOrPlayout = true;  // 🔊 ENABLE AUDIO
+            options.clientRoleType = CLIENT_ROLE_BROADCASTER; // 📡 BROADCASTER ROLE
 
+            OutputDebugStringA("✅ Channel options configured:\n");
+            OutputDebugStringA("  🎤 Publishing microphone: YES\n");
+            OutputDebugStringA("  👂 Auto-subscribe to remote audio: YES\n");
+            OutputDebugStringA("  👤 Client role: BROADCASTER\n");
+
+            OutputDebugStringA("🔗 CALLING joinChannel()...\n");
             int result = m_rtcEngine->joinChannel(nullptr, channelName.c_str(), 0, options);
+            
+            OutputDebugStringA(("🔍 joinChannel() result: " + std::to_string(result) + "\n").c_str());
+            
             if (result == 0) {
                 m_currentChannel = channelName;
-                OutputDebugStringA(("✅ Joined channel: " + channelName + "\n").c_str());
+                OutputDebugStringA(("🎉 SUCCESS! Initiated join to channel: " + channelName + "\n").c_str());
+                OutputDebugStringA("⏳ Waiting for onJoinChannelSuccess callback...\n");
+                OutputDebugStringA("👀 Watch for onUserJoined when other device connects!\n");
+            } else {
+                OutputDebugStringA(("💥 FAILED TO JOIN CHANNEL! Error: " + std::to_string(result) + "\n").c_str());
+                
+                switch (result) {
+                    case -2:
+                        OutputDebugStringA("❌ Invalid parameter - check channel name\n");
+                        break;
+                    case -7:
+                        OutputDebugStringA("❌ SDK not initialized\n");
+                        break;
+                    case -8:
+                        OutputDebugStringA("❌ Echo test still running - this prevents joining!\n");
+                        break;
+                    case -17:
+                        OutputDebugStringA("❌ Request rejected - already in channel?\n");
+                        break;
+                    default:
+                        OutputDebugStringA(("❌ Unknown error: " + std::to_string(result) + "\n").c_str());
+                        break;
+                }
             }
         } catch (...) {
-            OutputDebugStringA("❌ Exception in JoinChannel\n");
+            OutputDebugStringA("💥 EXCEPTION in JoinChannel!\n");
         }
     }
 
@@ -240,6 +304,92 @@ namespace winrt::FinalProject::implementation
             OutputDebugStringA("✅ Left channel\n");
         } catch (...) {
             OutputDebugStringA("❌ Exception in LeaveChannel\n");
+        }
+    }
+
+    void AgoraManager::MuteLocalAudio(bool mute)
+    {
+        try {
+            OutputDebugStringA(("🎤 MuteLocalAudio - " + std::string(mute ? "MUTING" : "UNMUTING") + " microphone\n").c_str());
+            
+            if (!m_isInitialized || !m_rtcEngine) {
+                OutputDebugStringA("❌ Engine not initialized\n");
+                return;
+            }
+
+            int result = m_rtcEngine->muteLocalAudioStream(mute);
+            if (result == 0) {
+                OutputDebugStringA(("✅ Microphone " + std::string(mute ? "MUTED" : "UNMUTED") + " successfully\n").c_str());
+            } else {
+                OutputDebugStringA(("❌ Failed to mute/unmute, error: " + std::to_string(result) + "\n").c_str());
+            }
+        } catch (...) {
+            OutputDebugStringA("❌ Exception in MuteLocalAudio\n");
+        }
+    }
+
+    void AgoraManager::EnableLocalAudio(bool enabled)
+    {
+        try {
+            OutputDebugStringA(("🎤 EnableLocalAudio - " + std::string(enabled ? "ENABLING" : "DISABLING") + " audio capture\n").c_str());
+            
+            if (!m_isInitialized || !m_rtcEngine) {
+                OutputDebugStringA("❌ Engine not initialized\n");
+                return;
+            }
+
+            int result = m_rtcEngine->enableLocalAudio(enabled);
+            if (result == 0) {
+                OutputDebugStringA(("✅ Audio capture " + std::string(enabled ? "ENABLED" : "DISABLED") + " successfully\n").c_str());
+            } else {
+                OutputDebugStringA(("❌ Failed to enable/disable audio, error: " + std::to_string(result) + "\n").c_str());
+            }
+        } catch (...) {
+            OutputDebugStringA("❌ Exception in EnableLocalAudio\n");
+        }
+    }
+
+    void AgoraManager::AdjustRecordingVolume(int volume)
+    {
+        try {
+            OutputDebugStringA(("🔊 AdjustRecordingVolume - Setting to " + std::to_string(volume) + "\n").c_str());
+            
+            if (!m_isInitialized || !m_rtcEngine) {
+                OutputDebugStringA("❌ Engine not initialized\n");
+                return;
+            }
+
+            int clampedVolume = std::max(0, std::min(400, volume));
+            int result = m_rtcEngine->adjustRecordingSignalVolume(clampedVolume);
+            if (result == 0) {
+                OutputDebugStringA(("✅ Recording volume set to " + std::to_string(clampedVolume) + "\n").c_str());
+            } else {
+                OutputDebugStringA(("❌ Failed to adjust volume, error: " + std::to_string(result) + "\n").c_str());
+            }
+        } catch (...) {
+            OutputDebugStringA("❌ Exception in AdjustRecordingVolume\n");
+        }
+    }
+
+    void AgoraManager::SetClientRole(int role)
+    {
+        try {
+            OutputDebugStringA(("👤 SetClientRole - Setting to " + std::to_string(role) + "\n").c_str());
+            
+            if (!m_isInitialized || !m_rtcEngine) {
+                OutputDebugStringA("❌ Engine not initialized\n");
+                return;
+            }
+
+            CLIENT_ROLE_TYPE clientRole = static_cast<CLIENT_ROLE_TYPE>(role);
+            int result = m_rtcEngine->setClientRole(clientRole);
+            if (result == 0) {
+                OutputDebugStringA("✅ Client role set successfully\n");
+            } else {
+                OutputDebugStringA(("❌ Failed to set client role, error: " + std::to_string(result) + "\n").c_str());
+            }
+        } catch (...) {
+            OutputDebugStringA("❌ Exception in SetClientRole\n");
         }
     }
 

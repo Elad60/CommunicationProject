@@ -43,6 +43,11 @@ namespace winrt::FinalProject::implementation
         std::string m_currentChannel;
         bool m_isInitialized = false;
         bool m_isEchoTestRunning = false;
+        
+        // New state tracking variables
+        bool m_isLocalAudioMuted = false;
+        bool m_isLocalAudioEnabled = true;
+        int m_recordingVolume = 100;
 
         AgoraManager() = default;
 
@@ -62,6 +67,12 @@ namespace winrt::FinalProject::implementation
         void LeaveChannel();
         void ReleaseEngine();
         std::string GetStatus();
+        
+        // New voice communication methods
+        void MuteLocalAudio(bool mute);
+        void EnableLocalAudio(bool enabled);
+        void AdjustRecordingVolume(int volume);
+        void SetClientRole(int role);
 
         ~AgoraManager() {
             ReleaseEngine();
@@ -117,6 +128,31 @@ namespace winrt::FinalProject::implementation
         void GetFunctionLoadingStatus(std::function<void(std::string)> const& callback) noexcept
         {
             callback(AgoraManager::GetInstance()->GetStatus());
+        }
+
+        // New React Native voice communication methods
+        REACT_METHOD(MuteLocalAudio)
+        void MuteLocalAudio(bool mute) noexcept
+        {
+            AgoraManager::GetInstance()->MuteLocalAudio(mute);
+        }
+
+        REACT_METHOD(EnableLocalAudio)
+        void EnableLocalAudio(bool enabled) noexcept
+        {
+            AgoraManager::GetInstance()->EnableLocalAudio(enabled);
+        }
+
+        REACT_METHOD(AdjustRecordingVolume)
+        void AdjustRecordingVolume(int volume) noexcept
+        {
+            AgoraManager::GetInstance()->AdjustRecordingVolume(volume);
+        }
+
+        REACT_METHOD(SetClientRole)
+        void SetClientRole(int role) noexcept
+        {
+            AgoraManager::GetInstance()->SetClientRole(role);
         }
 
     private:
