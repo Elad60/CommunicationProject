@@ -117,7 +117,7 @@ const IncomingCallScreen = ({route, navigation}) => {
       Vibration.cancel();
       
       // Accept the invitation
-      await privateCallApi.acceptCallInvitation(invitation.invitationId);
+      await privateCallApi.acceptCallInvitation(invitation.invitationId, user.id);
       
       // Navigate to private call screen
       navigation.replace('PrivateCall', {
@@ -147,7 +147,7 @@ const IncomingCallScreen = ({route, navigation}) => {
       Vibration.cancel();
       
       // Reject the invitation
-      await privateCallApi.rejectCallInvitation(invitation.invitationId);
+      await privateCallApi.rejectCallInvitation(invitation.invitationId, user.id);
       
       // Navigate back
       navigation.goBack();

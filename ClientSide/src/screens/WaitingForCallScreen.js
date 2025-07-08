@@ -140,7 +140,7 @@ const WaitingForCallScreen = ({route, navigation}) => {
     
     const pollInterval = setInterval(async () => {
       try {
-        const response = await privateCallApi.checkOutgoingCallStatus(invitationId);
+        const response = await privateCallApi.checkOutgoingCallStatus(invitationId, user.id);
         console.log('📊 Polling response:', response);
         
         if (response.status === 'accepted') {
@@ -196,7 +196,7 @@ const WaitingForCallScreen = ({route, navigation}) => {
   const handleCancelCall = async () => {
     try {
       if (invitationId) {
-        await privateCallApi.cancelCallInvitation(invitationId);
+        await privateCallApi.cancelCallInvitation(invitationId, user.id);
         console.log('📞 Call invitation canceled');
       }
       navigation.goBack();
