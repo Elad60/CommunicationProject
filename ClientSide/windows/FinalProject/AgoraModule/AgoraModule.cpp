@@ -535,4 +535,76 @@ namespace winrt::FinalProject::implementation
 
         return status;
     }
+
+    // New functions for private calls
+    void AgoraManager::MuteLocalAudio(bool mute)
+    {
+        try {
+            if (!m_rtcEngine) {
+                OutputDebugStringA("❌ Engine not initialized - cannot mute audio\n");
+                return;
+            }
+
+            int result = m_rtcEngine->muteLocalAudioStream(mute);
+            if (result == 0) {
+                m_isLocalAudioMuted = mute;
+                std::string msg = mute ? "✅ Local audio muted\n" : "✅ Local audio unmuted\n";
+                OutputDebugStringA(msg.c_str());
+            } else {
+                OutputDebugStringA(("❌ Failed to mute/unmute local audio, error: " + std::to_string(result) + "\n").c_str());
+            }
+        } catch (...) {
+            OutputDebugStringA("❌ Exception in MuteLocalAudio\n");
+        }
+    }
+
+    void AgoraManager::SetSpeakerphoneOn(bool enable)
+    {
+        try {
+            if (!m_rtcEngine) {
+                OutputDebugStringA("❌ Engine not initialized - cannot set speakerphone\n");
+                return;
+            }
+
+            // Note: setEnableSpeakerphone is not available on Windows desktop
+            // This is a mobile-only feature. On Windows, audio routing is handled by OS.
+            m_isSpeakerphoneOn = enable;
+            std::string msg = enable ? "✅ Speakerphone enabled (Windows: OS managed)\n" : "✅ Speakerphone disabled (Windows: OS managed)\n";
+            OutputDebugStringA(msg.c_str());
+            
+        } catch (...) {
+            OutputDebugStringA("❌ Exception in SetSpeakerphoneOn\n");
+        }
+    }
+
+    bool AgoraManager::IsLocalAudioMuted()
+    {
+        return m_isLocalAudioMuted;
+    }
+
+    bool AgoraManager::IsSpeakerphoneOn()
+    {
+        return m_isSpeakerphoneOn;
+    }
+
+    std::string AgoraManager::GetCurrentChannel()
+    {
+        return m_currentChannel;
+    }
+
+    int AgoraManager::GetConnectionState()
+    {
+        try {
+            if (!m_rtcEngine) {
+                return -1; // Not initialized
+            }
+
+            CONNECTION_STATE_TYPE state = m_rtcEngine->getConnectionState();
+            OutputDebugStringA(("🔍 Connection state: " + std::to_string(state) + "\n").c_str());
+            return static_cast<int>(state);
+        } catch (...) {
+            OutputDebugStringA("❌ Exception in GetConnectionState\n");
+            return -1;
+        }
+    }
 }

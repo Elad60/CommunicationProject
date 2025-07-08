@@ -13,6 +13,7 @@ import ControlPanel from './ControlPanel';
 import NavPanel from './NavPanel';
 import {useSettings} from '../context/SettingsContext';
 import LogoutButton from './LogoutButton';
+import {useIncomingCallListener} from '../hooks/useIncomingCallListener';
 
 const AppLayout = ({
   children,
@@ -45,6 +46,9 @@ const AppLayout = ({
   const {user, logout, changeGroup} = useAuth();
   const {controlBarAdjustment, toolBarAdjustment, brightness, darkMode} =
     useSettings();
+  
+  // Listen for incoming calls - DISABLED until backend is ready
+  // useIncomingCallListener();
 
   const handleNavigation = screen => {
     setActiveNav(screen);

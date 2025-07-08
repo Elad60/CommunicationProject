@@ -48,6 +48,7 @@ namespace winrt::FinalProject::implementation
         bool m_isLocalAudioMuted = false;
         bool m_isLocalAudioEnabled = true;
         int m_recordingVolume = 100;
+        bool m_isSpeakerphoneOn = false;
 
         AgoraManager() = default;
 
@@ -77,6 +78,13 @@ namespace winrt::FinalProject::implementation
         // Audio quality methods
         void EnableNoiseSuppressionMode(bool enabled, int mode);
         void SetAudioScenario(int scenario);
+        
+        // New functions for private calls
+        void SetSpeakerphoneOn(bool enable);
+        bool IsLocalAudioMuted();
+        bool IsSpeakerphoneOn();
+        std::string GetCurrentChannel();
+        int GetConnectionState();
 
         ~AgoraManager() {
             ReleaseEngine();
@@ -170,6 +178,36 @@ namespace winrt::FinalProject::implementation
         void SetAudioScenario(int scenario) noexcept
         {
             AgoraManager::GetInstance()->SetAudioScenario(scenario);
+        }
+
+        REACT_METHOD(SetSpeakerphoneOn)
+        void SetSpeakerphoneOn(bool enable) noexcept
+        {
+            AgoraManager::GetInstance()->SetSpeakerphoneOn(enable);
+        }
+
+        REACT_METHOD(IsLocalAudioMuted)
+        void IsLocalAudioMuted(std::function<void(bool)> const& callback) noexcept
+        {
+            callback(AgoraManager::GetInstance()->IsLocalAudioMuted());
+        }
+
+        REACT_METHOD(IsSpeakerphoneOn)
+        void IsSpeakerphoneOn(std::function<void(bool)> const& callback) noexcept
+        {
+            callback(AgoraManager::GetInstance()->IsSpeakerphoneOn());
+        }
+
+        REACT_METHOD(GetCurrentChannel)
+        void GetCurrentChannel(std::function<void(std::string)> const& callback) noexcept
+        {
+            callback(AgoraManager::GetInstance()->GetCurrentChannel());
+        }
+
+        REACT_METHOD(GetConnectionState)
+        void GetConnectionState(std::function<void(int)> const& callback) noexcept
+        {
+            callback(AgoraManager::GetInstance()->GetConnectionState());
         }
 
     private:

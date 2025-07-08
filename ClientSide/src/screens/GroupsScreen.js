@@ -8,6 +8,7 @@ import {
   TouchableOpacity,
   ActivityIndicator,
   Image,
+  Alert,
 } from 'react-native';
 import AppLayout from '../components/AppLayout';
 import {useAuth} from '../context/AuthContext';
@@ -137,6 +138,59 @@ const GroupsScreen = ({navigation}) => {
     }));
   };
 
+  // Function to handle long press for private call options
+  const onUserLongPress = userId => {
+    const selectedUser = groupUsers.find(u => u.id === userId);
+    
+    Alert.alert(
+      'User Options',
+      `What would you like to do with ${selectedUser.username}?`,
+      [
+        {
+          text: 'Change Status',
+          onPress: () => onUserPress(userId),
+        },
+        {
+          text: 'Private Call',
+          onPress: () => startPrivateCall(selectedUser),
+        },
+        {
+          text: 'Direct Call (Test)',
+          onPress: () => startDirectCall(selectedUser),
+        },
+        {
+          text: 'Cancel',
+          style: 'cancel',
+        },
+      ]
+    );
+  };
+
+  // Function to start private call (send invitation)
+  const startPrivateCall = (otherUser) => {
+    console.log(`📞 Sending call invitation to ${otherUser.username}`);
+    navigation.navigate('WaitingForCall', {otherUser});
+  };
+
+  // Function for direct call (bypass invitation system for testing)
+  const startDirectCall = (otherUser) => {
+    console.log(`🔗 Starting direct call with ${otherUser.username} (test mode)`);
+    Alert.alert(
+      'Direct Call',
+      `Starting direct call with ${otherUser.username}.\n\nThis bypasses the invitation system for testing purposes.`,
+      [
+        {text: 'Cancel', style: 'cancel'},
+        {
+          text: 'Start Call',
+          onPress: () => navigation.navigate('PrivateCall', {
+            otherUser,
+            isCallAccepted: true,
+          }),
+        },
+      ]
+    );
+  };
+
   // Loading state display
   if (loading) {
     return (
@@ -188,7 +242,8 @@ const GroupsScreen = ({navigation}) => {
                       height: CardSize,
                     },
                   ]}
-                  onPress={() => onUserPress(u.id)}>
+                  onPress={() => onUserPress(u.id)}
+                  onLongPress={() => onUserLongPress(u.id)}>
                   <Text style={{color: textColor, fontWeight: 'bold'}}>
                     {u.username}
                   </Text>
@@ -229,6 +284,29 @@ const GroupsScreen = ({navigation}) => {
         <Text style={[styles.label, {color: textColor}]}>
           Change Your Group:
         </Text>
+        <View style={styles.instructionsContainer}>
+          <Text style={[styles.instructionText, {color: darkMode ? '#ccc' : '#666'}]}>
+            💡 <Text style={{fontWeight: 'bold'}}>How to use Private Calls:</Text>
+          </Text>
+          <Text style={[styles.instructionText, {color: darkMode ? '#ccc' : '#666'}]}>
+            • <Text style={{fontWeight: 'bold'}}>Tap</Text> a user to change their status
+          </Text>
+          <Text style={[styles.instructionText, {color: darkMode ? '#ccc' : '#666'}]}>
+            • <Text style={{fontWeight: 'bold'}}>Long press</Text> a user for call options:
+          </Text>
+          <Text style={[styles.instructionText, {color: darkMode ? '#ccc' : '#666'}]}>
+            &nbsp;&nbsp;&nbsp;&nbsp;📞 <Text style={{fontWeight: 'bold'}}>Private Call</Text> - Send invitation & wait
+          </Text>
+          <Text style={[styles.instructionText, {color: darkMode ? '#ccc' : '#666'}]}>
+            &nbsp;&nbsp;&nbsp;&nbsp;🔗 <Text style={{fontWeight: 'bold'}}>Direct Call (Test)</Text> - Jump to call immediately
+          </Text>
+          <Text style={[styles.instructionText, {color: darkMode ? '#ccc' : '#666'}]}>
+            • Use <Text style={{fontWeight: 'bold'}}>Direct Call</Text> for testing until server is ready
+          </Text>
+          <Text style={[styles.instructionText, {color: darkMode ? '#ccc' : '#666'}]}>
+            • Use mute/speaker controls during the call
+          </Text>
+        </View>
       </View>
       <View
         style={[
@@ -335,6 +413,16 @@ const styles = StyleSheet.create({
     textAlign: 'center',
     marginTop: 20,
     width: '100%',
+  },
+  instructionsContainer: {
+    margin: 10,
+    padding: 15,
+    borderRadius: 10,
+    backgroundColor: 'rgba(100, 100, 100, 0.1)',
+  },
+  instructionText: {
+    fontSize: 14,
+    marginBottom: 5,
   },
 });
 
