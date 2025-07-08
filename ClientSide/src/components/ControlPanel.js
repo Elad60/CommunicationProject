@@ -1,4 +1,3 @@
-/* eslint-disable react-hooks/exhaustive-deps */
 /* eslint-disable react-native/no-inline-styles */
 /* eslint-disable no-alert */
 import React, {useRef, useEffect, useState} from 'react';
@@ -15,11 +14,11 @@ const ControlPanel = ({
   height,
   width,
 }) => {
+  // Determine layout orientation and panel dimensions
   let CONTROL_PANEL_HEIGHT;
   let CONTROL_PANEL_WIDTH;
   const isLandscape = height < width;
 
-  // Responsive sizing for control panel based on orientation
   if (isLandscape) {
     CONTROL_PANEL_HEIGHT = height * 0.13;
     CONTROL_PANEL_WIDTH = width * 0.92;
@@ -30,6 +29,7 @@ const ControlPanel = ({
 
   const [selectedButton, setSelectedButton] = useState(null);
 
+  // Extract settings context values
   const {
     controlBarAdjustment,
     controlPanelPosition,
@@ -39,7 +39,7 @@ const ControlPanel = ({
 
   const position = useRef(new Animated.Value(controlPanelPosition)).current;
 
-  // Adjust horizontal margin if toolbar is not adjusted
+  // Control panel horizontal offset based on toolbar visibility
   const controlPanelStyle = {
     marginLeft:
       !toolBarAdjustment && isLandscape
@@ -52,11 +52,11 @@ const ControlPanel = ({
   const backgroundColor = darkMode ? '#1a1a1a' : '#fff';
   const buttonTextColor = darkMode ? '#fff' : '#000';
 
+  // Animate panel position based on control bar toggle
   useEffect(() => {
-    // Animate control panel vertical position
     const targetPosition = controlBarAdjustment
-      ? height - CONTROL_PANEL_HEIGHT // Bottom of screen
-      : height * 0.05; // Just below header
+      ? height - CONTROL_PANEL_HEIGHT
+      : height * 0.05;
 
     Animated.spring(position, {
       toValue: targetPosition,
@@ -66,7 +66,7 @@ const ControlPanel = ({
     setControlPanelPosition(targetPosition);
   }, [controlBarAdjustment, height, width]);
 
-  // Define control buttons with behavior
+  // Define control panel buttons
   const buttons = [
     {
       title: 'Speaker',
@@ -104,6 +104,7 @@ const ControlPanel = ({
     },
   ];
 
+  // Render animated control panel with buttons
   return (
     <Animated.View
       style={[
@@ -122,7 +123,7 @@ const ControlPanel = ({
           paddingHorizontal: 10,
           paddingVertical: 10,
           overflow: 'visible',
-          transform: [{translateY: position}], // Animate vertical position
+          transform: [{translateY: position}],
         },
         controlPanelStyle,
       ]}>

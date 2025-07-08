@@ -19,6 +19,9 @@ const rnwPath = fs.realpathSync(
 
 const config = {
   //
+  server: {
+    port: 8081,
+  },
   resolver: {
     blockList: exclusionList([
       // This stops "npx @react-native-community/cli run-windows" from causing the metro server to crash if its already running
@@ -30,7 +33,7 @@ const config = {
       new RegExp(`${rnwPath}/target/.*`),
       /.*\.ProjectImports\.zip/,
     ]),
-    //
+    sourceExts: ['js', 'json', 'ts', 'tsx'],
   },
   transformer: {
     getTransformOptions: async () => ({

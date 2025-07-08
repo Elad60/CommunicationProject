@@ -6,13 +6,13 @@ const UserRow = ({user, darkMode, onBlockToggle, onRoleToggle, onDelete}) => {
 
   return (
     <View style={styles.row}>
-      {/* Left: Basic user info */}
+      {/* User Info */}
       <View style={styles.leftSection}>
         <Text style={styles.username}>{user.username}</Text>
         <Text style={styles.email}>{user.email}</Text>
       </View>
 
-      {/* Middle: Role, creation date, block status */}
+      {/* Role, Date, Status */}
       <View style={styles.middleSection}>
         <Text style={[styles.badge, styles.roleBadge]}>{user.role}</Text>
         <Text style={styles.infoText}>
@@ -27,9 +27,8 @@ const UserRow = ({user, darkMode, onBlockToggle, onRoleToggle, onDelete}) => {
         </Text>
       </View>
 
-      {/* Right: Action buttons */}
+      {/* Action Buttons */}
       <View style={styles.rightSection}>
-        {/* Show role toggle only for non-admins */}
         {user.role !== 'Admin' && (
           <TouchableOpacity
             activeOpacity={0.7}
@@ -40,7 +39,6 @@ const UserRow = ({user, darkMode, onBlockToggle, onRoleToggle, onDelete}) => {
             </Text>
           </TouchableOpacity>
         )}
-
         <TouchableOpacity
           activeOpacity={0.7}
           onPress={() => onBlockToggle(user)}
@@ -49,7 +47,6 @@ const UserRow = ({user, darkMode, onBlockToggle, onRoleToggle, onDelete}) => {
             {user.isBlocked ? 'Unblock' : 'Block'}
           </Text>
         </TouchableOpacity>
-
         <TouchableOpacity
           activeOpacity={0.7}
           onPress={() => onDelete(user)}
@@ -61,7 +58,7 @@ const UserRow = ({user, darkMode, onBlockToggle, onRoleToggle, onDelete}) => {
   );
 };
 
-// Styles are theme-aware (light/dark)
+// Dynamic styles based on dark mode
 const getStyles = darkMode =>
   StyleSheet.create({
     row: {
@@ -85,7 +82,7 @@ const getStyles = darkMode =>
     rightSection: {
       flex: 3,
       alignItems: 'flex-end',
-      gap: 6, // spacing between buttons
+      gap: 6,
     },
     username: {
       fontSize: 16,

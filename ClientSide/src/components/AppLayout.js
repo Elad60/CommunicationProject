@@ -1,10 +1,10 @@
-/* eslint-disable react-hooks/exhaustive-deps */
-/* eslint-disable react-native/no-inline-styles */
+// AppLayout.js
 import React, {useState, useMemo} from 'react';
 import {
   View,
   Text,
   StyleSheet,
+  TouchableOpacity,
   StatusBar,
 } from 'react-native';
 import {useDebouncedDimensions} from '../utils/useDebouncedDimensions';
@@ -21,11 +21,10 @@ const AppLayout = ({
   showControls = true,
   showNavPanel = true,
 }) => {
-  // Responsive layout: updates only after resizing stops (debounced)
   const {height, width} = useDebouncedDimensions(300);
   const isLandscape = width > height;
 
-  // Memoized layout dimensions based on orientation
+  // Panel size calculations based on orientation
   const {
     NAV_PANEL_WIDTH,
     NAV_PANEL_HEIGHT,
@@ -47,7 +46,6 @@ const AppLayout = ({
   const {controlBarAdjustment, toolBarAdjustment, brightness, darkMode} =
     useSettings();
 
-  // Handles screen change when user clicks a nav item
   const handleNavigation = screen => {
     setActiveNav(screen);
     navigation.navigate(screen);
@@ -58,12 +56,13 @@ const AppLayout = ({
 
   return (
     <View style={[styles.container, {backgroundColor}]}>
+      {/* Status Bar */}
       <StatusBar
         barStyle={darkMode ? 'light-content' : 'dark-content'}
         backgroundColor={backgroundColor}
       />
 
-      {/* Top Header Bar */}
+      {/* Header */}
       <View style={[styles.header, {backgroundColor, height: height * 0.05}]}>
         <View style={styles.headerSection}>
           <Text style={[styles.headerText, {color: textColor}]}>
@@ -82,7 +81,6 @@ const AppLayout = ({
         <View style={[styles.headerSection, {alignItems: 'flex-end'}]}>
           <LogoutButton
             onLogout={async () => {
-              // When logging out, always reset to group A
               if (user?.group !== 'A') {
                 await changeGroup('A');
               }
@@ -92,7 +90,7 @@ const AppLayout = ({
         </View>
       </View>
 
-      {/* Main Application Content */}
+      {/* Main Content */}
       <View
         style={{
           marginTop: controlBarAdjustment ? 0 : CONTROL_PANEL_HEIGHT,
@@ -104,7 +102,7 @@ const AppLayout = ({
         }}>
         {children}
 
-        {/* Optional Navigation Panel */}
+        {/* Navigation Panel */}
         {showNavPanel && (
           <NavPanel
             activeNav={activeNav}
@@ -116,7 +114,7 @@ const AppLayout = ({
         )}
       </View>
 
-      {/* Optional Control Panel (bottom bar) */}
+      {/* Control Panel */}
       {showControls && (
         <ControlPanel
           speakerVolume={speakerVolume}
@@ -130,7 +128,7 @@ const AppLayout = ({
         />
       )}
 
-      {/* Brightness overlay simulating screen dimming */}
+      {/* Global Brightness Overlay */}
       <View
         pointerEvents="none"
         style={[

@@ -1,9 +1,7 @@
-/* eslint-disable react-hooks/exhaustive-deps */
 import React, {useEffect, useRef} from 'react';
 import {
   Alert,
   Animated,
-  useWindowDimensions,
   View,
   Text,
   StyleSheet,
@@ -12,13 +10,16 @@ import {useRoute} from '@react-navigation/native';
 import NavButton from './NavButton';
 import {useSettings} from '../context/SettingsContext';
 import {useAuth} from '../context/AuthContext';
-import {useAnnouncements} from '../context/AnnouncementsContext';
+import {useAnnouncements} from '../context/AnnouncementsContext'; // Using announcements context
 
+/* NavPanel - animated toolbar with navigation buttons and access control */
 const NavPanel = ({handleNavigation, darkMode, height, width}) => {
   let NAV_PANEL_HEIGHT;
   let NAV_PANEL_WIDTH;
+
   const isLandscape = height < width;
 
+  /* Set dimensions based on orientation */
   if (isLandscape) {
     NAV_PANEL_HEIGHT = height * 0.7;
     NAV_PANEL_WIDTH = width * 0.082;
@@ -29,17 +30,18 @@ const NavPanel = ({handleNavigation, darkMode, height, width}) => {
 
   const {toolBarAdjustment, controlBarAdjustment} = useSettings();
   const {user} = useAuth();
-  const {unreadCount, fetchUnreadCount} = useAnnouncements();
+  const {unreadCount, fetchUnreadCount} = useAnnouncements(); // Access announcements context
   const route = useRoute();
   const currentScreen = route.name;
 
-  // Animate the X position of the panel (slide-in/out)
+  /* X position for animation */
   const positionX = useRef(
     new Animated.Value(
       toolBarAdjustment ? width - NAV_PANEL_WIDTH : -NAV_PANEL_WIDTH,
     ),
   ).current;
 
+  /* Animate panel position when dimensions or settings change */
   useEffect(() => {
     Animated.spring(positionX, {
       toValue: toolBarAdjustment ? width - NAV_PANEL_WIDTH : -NAV_PANEL_WIDTH,
@@ -47,14 +49,17 @@ const NavPanel = ({handleNavigation, darkMode, height, width}) => {
     }).start();
   }, [toolBarAdjustment, height, width]);
 
+  /* Fetch unread announcements when user or screen changes */
   useEffect(() => {
     if (user) {
-      fetchUnreadCount(); // Refresh unread badge when screen/user changes
+      fetchUnreadCount();
     }
   }, [user, currentScreen]);
 
+  /* Dynamic panel styles */
   const panelStyle = {
     position: 'absolute',
+    top: 0,
     top: controlBarAdjustment
       ? 0
       : isLandscape
@@ -75,6 +80,7 @@ const NavPanel = ({handleNavigation, darkMode, height, width}) => {
     transform: [{translateX: positionX}],
   };
 
+  /* Button definitions with optional role and badge */
   const buttons = [
     {
       title: 'Radios',
@@ -90,8 +96,8 @@ const NavPanel = ({handleNavigation, darkMode, height, width}) => {
       title: 'Announcements',
       icon: require('../../assets/logos/announcement.png'),
       screen: 'Announcements',
-      showBadge: unreadCount > 0,
-      badgeCount: unreadCount,
+      showBadge: unreadCount > 0, // Show badge if there are unread messages
+      badgeCount: unreadCount, // Number of unread messages
     },
     {
       title: 'More Radios',
@@ -133,7 +139,7 @@ const NavPanel = ({handleNavigation, darkMode, height, width}) => {
               width={width}
             />
 
-            {/* Badge for unread announcement count */}
+            {/* Unread messages badge */}
             {showBadge && (
               <View style={styles.badge}>
                 <Text style={styles.badgeText}>{badgeCount}</Text>
@@ -146,6 +152,7 @@ const NavPanel = ({handleNavigation, darkMode, height, width}) => {
   );
 };
 
+/* Styles */
 const styles = StyleSheet.create({
   buttonContainer: {
     position: 'relative',

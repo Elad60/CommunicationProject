@@ -1,4 +1,7 @@
-/* eslint-disable react-hooks/exhaustive-deps */
+/* eslint-disable eol-last */
+/* eslint-disable curly */
+/* eslint-disable react-native/no-inline-styles */
+// AnnouncementsScreen.js
 import React, { useEffect, useState, useRef } from 'react';
 import {
   View,
@@ -34,38 +37,32 @@ const AnnouncementsScreen = ({ navigation }) => {
   const scrollViewRef = useRef();
   const { darkMode } = useSettings();
 
-  // Load announcements on mount
   useEffect(() => {
     fetchAnnouncementsWithStatus();
 
-    // Mark all as read on unmount and refresh unread count
+    // Mark all announcements as read when the component unmounts and refresh unread count
     return () => {
       markAllAsRead();
       setTimeout(() => {
         fetchUnreadCount();
       }, 500);
     };
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  // Auto-scroll to bottom when announcements update
-  useEffect(() => {
-    if (announcements.length > 0) {
-      setTimeout(() => {
-        scrollViewRef.current?.scrollToEnd({ animated: false });
-      }, 300);
-    }
-  }, [announcements]);
-
-  // Submit a new announcement
+  // Handle adding a new announcement
   const handleAddAnnouncement = async () => {
     if (!title.trim() || !content.trim()) return;
     setLoading(true);
+
     try {
       await announcementsApi.add(title, content, user.username);
-      setTitle('');
-      setContent('');
-      setShowAddForm(false);
+      setTitle(''); // Reset title
+      setContent(''); // Reset content
+      setShowAddForm(false); // Hide add form
       await fetchAnnouncementsWithStatus();
+
+      // Scroll to the bottom of the list after a short delay
       setTimeout(() => {
         scrollViewRef.current?.scrollToEnd({ animated: true });
       }, 300);
@@ -76,7 +73,7 @@ const AnnouncementsScreen = ({ navigation }) => {
     }
   };
 
-  // Format date for UI
+  // Format the date to display in a user-friendly format
   const formatDate = (dateString) => {
     const options = {
       year: 'numeric',
@@ -84,14 +81,13 @@ const AnnouncementsScreen = ({ navigation }) => {
       day: 'numeric',
       hour: '2-digit',
       minute: '2-digit',
-      hour12: false,
     };
-    return new Date(dateString).toLocaleString('en-US', options);
+    return new Date(dateString).toLocaleDateString('en-US', options);
   };
 
   const textColor = darkMode ? '#fff' : '#000';
 
-  // Show loading indicator while data is loading
+  // Display loading screen while fetching data
   if (contextLoading || loading) {
     return (
       <AppLayout navigation={navigation} title="📋 Announcements">
@@ -105,12 +101,17 @@ const AnnouncementsScreen = ({ navigation }) => {
 
   return (
     <AppLayout navigation={navigation} title="📋 Announcements">
-        {/* Form overlay for adding new announcement */}
+      <KeyboardAvoidingView
+        style={styles.container}
+        behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
+
+        {/* Display form to add a new announcement */}
         {showAddForm && (
           <View style={[styles.formOverlay, { backgroundColor: darkMode ? 'rgba(0,0,0,0.7)' : 'rgba(255,255,255,0.7)' }]}>
             <View style={[styles.formContainer, { backgroundColor: darkMode ? '#222' : '#fff' }]}>
               <Text style={[styles.formTitle, { color: textColor }]}>Add New Announcement</Text>
 
+              {/* Title input field */}
               <TextInput
                 placeholder="Title"
                 placeholderTextColor={darkMode ? '#888' : '#999'}
@@ -121,6 +122,8 @@ const AnnouncementsScreen = ({ navigation }) => {
                 value={title}
                 onChangeText={setTitle}
               />
+
+              {/* Content input field */}
               <TextInput
                 placeholder="Content"
                 placeholderTextColor={darkMode ? '#888' : '#999'}
@@ -132,6 +135,8 @@ const AnnouncementsScreen = ({ navigation }) => {
                 onChangeText={setContent}
                 multiline
               />
+
+              {/* Form buttons: Cancel and Submit */}
               <View style={[styles.formButtonsRow]}>
                 <TouchableOpacity
                   style={[styles.cancelButton, { backgroundColor: darkMode ? '#444' : '#ddd' }]}
@@ -153,39 +158,38 @@ const AnnouncementsScreen = ({ navigation }) => {
           style={styles.scrollView}
           contentContainerStyle={styles.scrollContent}
           ref={scrollViewRef}>
-          {[...announcements]
-            .sort((a, b) => new Date(a.createdAt) - new Date(b.createdAt))
-            .map((a) => (
-              <View
-                key={a.id}
-                style={[
-                  styles.card,
-                  !a.isRead && styles.unreadCard,
-                  {
-                    backgroundColor: !a.isRead
-                      ? (darkMode ? '#262636' : '#e0f7ff')
-                      : (darkMode ? '#121212' : '#fff'),
-                    borderColor: darkMode ? '#555' : '#ccc',
-                  },
-                ]}>
-                <View style={styles.titleContainer}>
-                  <Text style={[styles.title, { color: textColor }]}>{a.title}</Text>
-                  {!a.isRead && (
-                    <View style={styles.newBadge}>
-                      <Text style={styles.newBadgeText}>NEW</Text>
-                    </View>
-                  )}
-                </View>
-                <Text style={[styles.content, { color: darkMode ? '#ccc' : '#aaa' }]}>{a.content}</Text>
-                <View style={[styles.metaRow, { borderTopColor: textColor }]}>
-                  <Text style={[styles.metaUser, { color: darkMode ? '#00ccff' : '#91aad4' }]}>{a.userName}</Text>
-                  <Text style={[styles.metaTime, { color: darkMode ? '#999' : '#aaa' }]}>{formatDate(a.createdAt)}</Text>
-                </View>
+          {announcements.map((a) => (
+            <View
+              key={a.id}
+              style={[
+                styles.card,
+                !a.isRead && styles.unreadCard,
+                {
+                  backgroundColor: !a.isRead
+                    ? (darkMode ? '#262636' : '#e0f7ff')
+                    : (darkMode ? '#121212' : '#fff'),
+                  borderColor: darkMode ? '#555' : '#ccc',
+                },
+              ]}>
+              <View style={styles.titleContainer}>
+                <Text style={[styles.title, { color: textColor }]}>{a.title}</Text>
+                {/* Display 'NEW' badge for unread announcements */}
+                {!a.isRead && (
+                  <View style={styles.newBadge}>
+                    <Text style={styles.newBadgeText}>NEW</Text>
+                  </View>
+                )}
               </View>
-            ))}
+              <Text style={[styles.content, { color: darkMode ? '#ccc' : '#aaa' }]}>{a.content}</Text>
+              <View style={[styles.metaRow, { borderTopColor: textColor }]}>
+                <Text style={[styles.metaUser, { color: darkMode ? '#00ccff' : '#91aad4' }]}>{a.userName}</Text>
+                <Text style={[styles.metaTime, { color: darkMode ? '#999' : '#aaa' }]}>{formatDate(a.createdAt)}</Text>
+              </View>
+            </View>
+          ))}
         </ScrollView>
 
-        {/* Floating button to add new announcement (Admins/Technicians only) */}
+        {/* Show add button for Technicians and Admins */}
         {(user?.role === 'Technician' || user?.role === 'Admin') && (
           <TouchableOpacity
             style={styles.addButton}
@@ -193,10 +197,10 @@ const AnnouncementsScreen = ({ navigation }) => {
             <Text style={styles.addButtonText}>+</Text>
           </TouchableOpacity>
         )}
+      </KeyboardAvoidingView>
     </AppLayout>
   );
 };
-
 
 const styles = StyleSheet.create({
   container: {
@@ -271,7 +275,7 @@ const styles = StyleSheet.create({
   metaTime: {
     fontSize: 12,
   },
-    addButton: {
+  addButton: {
     position: 'absolute',
     right: 20,
     bottom: 30,
@@ -297,7 +301,7 @@ const styles = StyleSheet.create({
     fontWeight: '500',
     lineHeight: 34,
   },
-    formOverlay: {
+  formOverlay: {
     position: 'absolute',
     top: 0,
     left: 0,
@@ -366,7 +370,7 @@ const styles = StyleSheet.create({
     fontWeight: '500',
     fontSize: 16,
   },
-    centerContainer: {
+  centerContainer: {
     flex: 1,
     justifyContent: 'center',
     alignItems: 'center',

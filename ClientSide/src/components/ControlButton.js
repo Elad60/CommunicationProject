@@ -1,26 +1,26 @@
-/* eslint-disable react-native/no-inline-styles */
 import React, {useRef} from 'react';
 import {Animated, Text, StyleSheet, Image, Pressable} from 'react-native';
 
 const ControlButton = ({title, icon, value, onPress, darkMode, isSelected, height, width}) => {
-  // Animated scale for hover interaction
   const scale = useRef(new Animated.Value(1)).current;
 
+  // Animates button scale when hovered in
   const handleHoverIn = () => {
     Animated.spring(scale, {
-      toValue: 1.1, // Slight zoom-in on hover
+      toValue: 1.1,
       useNativeDriver: true,
     }).start();
   };
 
+  // Animates button scale when hovered out
   const handleHoverOut = () => {
     Animated.spring(scale, {
-      toValue: 1, // Return to original size
+      toValue: 1,
       useNativeDriver: true,
     }).start();
   };
 
-  // Dynamic styles based on dark mode and selection
+  // Styling based on props
   const backgroundColor = darkMode ? '#2b2b2b' : '#f8f8f8';
   const borderColor = isSelected ? '#3b82f6' : darkMode ? '#555' : '#ccc';
   const textColor = darkMode ? '#fff' : '#000';
@@ -31,6 +31,8 @@ const ControlButton = ({title, icon, value, onPress, darkMode, isSelected, heigh
       onHoverIn={handleHoverIn}
       onHoverOut={handleHoverOut}
       style={{marginHorizontal: 8}}>
+      
+      {/* Animated button container */}
       <Animated.View
         style={[
           styles.button,
@@ -40,16 +42,22 @@ const ControlButton = ({title, icon, value, onPress, darkMode, isSelected, heigh
             backgroundColor,
             borderColor,
             borderWidth: isSelected ? 2 : 1,
-            transform: [{scale}], // Scale animation
+            transform: [{scale}],
             shadowColor: isSelected ? '#3b82f6' : '#000',
             shadowOpacity: isSelected ? 0.3 : 0.1,
-            elevation: isSelected ? 6 : 3, // Higher elevation when selected
+            elevation: isSelected ? 6 : 3,
           },
         ]}>
+
+        {/* Icon */}
         <Image source={icon} style={styles.icon} resizeMode="contain" />
+
+        {/* Optional value (e.g., volume %) */}
         {value !== undefined && (
           <Text style={[styles.value, {color: textColor}]}>{value}%</Text>
         )}
+
+        {/* Title text */}
         <Text style={[styles.title, {color: textColor}]}>{title}</Text>
       </Animated.View>
     </Pressable>

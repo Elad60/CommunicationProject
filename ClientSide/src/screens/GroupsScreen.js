@@ -1,4 +1,4 @@
-/* eslint-disable react-hooks/exhaustive-deps */
+/* eslint-disable react-native/no-inline-styles */
 import React, {useState, useEffect} from 'react';
 import {
   View,
@@ -13,29 +13,43 @@ import AppLayout from '../components/AppLayout';
 import {useAuth} from '../context/AuthContext';
 import {groupUsersApi} from '../utils/apiService';
 import {useSettings} from '../context/SettingsContext';
+import { useDebouncedDimensions } from '../utils/useDebouncedDimensions';
 
 const GroupsScreen = ({navigation}) => {
+  // Destructuring user and changeGroup from AuthContext
   const {user, changeGroup} = useAuth();
+  
+  // States for managing group users, user states, loading status, and errors
   const [groupUsers, setGroupUsers] = useState([]);
   const [userStates, setUserStates] = useState({});
   const [loading, setLoading] = useState(true);
   const [, setError] = useState(null);
+  
+  // Array for group letter options
   const letters = ['A', 'B', 'C', 'D', 'E', 'F'];
+  
+  // Fetching dark mode setting from SettingsContext
   const {darkMode} = useSettings();
+  
+  // Setting text color based on dark mode
   const textColor = darkMode ? '#fff' : '#000';
+  
+  // Debounced dimensions for responsive UI
+  const { height, width } = useDebouncedDimensions(300);
 
-  // Fetch users in the same group as current user
+  // Function to fetch users for the current group
   const fetchGroupUsers = async () => {
     try {
       setLoading(true);
       const groupName = user?.group;
-      if (!groupName) throw new Error('Group not found');
+      if (!groupName) {throw new Error('Group not found');}
 
+      // API call to get users by group
       const users = await groupUsersApi.getUsersByGroup(groupName);
-      const filtered = users.filter(u => u.id !== user.id);
+      const filtered = users.filter(u => u.id !== user.id); // Excluding the current user
       setGroupUsers(filtered);
 
-      // Initialize per-user channel state (Idle by default)
+      // Initialize user states as 'Idle'
       const initialStates = {};
       filtered.forEach(u => {
         initialStates[u.id] = 'Idle';
@@ -44,24 +58,26 @@ const GroupsScreen = ({navigation}) => {
       setError(null);
     } catch (err) {
       console.error('Error fetching group users:', err);
-      setError('Failed to load group users.');
+      setError('Failed to load group users.'); // Error handling
     } finally {
-      setLoading(false);
+      setLoading(false); // Stop loading
     }
   };
 
+  // Effect hook to fetch users when the group changes
   useEffect(() => {
     if (user?.group) {
       fetchGroupUsers();
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [user?.group]);
 
-  // Allow user to switch group (A–F)
+  // Handler to change the group
   const handleGroupChange = newGroup => {
     changeGroup(newGroup);
   };
 
-  // Return icon paths for each channel state
+  // Function to return appropriate icon paths based on user state
   const getIconPaths = channelState => {
     switch (channelState) {
       case 'Idle':
@@ -87,20 +103,20 @@ const GroupsScreen = ({navigation}) => {
     }
   };
 
-  // Return background color based on channel state
+  // Function to get background color based on user state
   const getBackgroundColor = state => {
     switch (state) {
       case 'ListenOnly':
-        return darkMode ? '#1f3d1f' : '#99cc99';
+        return darkMode ? '#1f3d1f' : '#99cc99'; // green
       case 'ListenAndTalk':
-        return darkMode ? '#1e2f4d' : '#91aad4';
+        return darkMode ? '#1e2f4d' : '#91aad4'; // blue
       case 'Idle':
       default:
-        return darkMode ? '#222' : '#ddd';
+        return darkMode ? '#222' : '#ddd'; // default
     }
   };
 
-  // Toggle between Idle → ListenOnly → ListenAndTalk → Idle
+  // Function to cycle through states: Idle -> ListenOnly -> ListenAndTalk
   const cycleState = state => {
     switch (state) {
       case 'Idle':
@@ -113,13 +129,15 @@ const GroupsScreen = ({navigation}) => {
     }
   };
 
+  // Function to handle user press event to change their state
   const onUserPress = userId => {
     setUserStates(prev => ({
       ...prev,
-      [userId]: cycleState(prev[userId] || 'Idle'),
+      [userId]: cycleState(prev[userId] || 'Idle'), // Toggle user state
     }));
   };
 
+  // Loading state display
   if (loading) {
     return (
       <AppLayout navigation={navigation} title={`Group: ${user?.group}`}>
@@ -137,6 +155,13 @@ const GroupsScreen = ({navigation}) => {
     );
   }
 
+  // Calculate the card size dynamically based on screen size
+  const CardSize = Math.max(
+    130,
+    Math.sqrt((width * 0.7 * height * 0.7) / (groupUsers.length + 4))
+  );
+
+  // Main screen layout
   return (
     <AppLayout navigation={navigation} title={`Group: ${user?.group}`}>
       <ScrollView
@@ -159,6 +184,8 @@ const GroupsScreen = ({navigation}) => {
                     {
                       backgroundColor: bgColor,
                       borderColor: darkMode ? '#888' : '#333',
+                      width: CardSize,
+                      height: CardSize,
                     },
                   ]}
                   onPress={() => onUserPress(u.id)}>
@@ -198,7 +225,6 @@ const GroupsScreen = ({navigation}) => {
         </View>
       </ScrollView>
 
-      {/* Section to change group manually */}
       <View style={{backgroundColor: darkMode ? '#000' : '#d9d9d9'}}>
         <Text style={[styles.label, {color: textColor}]}>
           Change Your Group:
@@ -234,6 +260,7 @@ const GroupsScreen = ({navigation}) => {
   );
 };
 
+// Styles for the component
 const styles = StyleSheet.create({
   scrollView: {flex: 1},
   mainGrid: {
@@ -246,7 +273,6 @@ const styles = StyleSheet.create({
     borderRadius: 8,
     padding: 10,
     margin: 8,
-    width: 130,
     alignItems: 'center',
     borderWidth: 1,
   },

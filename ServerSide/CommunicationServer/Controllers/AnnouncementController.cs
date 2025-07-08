@@ -10,6 +10,7 @@ namespace CommunicationServer.Controllers
     [ApiController]
     public class AnnouncementController : ControllerBase
     {
+        // 📌 Add a new announcement
         [HttpPost("announcement")]
         public IActionResult AddAnnouncement([FromBody] Announcement announcement)
         {
@@ -29,6 +30,7 @@ namespace CommunicationServer.Controllers
             }
         }
 
+        // 📌 Get all announcements
         [HttpGet("announcements")]
         public IActionResult GetAllAnnouncements()
         {
@@ -43,6 +45,8 @@ namespace CommunicationServer.Controllers
                 return StatusCode(500, new { success = false, message = ex.Message });
             }
         }
+
+        // 📌 Get announcements with user-specific read status
         [HttpGet("announcements/withReadStatus/{userId}")]
         public IActionResult GetAnnouncementsWithReadStatus(int userId)
         {
@@ -58,6 +62,7 @@ namespace CommunicationServer.Controllers
             }
         }
 
+        // 📌 Mark all announcements as read for a user
         [HttpPost("announcements/markAllAsRead/{userId}")]
         public IActionResult MarkAllAnnouncementsAsRead(int userId)
         {
@@ -76,6 +81,7 @@ namespace CommunicationServer.Controllers
             }
         }
 
+        // 📌 Get count of unread announcements for a user
         [HttpGet("announcements/unreadCount/{userId}")]
         public IActionResult GetUnreadAnnouncementsCount(int userId)
         {

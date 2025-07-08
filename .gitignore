@@ -21,7 +21,7 @@ DerivedData
 *.ipa
 *.xcuserstate
 **/.xcode.env.local
-windows/
+
 # Android/IntelliJ
 #
 build/
@@ -99,13 +99,36 @@ ScaffoldingReadMe.txt
 # Logs
 *.log
 
-# Ignore platform version and project output files
-**/windows/FinalProject/FinalProject.csproj
-**/windows/FinalProject/FinalProject.vcxproj
-**/windows/Package.appxmanifest
-**/windows/*/bin/
-**/windows/*/obj/
+# Windows - Block entire heavy/build directories
+**/windows/AppPackages/
+**/windows/high_level_api/
+**/windows/low_level_api/
+**/windows/packages/
+**/windows/sdk/
+**/windows/x64/
+**/windows/FinalProject/Bundle/
+**/windows/FinalProject/BundleBuilder/
+**/windows/FinalProject/Generated Files/
+**/windows/FinalProject/obj/
+**/windows/FinalProject/x64/
 
+
+
+# Auto-generated Windows files
+**/AutolinkedNativeModules.g.*
+**/*.vcxproj.user
+
+# MSBuild logs
 ClientSide/msbuild.binlog
-ClientSide/msbuild.binlog
-ClientSide/msbuild.binlog
+
+# Block project files to avoid version conflicts
+**/windows/FinalProject/FinalProject.vcxproj
+**/windows/FinalProject/FinalProject.vcxproj.filters
+**/windows/FinalProject/PropertySheet.props
+**/windows/FinalProject/packages.lock.json
+
+# Keep ONLY AgoraModule files and essential assets:
+!ClientSide/windows/FinalProject/AgoraModule/
+!ClientSide/windows/FinalProject/AgoraModule/*
+!ClientSide/windows/FinalProject/Package.appxmanifest
+!ClientSide/windows/FinalProject/Assets/

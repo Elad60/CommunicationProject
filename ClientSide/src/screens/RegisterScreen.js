@@ -35,25 +35,19 @@ const RegisterScreen = ({onRegister, onNavigateToLogin}) => {
       case 'username':
         if (!value) return 'Username is required';
         if (value.length < 4) return 'Username must be at least 4 characters';
-        if (!/^[a-zA-Z0-9_]+$/.test(value))
-          return 'Username can only contain letters, numbers, and underscores';
+        if (!/^[a-zA-Z0-9_]+$/.test(value)) return 'Username can only contain letters, numbers, and underscores';
         return '';
       case 'email':
         if (!value) return 'Email is required';
-        if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(value))
-          return 'Please enter a valid email address';
+        if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(value)) return 'Please enter a valid email address';
         return '';
       case 'password':
         if (!value) return 'Password is required';
         if (value.length < 8) return 'Password must be at least 8 characters';
-        if (!/[A-Z]/.test(value))
-          return 'Password must contain at least one uppercase letter';
-        if (!/[a-z]/.test(value))
-          return 'Password must contain at least one lowercase letter';
-        if (!/\d/.test(value))
-          return 'Password must contain at least one number';
-        if (!/[!@#$%^&*(),.?":{}|<>]/.test(value))
-          return 'Password must contain at least one special character';
+        if (!/[A-Z]/.test(value)) return 'Password must contain at least one uppercase letter';
+        if (!/[a-z]/.test(value)) return 'Password must contain at least one lowercase letter';
+        if (!/\d/.test(value)) return 'Password must contain at least one number';
+        if (!/[!@#$%^&*(),.?":{}|<>]/.test(value)) return 'Password must contain at least one special character';
         return '';
       case 'confirmPassword':
         if (!value) return 'Please confirm your password';
@@ -88,7 +82,7 @@ const RegisterScreen = ({onRegister, onNavigateToLogin}) => {
     }
     setFieldErrors(prev => ({
       ...prev,
-      [field]: validateField(field, value), // Validate field on change
+      [field]: validateField(field, value) // Validate field on change
     }));
   };
 
@@ -101,9 +95,9 @@ const RegisterScreen = ({onRegister, onNavigateToLogin}) => {
       confirmPassword: validateField('confirmPassword', confirmPassword),
       group: validateField('group', group),
     };
-
+    
     setFieldErrors(newFieldErrors); // Update field errors state
-
+    
     // If any field has an error, return false
     return !Object.values(newFieldErrors).some(error => error !== '');
   };
@@ -113,37 +107,37 @@ const RegisterScreen = ({onRegister, onNavigateToLogin}) => {
     if (!validateForm()) {
       return;
     }
-
+  
     setIsLoading(true); // Show loading state
     setError(''); // Clear previous errors
-
+  
     try {
       // Call the register function passed from parent component
       const result = await onRegister(username, password, email, group);
       console.log('Register result in component:', result);
-
+  
       if (result && result.success) {
         // Show success message on successful registration
         Alert.alert(
           'Registration Successful',
           result.message || 'Your account has been created successfully!',
           [
-            {
-              text: 'Continue',
+            { 
+              text: 'Continue', 
               onPress: () => {
                 // Navigate to login screen after success
                 onNavigateToLogin();
-              },
-            },
+              }
+            }
           ],
-          {cancelable: false},
+          { cancelable: false }
         );
       } else {
         // Show error message if registration failed
         setError(result?.message || 'Registration failed');
         Alert.alert(
           'Registration Failed',
-          result?.message || 'Registration failed. Please try again.',
+          result?.message || 'Registration failed. Please try again.'
         );
       }
     } catch (err) {
@@ -155,33 +149,17 @@ const RegisterScreen = ({onRegister, onNavigateToLogin}) => {
 
   // Calculate password strength based on criteria
   const getPasswordStrength = () => {
-    if (!password) {
-      return null;
-    }
+    if (!password) {return null;}
 
     let strength = 0;
-    if (password.length >= 8) {
-      strength += 1;
-    }
-    if (/[A-Z]/.test(password)) {
-      strength += 1;
-    }
-    if (/[a-z]/.test(password)) {
-      strength += 1;
-    }
-    if (/\d/.test(password)) {
-      strength += 1;
-    }
-    if (/[!@#$%^&*(),.?":{}|<>]/.test(password)) {
-      strength += 1;
-    }
+    if (password.length >= 8) {strength += 1;}
+    if (/[A-Z]/.test(password)) {strength += 1;}
+    if (/[a-z]/.test(password)) {strength += 1;}
+    if (/\d/.test(password)) {strength += 1;}
+    if (/[!@#$%^&*(),.?":{}|<>]/.test(password)) {strength += 1;}
 
-    if (strength < 2) {
-      return {text: 'Weak', color: '#ff4d4f'};
-    }
-    if (strength < 4) {
-      return {text: 'Medium', color: '#faad14'};
-    }
+    if (strength < 2) {return {text: 'Weak', color: '#ff4d4f'};}
+    if (strength < 4) {return {text: 'Medium', color: '#faad14'};}
     return {text: 'Strong', color: '#52c41a'};
   };
   const letters = ['A', 'B', 'C', 'D', 'E', 'F']; // Group selection letters
@@ -205,73 +183,49 @@ const RegisterScreen = ({onRegister, onNavigateToLogin}) => {
 
             {/* Username input field */}
             <TextInput
-              style={[
-                styles.input,
-                fieldErrors.username ? styles.inputError : null,
-              ]}
+              style={[styles.input, fieldErrors.username ? styles.inputError : null]}
               placeholder="Username (min. 4 characters)"
               placeholderTextColor="#888"
               value={username}
-              onChangeText={value => handleFieldChange('username', value)}
+              onChangeText={(value) => handleFieldChange('username', value)}
               autoCapitalize="none"
               maxLength={20}
             />
-            {fieldErrors.username ? (
-              <Text style={styles.fieldError}>{fieldErrors.username}</Text>
-            ) : null}
+            {fieldErrors.username ? <Text style={styles.fieldError}>{fieldErrors.username}</Text> : null}
 
             {/* Email input field */}
             <TextInput
-              style={[
-                styles.input,
-                fieldErrors.email ? styles.inputError : null,
-              ]}
+              style={[styles.input, fieldErrors.email ? styles.inputError : null]}
               placeholder="Email address"
               placeholderTextColor="#888"
               keyboardType="email-address"
               value={email}
-              onChangeText={value => handleFieldChange('email', value)}
+              onChangeText={(value) => handleFieldChange('email', value)}
               autoCapitalize="none"
             />
-            {fieldErrors.email ? (
-              <Text style={styles.fieldError}>{fieldErrors.email}</Text>
-            ) : null}
+            {fieldErrors.email ? <Text style={styles.fieldError}>{fieldErrors.email}</Text> : null}
 
             {/* Password input field */}
             <TextInput
-              style={[
-                styles.input,
-                fieldErrors.password ? styles.inputError : null,
-              ]}
+              style={[styles.input, fieldErrors.password ? styles.inputError : null]}
               placeholder="Password (min. 8 characters)"
               placeholderTextColor="#888"
               secureTextEntry
               value={password}
-              onChangeText={value => handleFieldChange('password', value)}
+              onChangeText={(value) => handleFieldChange('password', value)}
             />
-            {fieldErrors.password ? (
-              <Text style={styles.fieldError}>{fieldErrors.password}</Text>
-            ) : null}
+            {fieldErrors.password ? <Text style={styles.fieldError}>{fieldErrors.password}</Text> : null}
 
             {/* Confirm Password input field */}
             <TextInput
-              style={[
-                styles.input,
-                fieldErrors.confirmPassword ? styles.inputError : null,
-              ]}
+              style={[styles.input, fieldErrors.confirmPassword ? styles.inputError : null]}
               placeholder="Confirm Password"
               placeholderTextColor="#888"
               secureTextEntry
               value={confirmPassword}
-              onChangeText={value =>
-                handleFieldChange('confirmPassword', value)
-              }
+              onChangeText={(value) => handleFieldChange('confirmPassword', value)}
             />
-            {fieldErrors.confirmPassword ? (
-              <Text style={styles.fieldError}>
-                {fieldErrors.confirmPassword}
-              </Text>
-            ) : null}
+            {fieldErrors.confirmPassword ? <Text style={styles.fieldError}>{fieldErrors.confirmPassword}</Text> : null}
 
             {/* Password requirements */}
             <View style={styles.passwordRequirements}>
@@ -293,7 +247,7 @@ const RegisterScreen = ({onRegister, onNavigateToLogin}) => {
               {letters.map(letter => (
                 <TouchableOpacity
                   key={letter}
-                  style={[
+                  style={[ 
                     styles.letterButton,
                     group === letter && styles.letterButtonSelected,
                   ]}
@@ -310,8 +264,8 @@ const RegisterScreen = ({onRegister, onNavigateToLogin}) => {
             </View>
 
             {/* Register button */}
-            <TouchableOpacity
-              style={[styles.button, isLoading && styles.buttonDisabled]}
+            <TouchableOpacity 
+              style={[styles.button, isLoading && styles.buttonDisabled]} 
               onPress={handleRegister}
               disabled={isLoading}>
               {isLoading ? (
