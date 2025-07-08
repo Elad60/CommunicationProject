@@ -129,14 +129,14 @@ namespace winrt::FinalProject::implementation
             result = m_rtcEngine->enableAudio();
             OutputDebugStringA(("🔍 EnableAudio result: " + std::to_string(result) + "\n").c_str());
 
-            // Enable AI Noise Suppression for better audio quality (Windows compatible)
-            OutputDebugStringA("🤖 Enabling AI Noise Suppression...\n");
-            result = m_rtcEngine->setAINSMode(true, 2); // 2 = Aggressive mode
+            // Enable AI Noise Suppression for better audio quality
+            OutputDebugStringA("🤖 Enabling AI Noise Suppression (Aggressive mode)...\n");
+            result = m_rtcEngine->setAINSMode(true, agora::rtc::AINS_MODE_AGGRESSIVE);
             OutputDebugStringA(("🔍 AI Noise Suppression result: " + std::to_string(result) + "\n").c_str());
 
             // Set audio scenario for communication (optimizes for voice)
-            OutputDebugStringA("🎤 Setting audio scenario for communication...\n");
-            result = m_rtcEngine->setAudioScenario(agora::rtc::AUDIO_SCENARIO_CHATROOM);
+            OutputDebugStringA("🎤 Setting audio scenario for meeting/voice communication...\n");
+            result = m_rtcEngine->setAudioScenario(agora::rtc::AUDIO_SCENARIO_MEETING);
             OutputDebugStringA(("🔍 Audio scenario result: " + std::to_string(result) + "\n").c_str());
 
             // Set client role
@@ -275,10 +275,10 @@ namespace winrt::FinalProject::implementation
             m_rtcEngine->adjustRecordingSignalVolume(80); // Slightly reduce from default 100
             OutputDebugStringA("🔊 Recording volume set to 80 (reduces background noise)\n");
             
-            // Enable local voice effects for cleaner sound
-            m_rtcEngine->setLocalVoiceEqualization(AUDIO_EQUALIZATION_BAND_125, -15);
-            m_rtcEngine->setLocalVoiceEqualization(AUDIO_EQUALIZATION_BAND_250, -10);
-            OutputDebugStringA("🎚️ Voice equalization applied for cleaner sound\n");
+            // Enable local voice effects for cleaner sound (reduce low frequency noise)
+            m_rtcEngine->setLocalVoiceEqualization(agora::rtc::AUDIO_EQUALIZATION_BAND_125, -15);
+            m_rtcEngine->setLocalVoiceEqualization(agora::rtc::AUDIO_EQUALIZATION_BAND_250, -10);
+            OutputDebugStringA("🎚️ Voice equalization applied (reduced 125Hz & 250Hz for less noise)\n");
 
             OutputDebugStringA("🔗 CALLING joinChannel()...\n");
             // New project in testing mode - no token required
@@ -427,7 +427,15 @@ namespace winrt::FinalProject::implementation
                 return;
             }
 
-            AINS_MODE ainsMode = static_cast<AINS_MODE>(mode);
+            // Convert int to proper enum (0=Balanced, 1=Aggressive, 2=UltraLowLatency)
+            agora::rtc::AUDIO_AINS_MODE ainsMode;
+            switch (mode) {
+                case 0: ainsMode = agora::rtc::AINS_MODE_BALANCED; break;
+                case 1: ainsMode = agora::rtc::AINS_MODE_AGGRESSIVE; break;
+                case 2: ainsMode = agora::rtc::AINS_MODE_ULTRALOWLATENCY; break;
+                default: ainsMode = agora::rtc::AINS_MODE_BALANCED; break;
+            }
+            
             int result = m_rtcEngine->setAINSMode(enabled, ainsMode);
             if (result == 0) {
                 OutputDebugStringA(("✅ Noise suppression " + std::string(enabled ? "ENABLED" : "DISABLED") + " successfully\n").c_str());
@@ -449,7 +457,16 @@ namespace winrt::FinalProject::implementation
                 return;
             }
 
-            AUDIO_SCENARIO_TYPE audioScenario = static_cast<AUDIO_SCENARIO_TYPE>(scenario);
+            // Convert int to proper enum (0=Default, 3=Game_Streaming, 5=Chatroom, 8=Meeting)
+            agora::rtc::AUDIO_SCENARIO_TYPE audioScenario;
+            switch (scenario) {
+                case 0: audioScenario = agora::rtc::AUDIO_SCENARIO_DEFAULT; break;
+                case 3: audioScenario = agora::rtc::AUDIO_SCENARIO_GAME_STREAMING; break;
+                case 5: audioScenario = agora::rtc::AUDIO_SCENARIO_CHATROOM; break;
+                case 8: audioScenario = agora::rtc::AUDIO_SCENARIO_MEETING; break;
+                default: audioScenario = agora::rtc::AUDIO_SCENARIO_MEETING; break;
+            }
+            
             int result = m_rtcEngine->setAudioScenario(audioScenario);
             if (result == 0) {
                 OutputDebugStringA("✅ Audio scenario set successfully\n");
