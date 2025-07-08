@@ -161,7 +161,7 @@ const MainScreen = ({navigation}) => {
 
       // Test with the real App ID - now using proper C++ SDK
       console.log('🔧 About to call InitializeAgoraEngine with App ID');
-      AgoraModule.InitializeAgoraEngine('bf0d04d525da4bcb8f7abab286f4fc11');
+      AgoraModule.InitializeAgoraEngine('e5631d55e8a24b08b067bb73f8797fe3');
       console.log('✅ InitializeAgoraEngine called successfully');
       Alert.alert(
         'AgoraModule Success',

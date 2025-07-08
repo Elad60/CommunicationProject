@@ -259,10 +259,9 @@ namespace winrt::FinalProject::implementation
             OutputDebugStringA("  👤 Client role: BROADCASTER\n");
 
             OutputDebugStringA("🔗 CALLING joinChannel()...\n");
-            // Use token for authentication (generated from Agora Console)
-            std::string token = "007eJxTYGhfOMW4xH6CbVRQy+WpxawCNttrvKUCQ1KaQYqBSYqpkWlKoklScpJFmnliUmKSkYVZmklasqHhYu3cjAwAADLISPu";
-            OutputDebugStringA("🔐 Using authentication token for secure channel join\n");
-            int result = m_rtcEngine->joinChannel(token.c_str(), channelName.c_str(), 0, options);
+            // New project in testing mode - no token required
+            OutputDebugStringA("🆓 Using testing mode (no token required) for new Agora project\n");
+            int result = m_rtcEngine->joinChannel(nullptr, channelName.c_str(), 0, options);
             
             OutputDebugStringA(("🔍 joinChannel() result: " + std::to_string(result) + "\n").c_str());
             
