@@ -343,6 +343,7 @@ namespace winrt::FinalProject::implementation
 
             int result = m_rtcEngine->muteLocalAudioStream(mute);
             if (result == 0) {
+                m_isLocalAudioMuted = mute;
                 OutputDebugStringA(("✅ Microphone " + std::string(mute ? "MUTED" : "UNMUTED") + " successfully\n").c_str());
             } else {
                 OutputDebugStringA(("❌ Failed to mute/unmute, error: " + std::to_string(result) + "\n").c_str());
@@ -537,26 +538,6 @@ namespace winrt::FinalProject::implementation
     }
 
     // New functions for private calls
-    void AgoraManager::MuteLocalAudio(bool mute)
-    {
-        try {
-            if (!m_rtcEngine) {
-                OutputDebugStringA("❌ Engine not initialized - cannot mute audio\n");
-                return;
-            }
-
-            int result = m_rtcEngine->muteLocalAudioStream(mute);
-            if (result == 0) {
-                m_isLocalAudioMuted = mute;
-                std::string msg = mute ? "✅ Local audio muted\n" : "✅ Local audio unmuted\n";
-                OutputDebugStringA(msg.c_str());
-            } else {
-                OutputDebugStringA(("❌ Failed to mute/unmute local audio, error: " + std::to_string(result) + "\n").c_str());
-            }
-        } catch (...) {
-            OutputDebugStringA("❌ Exception in MuteLocalAudio\n");
-        }
-    }
 
     void AgoraManager::SetSpeakerphoneOn(bool enable)
     {
