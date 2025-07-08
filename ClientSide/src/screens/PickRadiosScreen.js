@@ -209,7 +209,7 @@ const PickRadiosScreen = ({navigation}) => {
                   </Text>
                 </View>
               </TouchableOpacity>
-            );
+            );on
           })}
 
           <TouchableOpacity

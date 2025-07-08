@@ -1,0 +1,514 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>WebRTC Audio Communication</title>
+    <style>
+      body {
+        font-family: Arial, sans-serif;
+        margin: 0;
+        padding: 20px;
+        background-color: #f5f5f5;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        min-height: 100vh;
+      }
+
+      .container {
+        background: white;
+        padding: 30px;
+        border-radius: 10px;
+        box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+        max-width: 400px;
+        width: 100%;
+      }
+
+      .status {
+        text-align: center;
+        margin-bottom: 20px;
+        padding: 10px;
+        border-radius: 5px;
+        font-weight: bold;
+      }
+
+      .status.connected {
+        background-color: #d4edda;
+        color: #155724;
+        border: 1px solid #c3e6cb;
+      }
+
+      .status.disconnected {
+        background-color: #f8d7da;
+        color: #721c24;
+        border: 1px solid #f5c6cb;
+      }
+
+      .status.connecting {
+        background-color: #fff3cd;
+        color: #856404;
+        border: 1px solid #ffeaa7;
+      }
+
+      .controls {
+        display: flex;
+        flex-direction: column;
+        gap: 15px;
+      }
+
+      .control-group {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+      }
+
+      .btn {
+        padding: 12px 24px;
+        border: none;
+        border-radius: 5px;
+        cursor: pointer;
+        font-size: 16px;
+        font-weight: bold;
+        transition: all 0.3s ease;
+      }
+
+      .btn-primary {
+        background-color: #007bff;
+        color: white;
+      }
+
+      .btn-primary:hover {
+        background-color: #0056b3;
+      }
+
+      .btn-danger {
+        background-color: #dc3545;
+        color: white;
+      }
+
+      .btn-danger:hover {
+        background-color: #c82333;
+      }
+
+      .btn-success {
+        background-color: #28a745;
+        color: white;
+      }
+
+      .btn-success:hover {
+        background-color: #218838;
+      }
+
+      .btn:disabled {
+        background-color: #6c757d;
+        cursor: not-allowed;
+      }
+
+      .volume-control {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+      }
+
+      .volume-slider {
+        flex: 1;
+        height: 6px;
+        border-radius: 3px;
+        background: #ddd;
+        outline: none;
+        -webkit-appearance: none;
+      }
+
+      .volume-slider::-webkit-slider-thumb {
+        -webkit-appearance: none;
+        appearance: none;
+        width: 20px;
+        height: 20px;
+        border-radius: 50%;
+        background: #007bff;
+        cursor: pointer;
+      }
+
+      .audio-level {
+        width: 100%;
+        height: 20px;
+        background-color: #e9ecef;
+        border-radius: 10px;
+        overflow: hidden;
+        margin-top: 10px;
+      }
+
+      .audio-level-bar {
+        height: 100%;
+        background: linear-gradient(90deg, #28a745, #ffc107, #dc3545);
+        width: 0%;
+        transition: width 0.1s ease;
+      }
+
+      .hidden {
+        display: none;
+      }
+    </style>
+  </head>
+  <body>
+    <div class="container">
+      <h2 style="text-align: center; margin-bottom: 20px">
+        Voice Communication
+      </h2>
+
+      <div id="status" class="status disconnected">Disconnected</div>
+
+      <div class="controls">
+        <div class="control-group">
+          <span>Microphone:</span>
+          <button id="micBtn" class="btn btn-primary">Start Mic</button>
+        </div>
+
+        <div class="control-group">
+          <span>Mute:</span>
+          <button id="muteBtn" class="btn btn-danger" disabled>Mute</button>
+        </div>
+
+        <div class="control-group">
+          <span>Volume:</span>
+          <div class="volume-control">
+            <input
+              type="range"
+              id="volumeSlider"
+              class="volume-slider"
+              min="0"
+              max="100"
+              value="50" />
+            <span id="volumeValue">50%</span>
+          </div>
+        </div>
+
+        <div class="audio-level">
+          <div id="audioLevelBar" class="audio-level-bar"></div>
+        </div>
+
+        <button id="connectBtn" class="btn btn-success" disabled>
+          Connect to Peer
+        </button>
+        <button id="disconnectBtn" class="btn btn-danger" disabled>
+          Disconnect
+        </button>
+      </div>
+    </div>
+
+    <!-- Hidden audio elements for WebRTC -->
+    <audio id="localAudio" autoplay muted></audio>
+    <audio id="remoteAudio" autoplay></audio>
+
+    <script>
+      // WebRTC variables
+      let localStream = null;
+      let peerConnection = null;
+      let isConnected = false;
+      let isMuted = false;
+      let isMicActive = false;
+
+      // DOM elements
+      const statusEl = document.getElementById('status');
+      const micBtn = document.getElementById('micBtn');
+      const muteBtn = document.getElementById('muteBtn');
+      const connectBtn = document.getElementById('connectBtn');
+      const disconnectBtn = document.getElementById('disconnectBtn');
+      const volumeSlider = document.getElementById('volumeSlider');
+      const volumeValue = document.getElementById('volumeValue');
+      const localAudio = document.getElementById('localAudio');
+      const remoteAudio = document.getElementById('remoteAudio');
+      const audioLevelBar = document.getElementById('audioLevelBar');
+
+      // Audio context for level monitoring
+      let audioContext = null;
+      let analyser = null;
+      let microphone = null;
+      let dataArray = null;
+
+      // Initialize audio context for level monitoring
+      function initAudioContext() {
+        try {
+          audioContext = new (window.AudioContext ||
+            window.webkitAudioContext)();
+          analyser = audioContext.createAnalyser();
+          analyser.fftSize = 256;
+          const bufferLength = analyser.frequencyBinCount;
+          dataArray = new Uint8Array(bufferLength);
+        } catch (error) {
+          console.error('Audio context not supported:', error);
+        }
+      }
+
+      // Update audio level visualization
+      function updateAudioLevel() {
+        if (!analyser || !dataArray) return;
+
+        analyser.getByteFrequencyData(dataArray);
+        const average = dataArray.reduce((a, b) => a + b) / dataArray.length;
+        const level = (average / 255) * 100;
+
+        audioLevelBar.style.width = level + '%';
+
+        // Send audio level to React Native
+        if (window.ReactNativeWebView) {
+          window.ReactNativeWebView.postMessage(
+            JSON.stringify({
+              type: 'audioLevel',
+              level: level,
+            }),
+          );
+        }
+      }
+
+      // Start audio level monitoring
+      function startAudioLevelMonitoring() {
+        if (analyser && localStream) {
+          microphone = audioContext.createMediaStreamSource(localStream);
+          microphone.connect(analyser);
+          setInterval(updateAudioLevel, 100);
+        }
+      }
+
+      // Update status display
+      function updateStatus(status, className) {
+        statusEl.textContent = status;
+        statusEl.className = `status ${className}`;
+      }
+
+      // Send message to React Native
+      function sendToReactNative(data) {
+        if (window.ReactNativeWebView) {
+          window.ReactNativeWebView.postMessage(JSON.stringify(data));
+        }
+      }
+
+      // Start microphone
+      async function startMicrophone() {
+        try {
+          const constraints = {
+            audio: {
+              echoCancellation: true,
+              noiseSuppression: true,
+              autoGainControl: true,
+            },
+            video: false,
+          };
+
+          localStream = await navigator.mediaDevices.getUserMedia(constraints);
+          localAudio.srcObject = localStream;
+
+          isMicActive = true;
+          micBtn.textContent = 'Stop Mic';
+          micBtn.className = 'btn btn-danger';
+          muteBtn.disabled = false;
+          connectBtn.disabled = false;
+
+          updateStatus('Microphone Active', 'connected');
+          sendToReactNative({type: 'micStatus', active: true});
+
+          // Initialize audio context and start monitoring
+          initAudioContext();
+          startAudioLevelMonitoring();
+        } catch (error) {
+          console.error('Error accessing microphone:', error);
+          updateStatus('Microphone Error', 'disconnected');
+          sendToReactNative({
+            type: 'error',
+            message: 'Failed to access microphone',
+          });
+        }
+      }
+
+      // Stop microphone
+      function stopMicrophone() {
+        if (localStream) {
+          localStream.getTracks().forEach(track => track.stop());
+          localStream = null;
+        }
+
+        isMicActive = false;
+        micBtn.textContent = 'Start Mic';
+        micBtn.className = 'btn btn-primary';
+        muteBtn.disabled = true;
+        connectBtn.disabled = true;
+
+        updateStatus('Microphone Stopped', 'disconnected');
+        sendToReactNative({type: 'micStatus', active: false});
+      }
+
+      // Toggle mute
+      function toggleMute() {
+        if (!localStream) return;
+
+        const audioTrack = localStream.getAudioTracks()[0];
+        if (audioTrack) {
+          audioTrack.enabled = !audioTrack.enabled;
+          isMuted = !audioTrack.enabled;
+
+          muteBtn.textContent = isMuted ? 'Unmute' : 'Mute';
+          muteBtn.className = isMuted ? 'btn btn-success' : 'btn btn-danger';
+
+          sendToReactNative({type: 'muteStatus', muted: isMuted});
+        }
+      }
+
+      // Create peer connection
+      function createPeerConnection() {
+        const configuration = {
+          iceServers: [
+            {urls: 'stun:stun.l.google.com:19302'},
+            {urls: 'stun:stun1.l.google.com:19302'},
+          ],
+        };
+
+        peerConnection = new RTCPeerConnection(configuration);
+
+        // Add local stream
+        if (localStream) {
+          localStream.getTracks().forEach(track => {
+            peerConnection.addTrack(track, localStream);
+          });
+        }
+
+        // Handle incoming streams
+        peerConnection.ontrack = event => {
+          remoteAudio.srcObject = event.streams[0];
+          sendToReactNative({type: 'remoteStream', connected: true});
+        };
+
+        // Handle connection state changes
+        peerConnection.onconnectionstatechange = () => {
+          const state = peerConnection.connectionState;
+          sendToReactNative({type: 'connectionState', state: state});
+
+          if (state === 'connected') {
+            isConnected = true;
+            updateStatus('Connected', 'connected');
+            disconnectBtn.disabled = false;
+          } else if (state === 'disconnected' || state === 'failed') {
+            isConnected = false;
+            updateStatus('Disconnected', 'disconnected');
+            disconnectBtn.disabled = true;
+          }
+        };
+
+        return peerConnection;
+      }
+
+      // Connect to peer (placeholder - you'll need to implement signaling)
+      async function connectToPeer() {
+        if (!localStream) {
+          alert('Please start microphone first');
+          return;
+        }
+
+        try {
+          updateStatus('Connecting...', 'connecting');
+          createPeerConnection();
+
+          // Create offer
+          const offer = await peerConnection.createOffer();
+          await peerConnection.setLocalDescription(offer);
+
+          // Send offer to React Native for signaling
+          sendToReactNative({
+            type: 'offer',
+            sdp: offer.sdp,
+          });
+        } catch (error) {
+          console.error('Error creating connection:', error);
+          updateStatus('Connection Failed', 'disconnected');
+          sendToReactNative({
+            type: 'error',
+            message: 'Failed to create connection',
+          });
+        }
+      }
+
+      // Disconnect from peer
+      function disconnectFromPeer() {
+        if (peerConnection) {
+          peerConnection.close();
+          peerConnection = null;
+        }
+
+        isConnected = false;
+        remoteAudio.srcObject = null;
+        disconnectBtn.disabled = true;
+        updateStatus('Disconnected', 'disconnected');
+
+        sendToReactNative({type: 'disconnected'});
+      }
+
+      // Handle volume change
+      function updateVolume() {
+        const volume = volumeSlider.value / 100;
+        remoteAudio.volume = volume;
+        volumeValue.textContent = volumeSlider.value + '%';
+
+        sendToReactNative({type: 'volumeChanged', volume: volume});
+      }
+
+      // Event listeners
+      micBtn.addEventListener('click', () => {
+        if (isMicActive) {
+          stopMicrophone();
+        } else {
+          startMicrophone();
+        }
+      });
+
+      muteBtn.addEventListener('click', toggleMute);
+      connectBtn.addEventListener('click', connectToPeer);
+      disconnectBtn.addEventListener('click', disconnectFromPeer);
+      volumeSlider.addEventListener('input', updateVolume);
+
+      // Listen for messages from React Native
+      window.addEventListener('message', event => {
+        try {
+          const data = JSON.parse(event.data);
+
+          switch (data.type) {
+            case 'answer':
+              if (peerConnection) {
+                peerConnection.setRemoteDescription(
+                  new RTCSessionDescription({
+                    type: 'answer',
+                    sdp: data.sdp,
+                  }),
+                );
+              }
+              break;
+
+            case 'iceCandidate':
+              if (peerConnection) {
+                peerConnection.addIceCandidate(
+                  new RTCIceCandidate(data.candidate),
+                );
+              }
+              break;
+
+            case 'disconnect':
+              disconnectFromPeer();
+              break;
+
+            case 'mute':
+              if (!isMuted) toggleMute();
+              break;
+
+            case 'unmute':
+              if (isMuted) toggleMute();
+              break;
+          }
+        } catch (error) {
+          console.error('Error parsing message from React Native:', error);
+        }
+      });
+
+      // Send ready message to React Native
+      sendToReactNative({type: 'ready'});
+    </script>
+  </body>
+</html>

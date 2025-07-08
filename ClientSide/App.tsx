@@ -6,6 +6,7 @@ import {
   StyleSheet,
   View,
   ActivityIndicator,
+  AppRegistry,
 } from 'react-native';
 import AppNavigator from './src/navigation/AppNavigator';
 import LoginScreen from './src/screens/LoginScreen';
@@ -13,6 +14,18 @@ import RegisterScreen from './src/screens/RegisterScreen';
 import {AuthProvider, useAuth} from './src/context/AuthContext';
 import {SettingsProvider} from './src/context/SettingsContext';
 import {AnnouncementsProvider} from './src/context/AnnouncementsContext';
+import {name as appName} from './app.json';
+
+// Enable remote debugging
+if (__DEV__) {
+  const websocket = require('ws');
+  const {connectToDevTools} = require('react-devtools-core');
+  connectToDevTools({
+    host: 'localhost',
+    port: 8082,
+    websocket: websocket,
+  });
+}
 
 // Component that handles the authentication flow and screen switching
 const AppContent = () => {
@@ -32,8 +45,12 @@ const AppContent = () => {
   if (!user) {
     return isRegistering ? (
       <RegisterScreen
-        onRegister={async (username: any, password: any, email: any, group: any) => {
-          // Call the register function from AuthContext
+        onRegister={async (
+          username: any,
+          password: any,
+          email: any,
+          group: any,
+        ) => {
           const result = await register(username, password, email, group);
           if (result?.success) {
             setIsRegistering(false); // Go back to login screen after successful registration
@@ -65,16 +82,18 @@ const AppContent = () => {
 
 // Root component wrapping the app with context providers
 const App = () => {
+  console.log('Testing debug connection');
+  console.log('App is rendering!');
   return (
     <SafeAreaView style={styles.container}>
       <StatusBar barStyle="light-content" backgroundColor="#000" />
-      <SettingsProvider>
-        <AuthProvider>
+      <AuthProvider>
+        <SettingsProvider>
           <AnnouncementsProvider>
             <AppContent />
           </AnnouncementsProvider>
-        </AuthProvider>
-      </SettingsProvider>
+        </SettingsProvider>
+      </AuthProvider>
     </SafeAreaView>
   );
 };
@@ -94,3 +113,6 @@ const styles = StyleSheet.create({
 });
 
 export default App;
+
+// Register the app
+AppRegistry.registerComponent(appName, () => App);
