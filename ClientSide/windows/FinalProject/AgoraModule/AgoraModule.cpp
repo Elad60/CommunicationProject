@@ -257,7 +257,7 @@ namespace winrt::FinalProject::implementation
 
             OutputDebugStringA("🔧 CONFIGURING CHANNEL OPTIONS FOR VOICE COMMUNICATION...\n");
             ChannelMediaOptions options;
-            options.publishMicrophoneTrack = true;          // 🎤 PUBLISH YOUR VOICE
+            options.publishMicrophoneTrack = true;          // 🎤 PUBLISH YOUR VOICE (will be overridden in JoinChannelWithOptions)
             options.autoSubscribeAudio = true;             // 👂 HEAR OTHERS
             options.autoSubscribeVideo = false;            // ❌ NO VIDEO
             options.enableAudioRecordingOrPlayout = true;  // 🔊 ENABLE AUDIO
@@ -289,7 +289,9 @@ namespace winrt::FinalProject::implementation
             
             if (result == 0) {
                 m_currentChannel = channelName;
+                m_isLocalAudioMuted = false;  // Reset mute state when joining channel (default: unmuted)
                 OutputDebugStringA(("🎉 SUCCESS! Initiated join to channel: " + channelName + "\n").c_str());
+                OutputDebugStringA("🔓 Microphone initially UNMUTED (will be controlled by app logic)\n");
                 OutputDebugStringA("⏳ Waiting for onJoinChannelSuccess callback...\n");
                 OutputDebugStringA("👀 Watch for onUserJoined when other device connects!\n");
             } else {
@@ -318,6 +320,95 @@ namespace winrt::FinalProject::implementation
         }
     }
 
+    void AgoraManager::JoinChannelWithOptions(const std::string& channelName, bool publishAudio)
+    {
+        try {
+            OutputDebugStringA(("🚀 ATTEMPTING TO JOIN CHANNEL WITH OPTIONS: " + channelName + "\n").c_str());
+            OutputDebugStringA(("🔊 Audio Publishing: " + std::string(publishAudio ? "ENABLED" : "DISABLED") + "\n").c_str());
+            
+            if (!m_isInitialized || !m_rtcEngine) {
+                OutputDebugStringA("❌ Engine not initialized - CANNOT JOIN CHANNEL\n");
+                return;
+            }
+
+            // Stop echo test if running (critical requirement)
+            if (m_isEchoTestRunning) {
+                OutputDebugStringA("⚠️ Stopping echo test before joining channel\n");
+                StopEchoTest();
+            }
+
+            // Leave current channel if in one
+            if (!m_currentChannel.empty()) {
+                OutputDebugStringA("⚠️ Already in channel, leaving current channel first\n");
+                m_rtcEngine->leaveChannel();
+                m_currentChannel.clear();
+            }
+
+            OutputDebugStringA("🔧 CONFIGURING CHANNEL OPTIONS WITH CUSTOM AUDIO SETTINGS...\n");
+            ChannelMediaOptions options;
+            options.publishMicrophoneTrack = publishAudio;   // 🎤 CONDITIONAL VOICE PUBLISHING
+            options.autoSubscribeAudio = true;              // 👂 ALWAYS HEAR OTHERS
+            options.autoSubscribeVideo = false;             // ❌ NO VIDEO
+            options.enableAudioRecordingOrPlayout = true;   // 🔊 ENABLE AUDIO
+            options.clientRoleType = CLIENT_ROLE_BROADCASTER; // 📡 BROADCASTER ROLE
+
+            OutputDebugStringA("✅ Channel options configured:\n");
+            OutputDebugStringA(("  🎤 Publishing microphone: " + std::string(publishAudio ? "YES" : "NO") + "\n").c_str());
+            OutputDebugStringA("  👂 Auto-subscribe to remote audio: YES\n");
+            OutputDebugStringA("  👤 Client role: BROADCASTER\n");
+
+            // Optimize audio quality before joining channel
+            OutputDebugStringA("🎵 Optimizing audio quality for voice communication...\n");
+            
+            // Set recording volume to optimal level (reduce background noise pickup)
+            m_rtcEngine->adjustRecordingSignalVolume(80); // Slightly reduce from default 100
+            OutputDebugStringA("🔊 Recording volume set to 80 (reduces background noise)\n");
+            
+            // Enable local voice effects for cleaner sound (reduce low frequency noise)
+            m_rtcEngine->setLocalVoiceEqualization(agora::rtc::AUDIO_EQUALIZATION_BAND_125, -15);
+            m_rtcEngine->setLocalVoiceEqualization(agora::rtc::AUDIO_EQUALIZATION_BAND_250, -10);
+            OutputDebugStringA("🎚️ Voice equalization applied (reduced 125Hz & 250Hz for less noise)\n");
+
+            OutputDebugStringA("🔗 CALLING joinChannel() with custom options...\n");
+            // New project in testing mode - no token required
+            OutputDebugStringA("🆓 Using testing mode (no token required) for new Agora project\n");
+            int result = m_rtcEngine->joinChannel(nullptr, channelName.c_str(), 0, options);
+            
+            OutputDebugStringA(("🔍 joinChannel() result: " + std::to_string(result) + "\n").c_str());
+            
+            if (result == 0) {
+                m_currentChannel = channelName;
+                m_isLocalAudioMuted = !publishAudio;  // Set initial mute state based on publish permission
+                OutputDebugStringA(("🎉 SUCCESS! Initiated join to channel: " + channelName + "\n").c_str());
+                OutputDebugStringA(("🔊 Initial audio state: " + std::string(publishAudio ? "UNMUTED (can talk)" : "MUTED (listen only)") + "\n").c_str());
+                OutputDebugStringA("⏳ Waiting for onJoinChannelSuccess callback...\n");
+                OutputDebugStringA("👀 Watch for onUserJoined when other device connects!\n");
+            } else {
+                OutputDebugStringA(("💥 FAILED TO JOIN CHANNEL! Error: " + std::to_string(result) + "\n").c_str());
+                
+                switch (result) {
+                    case -2:
+                        OutputDebugStringA("❌ Invalid parameter - check channel name\n");
+                        break;
+                    case -7:
+                        OutputDebugStringA("❌ SDK not initialized\n");
+                        break;
+                    case -8:
+                        OutputDebugStringA("❌ Echo test still running - this prevents joining!\n");
+                        break;
+                    case -17:
+                        OutputDebugStringA("❌ Request rejected - already in channel?\n");
+                        break;
+                    default:
+                        OutputDebugStringA(("❌ Unknown error: " + std::to_string(result) + "\n").c_str());
+                        break;
+                }
+            }
+        } catch (...) {
+            OutputDebugStringA("💥 EXCEPTION in JoinChannelWithOptions!\n");
+        }
+    }
+
     void AgoraManager::LeaveChannel()
     {
         try {
@@ -325,7 +416,9 @@ namespace winrt::FinalProject::implementation
             
             m_rtcEngine->leaveChannel();
             m_currentChannel.clear();
+            m_isLocalAudioMuted = false;  // Reset mute state when leaving channel
             OutputDebugStringA("✅ Left channel\n");
+            OutputDebugStringA("🔄 Mute state reset to UNMUTED\n");
         } catch (...) {
             OutputDebugStringA("❌ Exception in LeaveChannel\n");
         }
@@ -343,7 +436,9 @@ namespace winrt::FinalProject::implementation
 
             int result = m_rtcEngine->muteLocalAudioStream(mute);
             if (result == 0) {
+                m_isLocalAudioMuted = mute;  // Track the mute state internally
                 OutputDebugStringA(("✅ Microphone " + std::string(mute ? "MUTED" : "UNMUTED") + " successfully\n").c_str());
+                OutputDebugStringA(("📊 Internal mute state updated to: " + std::string(mute ? "MUTED" : "UNMUTED") + "\n").c_str());
             } else {
                 OutputDebugStringA(("❌ Failed to mute/unmute, error: " + std::to_string(result) + "\n").c_str());
             }
@@ -475,6 +570,17 @@ namespace winrt::FinalProject::implementation
             }
         } catch (...) {
             OutputDebugStringA("❌ Exception in SetAudioScenario\n");
+        }
+    }
+
+    bool AgoraManager::IsLocalAudioMuted()
+    {
+        try {
+            OutputDebugStringA(("🔍 IsLocalAudioMuted - Checking mute status: " + std::string(m_isLocalAudioMuted ? "MUTED" : "UNMUTED") + "\n").c_str());
+            return m_isLocalAudioMuted;
+        } catch (...) {
+            OutputDebugStringA("❌ Exception in IsLocalAudioMuted\n");
+            return false;
         }
     }
 
