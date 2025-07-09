@@ -15,12 +15,7 @@ import {useAuth} from '../context/AuthContext';
 import {radioChannelsApi} from '../utils/apiService';
 import {useSettings} from '../context/SettingsContext';
 
-const {AgoraModule, TestModule} = NativeModules;
-
-// Log available modules
-console.log('Available Native Modules:', Object.keys(NativeModules));
-console.log('AgoraModule:', AgoraModule);
-console.log('TestModule:', TestModule);
+const {AgoraModule} = NativeModules;
 
 const MainScreen = ({navigation}) => {
   console.log('MainScreen rendered');
@@ -28,13 +23,16 @@ const MainScreen = ({navigation}) => {
   const [radioChannels, setRadioChannels] = useState([]);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState(null);
-  const [moduleStatus, setModuleStatus] = useState('Not tested yet');
 
   // Voice Communication State Management
   const [activeVoiceChannel, setActiveVoiceChannel] = useState(null); // Which channel is currently connected to voice
   const [voiceStatus, setVoiceStatus] = useState('disconnected'); // 'disconnected', 'connecting', 'connected'
   const [isMicrophoneEnabled, setIsMicrophoneEnabled] = useState(false); // Is microphone active
   const [isAgoraInitialized, setIsAgoraInitialized] = useState(false); // Is Agora engine ready
+
+  // Race condition prevention
+  const [pendingMuteTimeout, setPendingMuteTimeout] = useState(null);
+  const [pendingUnmuteTimeout, setPendingUnmuteTimeout] = useState(null);
 
   const {user} = useAuth();
   const {showFrequency, showStatus} = useSettings();
@@ -101,14 +99,34 @@ const MainScreen = ({navigation}) => {
       `🔄 Channel ${channelId} state change: ${current.channelState} → ${nextState}`,
     );
 
-    // Update the UI state immediately for responsiveness
-    const updatedChannels = radioChannels.map(c =>
-      c.id === channelId ? {...c, channelState: nextState} : c,
-    );
+    // AUTO-IDLE OTHER CHANNELS: If entering ListenOnly or ListenAndTalk, set all other channels to Idle
+    let updatedChannels;
+    if (nextState === 'ListenOnly' || nextState === 'ListenAndTalk') {
+      console.log('🔄 Setting all other channels to Idle state...');
+      updatedChannels = radioChannels.map(c => {
+        if (c.id === channelId) {
+          return {...c, channelState: nextState}; // Set current channel to new state
+        } else if (c.channelState !== 'Idle') {
+          console.log(`📭 Setting channel ${c.id} (${c.name}) to Idle`);
+          return {...c, channelState: 'Idle'}; // Set all other channels to Idle
+        } else {
+          return c; // Keep already idle channels as they are
+        }
+      });
+    } else {
+      // If going to Idle, only update current channel
+      updatedChannels = radioChannels.map(c =>
+        c.id === channelId ? {...c, channelState: nextState} : c,
+      );
+    }
+
     setRadioChannels(updatedChannels);
 
     // ==================== VOICE INTEGRATION LOGIC ====================
     try {
+      // RACE CONDITION FIX: Clear any pending audio timeouts first
+      clearPendingAudioTimeouts();
+
       // Handle voice operations based on the new state
       switch (nextState) {
         case 'Idle':
@@ -120,36 +138,49 @@ const MainScreen = ({navigation}) => {
           console.log(
             '👂 State: ListenOnly - Joining channel and muting microphone',
           );
-          const joinSuccessListen = await joinVoiceChannel(
-            channelId,
-            current.name,
-          );
-          if (joinSuccessListen) {
-            // FIXED: Wait longer for channel to stabilize before muting
-            setTimeout(async () => {
-              console.log('🔇 APPLYING MUTE for ListenOnly mode...');
-              AgoraModule.MuteLocalAudio(true);
-              setIsMicrophoneEnabled(false);
-
-              // Verify mute worked after another short delay
-              setTimeout(() => {
-                AgoraModule.IsLocalAudioMuted(isMuted => {
-                  console.log(
-                    `🔍 Mute verification: ${
-                      isMuted ? 'SUCCESS ✅' : 'FAILED ❌'
-                    }`,
-                  );
-                  if (!isMuted) {
-                    console.log('🔄 Retrying mute...');
-                    AgoraModule.MuteLocalAudio(true);
-                  }
-                });
-              }, 500);
-            }, 1500); // Wait 1.5 seconds for channel to fully stabilize
-
+          if (activeVoiceChannel === channelId) {
+            // Already in channel, immediately mute
             console.log(
-              '✅ Successfully joined in ListenOnly mode - mute will be applied shortly',
+              '🔇 Already in channel - immediately applying mute for ListenOnly',
             );
+            AgoraModule.MuteLocalAudio(true);
+            setIsMicrophoneEnabled(false);
+          } else {
+            // Join new channel
+            const joinSuccessListen = await joinVoiceChannel(
+              channelId,
+              current.name,
+            );
+            if (joinSuccessListen) {
+              // Schedule mute with timeout tracking
+              console.log('⏳ Scheduling mute for ListenOnly mode...');
+              const muteTimeout = setTimeout(async () => {
+                console.log('🔇 APPLYING MUTE for ListenOnly mode...');
+                AgoraModule.MuteLocalAudio(true);
+                setIsMicrophoneEnabled(false);
+                setPendingMuteTimeout(null);
+
+                // Verify mute worked
+                setTimeout(() => {
+                  AgoraModule.IsLocalAudioMuted(isMuted => {
+                    console.log(
+                      `🔍 Mute verification: ${
+                        isMuted ? 'SUCCESS ✅' : 'FAILED ❌'
+                      }`,
+                    );
+                    if (!isMuted) {
+                      console.log('🔄 Retrying mute...');
+                      AgoraModule.MuteLocalAudio(true);
+                    }
+                  });
+                }, 500);
+              }, 1500);
+              setPendingMuteTimeout(muteTimeout);
+
+              console.log(
+                '✅ Successfully joined in ListenOnly mode - mute scheduled',
+              );
+            }
           }
           break;
 
@@ -158,27 +189,31 @@ const MainScreen = ({navigation}) => {
             '🎤 State: ListenAndTalk - Joining channel with microphone enabled',
           );
           if (activeVoiceChannel === channelId) {
-            // Already in the channel, just enable microphone
+            // Already in channel, immediately unmute
             console.log(
-              '🔊 Already in channel, enabling microphone for ListenAndTalk mode',
+              '🔊 Already in channel - immediately enabling microphone for ListenAndTalk',
             );
-            await toggleMicrophone(true);
+            AgoraModule.MuteLocalAudio(false);
+            setIsMicrophoneEnabled(true);
           } else {
-            // Join channel and enable microphone
+            // Join new channel
             const joinSuccessTalk = await joinVoiceChannel(
               channelId,
               current.name,
             );
             if (joinSuccessTalk) {
-              // Ensure microphone is enabled for talking
-              setTimeout(() => {
+              // Schedule unmute with timeout tracking
+              console.log('⏳ Scheduling unmute for ListenAndTalk mode...');
+              const unmuteTimeout = setTimeout(() => {
                 console.log('🔊 ENSURING UNMUTE for ListenAndTalk mode...');
                 AgoraModule.MuteLocalAudio(false);
                 setIsMicrophoneEnabled(true);
-              }, 1000); // Small delay to ensure channel is ready
+                setPendingUnmuteTimeout(null);
+              }, 1000);
+              setPendingUnmuteTimeout(unmuteTimeout);
 
               console.log(
-                '✅ Successfully joined in ListenAndTalk mode - microphone will be enabled shortly',
+                '✅ Successfully joined in ListenAndTalk mode - unmute scheduled',
               );
             }
           }
@@ -188,22 +223,52 @@ const MainScreen = ({navigation}) => {
           console.log('⚠️ Unknown channel state:', nextState);
       }
 
-      // Update backend only after voice operations succeed
+      // Update backend for all changed channels
       const userId = user?.id;
       if (!userId) throw new Error('User ID not found');
-      await radioChannelsApi.updateChannelState(userId, channelId, nextState);
 
+      // Update the main channel
+      await radioChannelsApi.updateChannelState(userId, channelId, nextState);
       console.log(
         `✅ Channel ${channelId} successfully updated to ${nextState}`,
       );
+
+      // Update other channels that were set to Idle (if any)
+      if (nextState === 'ListenOnly' || nextState === 'ListenAndTalk') {
+        const channelsToSetIdle = radioChannels.filter(
+          c => c.id !== channelId && c.channelState !== 'Idle',
+        );
+
+        for (const channel of channelsToSetIdle) {
+          try {
+            await radioChannelsApi.updateChannelState(
+              userId,
+              channel.id,
+              'Idle',
+            );
+            console.log(
+              `✅ Channel ${channel.id} (${channel.name}) set to Idle in backend`,
+            );
+          } catch (error) {
+            console.error(
+              `❌ Failed to set channel ${channel.id} to Idle:`,
+              error,
+            );
+          }
+        }
+
+        if (channelsToSetIdle.length > 0) {
+          console.log(
+            `✅ Successfully set ${channelsToSetIdle.length} other channels to Idle`,
+          );
+        }
+      }
     } catch (error) {
       console.error('❌ Error updating channel state or voice:', error);
 
-      // Revert UI state if operations failed
-      const revertedChannels = radioChannels.map(c =>
-        c.id === channelId ? {...c, channelState: current.channelState} : c,
-      );
-      setRadioChannels(revertedChannels);
+      // Revert ALL UI changes if operations failed (not just the main channel)
+      console.log('🔄 Reverting all channel state changes due to error...');
+      setRadioChannels(radioChannels); // Revert to original state before any changes
 
       // Show user-friendly error
       Alert.alert(
@@ -236,6 +301,20 @@ const MainScreen = ({navigation}) => {
   };
 
   // ==================== VOICE INTEGRATION HELPER FUNCTIONS ====================
+
+  // Clear any pending audio state timeouts to prevent race conditions
+  const clearPendingAudioTimeouts = () => {
+    if (pendingMuteTimeout) {
+      console.log('🚫 Clearing pending mute timeout');
+      clearTimeout(pendingMuteTimeout);
+      setPendingMuteTimeout(null);
+    }
+    if (pendingUnmuteTimeout) {
+      console.log('🚫 Clearing pending unmute timeout');
+      clearTimeout(pendingUnmuteTimeout);
+      setPendingUnmuteTimeout(null);
+    }
+  };
 
   // Initialize Agora engine (call once when app starts)
   const initializeAgoraEngine = async () => {
@@ -310,6 +389,10 @@ const MainScreen = ({navigation}) => {
       }
 
       console.log(`👋 Leaving voice channel: ${activeVoiceChannel}`);
+
+      // Clear any pending audio timeouts when leaving
+      clearPendingAudioTimeouts();
+
       setVoiceStatus('connecting'); // Show connecting status while leaving
 
       AgoraModule.LeaveChannel();
@@ -323,6 +406,7 @@ const MainScreen = ({navigation}) => {
     } catch (error) {
       console.error('❌ Failed to leave voice channel:', error);
       // Still reset state even if leave failed
+      clearPendingAudioTimeouts();
       setActiveVoiceChannel(null);
       setVoiceStatus('disconnected');
       setIsMicrophoneEnabled(false);
@@ -385,6 +469,9 @@ const MainScreen = ({navigation}) => {
     try {
       console.log('🧹 Cleaning up voice connections...');
 
+      // Clear any pending timeouts first
+      clearPendingAudioTimeouts();
+
       if (activeVoiceChannel) {
         await leaveVoiceChannel();
       }
@@ -430,246 +517,6 @@ const MainScreen = ({navigation}) => {
     } catch (error) {
       console.error('❌ Emergency reset failed:', error);
       Alert.alert('Reset Failed', 'Please restart the application.');
-    }
-  };
-
-  // Test function to verify native module is working
-  const testAgoraModule = () => {
-    // Alert to confirm button press
-    Alert.alert('Test Started', '🔍 TESTING NATIVE MODULES...');
-    console.log('🔍 testAgoraModule called - starting test');
-
-    // Check if module exists
-    if (!NativeModules.AgoraModule) {
-      console.error('❌ AgoraModule not found in NativeModules!');
-      Alert.alert(
-        'Critical Error',
-        'AgoraModule not found in NativeModules. Available modules: ' +
-          Object.keys(NativeModules).join(', '),
-      );
-      return;
-    }
-
-    let statusText = '';
-
-    try {
-      // Check TestModule first
-      if (TestModule) {
-        Alert.alert(
-          'TestModule Status',
-          '✅ TestModule is registered correctly!\n🔍 Calling TestModule.TestMethod()...',
-        );
-        TestModule.TestMethod();
-        Alert.alert(
-          'TestModule Success',
-          '✅ TestModule.TestMethod() called successfully',
-        );
-        statusText += '✅ TestModule: WORKING\n';
-      } else {
-        Alert.alert('TestModule Error', '❌ TestModule is null or undefined');
-        statusText += '❌ TestModule: NULL\n';
-      }
-
-      // Check AgoraModule
-      if (!AgoraModule) {
-        console.log('❌ AgoraModule is null or undefined');
-        Alert.alert(
-          'AgoraModule Error',
-          '❌ AgoraModule is null or undefined - module not registered properly',
-        );
-        statusText += '❌ AgoraModule: NULL\n';
-        setModuleStatus(statusText);
-        return;
-      }
-
-      console.log('✅ AgoraModule found, calling InitializeAgoraEngine');
-      Alert.alert(
-        'AgoraModule Status',
-        '✅ AgoraModule found!\n🔍 Calling AgoraModule.InitializeAgoraEngine()...',
-      );
-      statusText += '✅ AgoraModule: WORKING\n';
-
-      // Test with the real App ID - now using proper C++ SDK
-      console.log('🔧 About to call InitializeAgoraEngine with App ID');
-      AgoraModule.InitializeAgoraEngine('e5631d55e8a24b08b067bb73f8797fe3');
-      console.log('✅ InitializeAgoraEngine called successfully');
-      Alert.alert(
-        'AgoraModule Success',
-        '✅ AgoraModule.InitializeAgoraEngine() called successfully',
-      );
-      statusText += '✅ Initialize: SUCCESS\n';
-
-      // Test JoinChannel method
-      Alert.alert('Channel Test', '🔍 Testing AgoraModule.JoinChannel()...');
-      AgoraModule.JoinChannel('test-voice-channel');
-      Alert.alert(
-        'Channel Success',
-        '✅ AgoraModule.JoinChannel() called successfully',
-      );
-      statusText += '✅ JoinChannel: SUCCESS\n';
-
-      // Test LeaveChannel method (NEW)
-      Alert.alert('Leave Test', '🔍 Testing AgoraModule.LeaveChannel()...');
-      AgoraModule.LeaveChannel();
-      Alert.alert(
-        'Leave Success',
-        '✅ AgoraModule.LeaveChannel() called successfully',
-      );
-      statusText += '✅ LeaveChannel: SUCCESS\n';
-
-      // Skip ReleaseEngine to keep engine initialized for echo test
-      // Alert.alert('Release Test', '🔍 Testing AgoraModule.ReleaseEngine()...');
-      // AgoraModule.ReleaseEngine();
-      // Alert.alert(
-      //   'Release Success',
-      //   '✅ AgoraModule.ReleaseEngine() called successfully',
-      // );
-      statusText += '✅ Engine: READY FOR ECHO TEST';
-
-      Alert.alert(
-        'Test Complete',
-        '✅ VOICE COMMUNICATION CYCLE TESTED\n\n' + statusText,
-      );
-
-      setModuleStatus(statusText);
-    } catch (error) {
-      Alert.alert(
-        'Test Error',
-        `❌ Error testing Native Modules:\n${error.message}`,
-      );
-      statusText += `❌ ERROR: ${error.message}`;
-      setModuleStatus(statusText);
-    }
-  };
-
-  // Individual test functions for detailed debugging
-  const testJoinChannel = () => {
-    try {
-      if (!AgoraModule) {
-        Alert.alert('Error', '❌ AgoraModule not available');
-        return;
-      }
-      Alert.alert('Join Test', '🔍 Testing JoinChannel only...');
-      AgoraModule.JoinChannel('test-voice-channel');
-      Alert.alert('Success', '✅ JoinChannel called successfully');
-    } catch (error) {
-      Alert.alert('Error', `❌ JoinChannel failed: ${error.message}`);
-    }
-  };
-
-  const testLeaveChannel = () => {
-    try {
-      if (!AgoraModule) {
-        Alert.alert('Error', '❌ AgoraModule not available');
-        return;
-      }
-      Alert.alert('Leave Test', '🔍 Testing LeaveChannel only...');
-      AgoraModule.LeaveChannel();
-      Alert.alert('Success', '✅ LeaveChannel called successfully');
-    } catch (error) {
-      Alert.alert('Error', `❌ LeaveChannel failed: ${error.message}`);
-    }
-  };
-
-  const testReleaseEngine = () => {
-    try {
-      if (!AgoraModule) {
-        Alert.alert('Error', '❌ AgoraModule not available');
-        return;
-      }
-      Alert.alert('Release Test', '🔍 Testing ReleaseEngine only...');
-      AgoraModule.ReleaseEngine();
-      Alert.alert('Success', '✅ ReleaseEngine called successfully');
-    } catch (error) {
-      Alert.alert('Error', `❌ ReleaseEngine failed: ${error.message}`);
-    }
-  };
-
-  // Debug function to check current mute status
-  const checkMuteStatus = () => {
-    try {
-      if (!AgoraModule) {
-        Alert.alert('Error', '❌ AgoraModule not available');
-        return;
-      }
-
-      // Check if IsLocalAudioMuted method exists
-      if (AgoraModule.IsLocalAudioMuted) {
-        AgoraModule.IsLocalAudioMuted(isMuted => {
-          Alert.alert(
-            'Mute Status Debug',
-            `🔍 Current Agora mute state: ${isMuted ? 'MUTED' : 'UNMUTED'}\n` +
-              `🎯 App thinks microphone is: ${
-                isMicrophoneEnabled ? 'ENABLED' : 'DISABLED'
-              }\n` +
-              `📡 Active voice channel: ${activeVoiceChannel || 'None'}\n` +
-              `🔗 Voice status: ${voiceStatus}`,
-          );
-        });
-      } else {
-        Alert.alert(
-          'Mute Status Debug',
-          `🎯 App state only:\n` +
-            `Microphone enabled: ${isMicrophoneEnabled ? 'YES' : 'NO'}\n` +
-            `Active voice channel: ${activeVoiceChannel || 'None'}\n` +
-            `Voice status: ${voiceStatus}\n\n` +
-            `⚠️ IsLocalAudioMuted method not available in C++ module`,
-        );
-      }
-    } catch (error) {
-      Alert.alert('Error', `❌ Failed to check mute status: ${error.message}`);
-    }
-  };
-
-  // Check function loading status
-  const checkFunctionStatus = () => {
-    try {
-      if (!AgoraModule) {
-        Alert.alert('Error', '❌ AgoraModule not available');
-        return;
-      }
-
-      // Use callback pattern for React Native method
-      AgoraModule.GetFunctionLoadingStatus(status => {
-        Alert.alert('Function Loading Status', status);
-      });
-    } catch (error) {
-      Alert.alert('Error', `❌ Failed to get status: ${error.message}`);
-    }
-  };
-
-  // Echo test functions
-  const startEchoTest = () => {
-    try {
-      console.log('🎤 startEchoTest called');
-      if (!AgoraModule) {
-        console.log('❌ AgoraModule not available in startEchoTest');
-        Alert.alert('Error', '❌ AgoraModule not available');
-        return;
-      }
-      console.log('🔧 About to call StartEchoTest');
-      Alert.alert(
-        'Echo Test',
-        '🎤 Starting echo test...\n\nSpeak into your microphone - you should hear your voice after 3 seconds!',
-      );
-      AgoraModule.StartEchoTest();
-      console.log('✅ StartEchoTest called successfully');
-    } catch (error) {
-      console.log('❌ StartEchoTest error:', error.message);
-      Alert.alert('Error', `❌ StartEchoTest failed: ${error.message}`);
-    }
-  };
-
-  const stopEchoTest = () => {
-    try {
-      if (!AgoraModule) {
-        Alert.alert('Error', '❌ AgoraModule not available');
-        return;
-      }
-      Alert.alert('Echo Test', '🛑 Stopping echo test...');
-      AgoraModule.StopEchoTest();
-    } catch (error) {
-      Alert.alert('Error', `❌ StopEchoTest failed: ${error.message}`);
     }
   };
 
@@ -746,62 +593,12 @@ const MainScreen = ({navigation}) => {
           <Text style={styles.addButtonText}>+</Text>
         </TouchableOpacity>
 
-        <TouchableOpacity style={styles.testButton} onPress={testAgoraModule}>
-          <Text style={styles.testButtonText}>Test Agora</Text>
-        </TouchableOpacity>
-
-        {/* Individual test buttons for detailed testing */}
-        <TouchableOpacity style={styles.joinButton} onPress={testJoinChannel}>
-          <Text style={styles.testButtonText}>Join</Text>
-        </TouchableOpacity>
-
-        <TouchableOpacity style={styles.leaveButton} onPress={testLeaveChannel}>
-          <Text style={styles.testButtonText}>Leave</Text>
-        </TouchableOpacity>
-
-        <TouchableOpacity
-          style={styles.releaseButton}
-          onPress={testReleaseEngine}>
-          <Text style={styles.testButtonText}>Release</Text>
-        </TouchableOpacity>
-
-        {/* Function Status Check Button */}
-        <TouchableOpacity
-          style={styles.statusCheckButton}
-          onPress={checkFunctionStatus}>
-          <Text style={styles.testButtonText}>Status</Text>
-        </TouchableOpacity>
-
-        {/* Echo Test Buttons */}
-        <TouchableOpacity
-          style={styles.startEchoButton}
-          onPress={startEchoTest}>
-          <Text style={styles.testButtonText}>Start Echo</Text>
-        </TouchableOpacity>
-
-        <TouchableOpacity style={styles.stopEchoButton} onPress={stopEchoTest}>
-          <Text style={styles.testButtonText}>Stop Echo</Text>
-        </TouchableOpacity>
-
-        {/* Emergency Voice Reset Button */}
+        {/* Emergency Voice Reset Button - Keep for production troubleshooting */}
         <TouchableOpacity
           style={styles.emergencyResetButton}
           onPress={emergencyVoiceReset}>
           <Text style={styles.testButtonText}>🚨 Reset</Text>
         </TouchableOpacity>
-
-        {/* Debug Mute State Button */}
-        <TouchableOpacity
-          style={styles.debugMuteButton}
-          onPress={checkMuteStatus}>
-          <Text style={styles.testButtonText}>🔍 Mute?</Text>
-        </TouchableOpacity>
-
-        {/* Module Status Display */}
-        <View style={styles.statusContainer}>
-          <Text style={styles.statusTitle}>Module Status:</Text>
-          <Text style={styles.statusText}>{moduleStatus}</Text>
-        </View>
       </View>
     </AppLayout>
   );
@@ -871,11 +668,11 @@ const styles = StyleSheet.create({
     fontWeight: 'bold',
     lineHeight: 30,
   },
-  testButton: {
+  emergencyResetButton: {
     position: 'absolute',
-    left: 20,
-    bottom: 30,
-    backgroundColor: '#FF5722',
+    right: 20,
+    bottom: 100,
+    backgroundColor: '#D32F2F',
     padding: 10,
     borderRadius: 5,
     elevation: 5,
@@ -884,113 +681,6 @@ const styles = StyleSheet.create({
     color: '#fff',
     fontSize: 14,
     fontWeight: 'bold',
-  },
-  testText: {
-    fontSize: 24,
-    textAlign: 'center',
-    marginTop: 100,
-    color: '#333',
-  },
-  statusContainer: {
-    position: 'absolute',
-    top: 20,
-    left: 20,
-    right: 20,
-    backgroundColor: 'rgba(0, 0, 0, 0.8)',
-    padding: 10,
-    borderRadius: 5,
-    zIndex: 1001,
-  },
-  statusTitle: {
-    color: '#fff',
-    fontSize: 14,
-    fontWeight: 'bold',
-    marginBottom: 5,
-  },
-  statusText: {
-    color: '#fff',
-    fontSize: 12,
-    fontFamily: 'monospace',
-  },
-  joinButton: {
-    position: 'absolute',
-    left: 20,
-    bottom: 90,
-    backgroundColor: '#4CAF50',
-    padding: 8,
-    borderRadius: 5,
-    elevation: 5,
-    minWidth: 60,
-  },
-  leaveButton: {
-    position: 'absolute',
-    left: 90,
-    bottom: 90,
-    backgroundColor: '#FF9800',
-    padding: 8,
-    borderRadius: 5,
-    elevation: 5,
-    minWidth: 60,
-  },
-  releaseButton: {
-    position: 'absolute',
-    left: 160,
-    bottom: 90,
-    backgroundColor: '#F44336',
-    padding: 8,
-    borderRadius: 5,
-    elevation: 5,
-    minWidth: 60,
-  },
-  statusCheckButton: {
-    position: 'absolute',
-    left: 220,
-    bottom: 90,
-    backgroundColor: '#FF5722',
-    padding: 8,
-    borderRadius: 5,
-    elevation: 5,
-    minWidth: 60,
-  },
-  startEchoButton: {
-    position: 'absolute',
-    left: 20,
-    bottom: 150,
-    backgroundColor: '#9C27B0',
-    padding: 8,
-    borderRadius: 5,
-    elevation: 5,
-    minWidth: 80,
-  },
-  stopEchoButton: {
-    position: 'absolute',
-    left: 110,
-    bottom: 150,
-    backgroundColor: '#E91E63',
-    padding: 8,
-    borderRadius: 5,
-    elevation: 5,
-    minWidth: 80,
-  },
-  emergencyResetButton: {
-    position: 'absolute',
-    left: 200,
-    bottom: 150,
-    backgroundColor: '#D32F2F',
-    padding: 8,
-    borderRadius: 5,
-    elevation: 5,
-    minWidth: 80,
-  },
-  debugMuteButton: {
-    position: 'absolute',
-    left: 290,
-    bottom: 150,
-    backgroundColor: '#607D8B',
-    padding: 8,
-    borderRadius: 5,
-    elevation: 5,
-    minWidth: 80,
   },
 });
 
