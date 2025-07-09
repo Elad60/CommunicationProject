@@ -118,17 +118,37 @@ const MainScreen = ({navigation}) => {
 
         case 'ListenOnly':
           console.log(
-            '👂 State: ListenOnly - Joining channel in listen-only mode',
+            '👂 State: ListenOnly - Joining channel and muting microphone',
           );
           const joinSuccessListen = await joinVoiceChannel(
             channelId,
             current.name,
-            false,
-          ); // false = no audio publishing
+          );
           if (joinSuccessListen) {
-            setIsMicrophoneEnabled(false);
+            // FIXED: Wait longer for channel to stabilize before muting
+            setTimeout(async () => {
+              console.log('🔇 APPLYING MUTE for ListenOnly mode...');
+              AgoraModule.MuteLocalAudio(true);
+              setIsMicrophoneEnabled(false);
+
+              // Verify mute worked after another short delay
+              setTimeout(() => {
+                AgoraModule.IsLocalAudioMuted(isMuted => {
+                  console.log(
+                    `🔍 Mute verification: ${
+                      isMuted ? 'SUCCESS ✅' : 'FAILED ❌'
+                    }`,
+                  );
+                  if (!isMuted) {
+                    console.log('🔄 Retrying mute...');
+                    AgoraModule.MuteLocalAudio(true);
+                  }
+                });
+              }, 500);
+            }, 1500); // Wait 1.5 seconds for channel to fully stabilize
+
             console.log(
-              '✅ Successfully joined in ListenOnly mode - audio publishing DISABLED',
+              '✅ Successfully joined in ListenOnly mode - mute will be applied shortly',
             );
           }
           break;
@@ -144,16 +164,21 @@ const MainScreen = ({navigation}) => {
             );
             await toggleMicrophone(true);
           } else {
-            // Join channel with audio publishing enabled
+            // Join channel and enable microphone
             const joinSuccessTalk = await joinVoiceChannel(
               channelId,
               current.name,
-              true,
-            ); // true = allow audio publishing
+            );
             if (joinSuccessTalk) {
-              setIsMicrophoneEnabled(true);
+              // Ensure microphone is enabled for talking
+              setTimeout(() => {
+                console.log('🔊 ENSURING UNMUTE for ListenAndTalk mode...');
+                AgoraModule.MuteLocalAudio(false);
+                setIsMicrophoneEnabled(true);
+              }, 1000); // Small delay to ensure channel is ready
+
               console.log(
-                '✅ Successfully joined in ListenAndTalk mode - audio publishing ENABLED',
+                '✅ Successfully joined in ListenAndTalk mode - microphone will be enabled shortly',
               );
             }
           }
@@ -233,20 +258,11 @@ const MainScreen = ({navigation}) => {
     }
   };
 
-  // Join a voice channel for a specific radio channel with correct permissions
-  const joinVoiceChannel = async (
-    channelId,
-    channelName,
-    shouldPublishAudio = true,
-  ) => {
+  // Join a voice channel for a specific radio channel (BACK TO SIMPLE VERSION)
+  const joinVoiceChannel = async (channelId, channelName) => {
     try {
       console.log(
         `🎤 Joining voice channel for: ${channelName} (ID: ${channelId})`,
-      );
-      console.log(
-        `🔊 Audio publishing: ${
-          shouldPublishAudio ? 'ENABLED (can talk)' : 'DISABLED (listen only)'
-        }`,
       );
 
       if (!isAgoraInitialized) {
@@ -269,35 +285,8 @@ const MainScreen = ({navigation}) => {
       const agoraChannelName = `radio_channel_${channelId}`;
       console.log(`📡 Joining Agora channel: ${agoraChannelName}`);
 
-      // Use the new JoinChannelWithOptions method that sets audio publishing correctly from the start
-      console.log(
-        '🔧 Using JoinChannelWithOptions for proper audio control...',
-      );
-      AgoraModule.JoinChannelWithOptions(agoraChannelName, shouldPublishAudio);
-
-      // Wait a moment and verify the audio state is correct
-      setTimeout(() => {
-        console.log('🔍 Verifying audio state after joining...');
-        AgoraModule.IsLocalAudioMuted(isMuted => {
-          const expectedMuted = !shouldPublishAudio;
-          const isCorrect = isMuted === expectedMuted;
-
-          console.log(
-            `📊 Audio verification: Expected=${
-              expectedMuted ? 'MUTED' : 'UNMUTED'
-            }, Actual=${isMuted ? 'MUTED' : 'UNMUTED'} ${
-              isCorrect ? '✅' : '❌'
-            }`,
-          );
-
-          if (!isCorrect) {
-            console.log('🚨 Audio state mismatch! Correcting...');
-            AgoraModule.MuteLocalAudio(!shouldPublishAudio);
-          } else {
-            console.log('✅ Audio state is correct!');
-          }
-        });
-      }, 1000);
+      // BACK TO SIMPLE: Use regular JoinChannel that works
+      AgoraModule.JoinChannel(agoraChannelName);
 
       setActiveVoiceChannel(channelId);
       setVoiceStatus('connected');
@@ -341,8 +330,8 @@ const MainScreen = ({navigation}) => {
     }
   };
 
-  // Toggle microphone on/off with delay and retry logic
-  const toggleMicrophone = async (enabled, retryCount = 0) => {
+  // Toggle microphone on/off (SIMPLIFIED VERSION)
+  const toggleMicrophone = async enabled => {
     try {
       if (!activeVoiceChannel) {
         console.log(
@@ -351,78 +340,17 @@ const MainScreen = ({navigation}) => {
         return false;
       }
 
-      // If this is the first attempt and we're trying to mute (ListenOnly mode),
-      // wait a bit for Agora channel to stabilize before muting
-      if (retryCount === 0 && !enabled) {
-        console.log(
-          '⏳ Waiting for Agora channel to stabilize before muting...',
-        );
-        await new Promise(resolve => setTimeout(resolve, 500)); // Wait 500ms
-      }
+      console.log(`🎤 ${enabled ? 'Enabling' : 'Disabling'} microphone...`);
 
-      console.log(
-        `🎤 ${enabled ? 'Enabling' : 'Disabling'} microphone... (attempt ${
-          retryCount + 1
-        })`,
-      );
-
-      // Fixed: Use correct logic for muteLocalAudioStream
-      // enabled=true (ListenAndTalk) -> mute=false (don't mute, allow talking)
-      // enabled=false (ListenOnly) -> mute=true (mute microphone, only listen)
       AgoraModule.MuteLocalAudio(!enabled);
-
-      // Give Agora a moment to process the mute command
-      await new Promise(resolve => setTimeout(resolve, 100));
-
       setIsMicrophoneEnabled(enabled);
 
       console.log(
-        `✅ Microphone ${
-          enabled ? 'enabled (unmuted)' : 'disabled (muted)'
-        } - command sent`,
+        `✅ Microphone ${enabled ? 'enabled (unmuted)' : 'disabled (muted)'}`,
       );
-
-      // If we're trying to mute (ListenOnly) and this is critical, verify mute status
-      if (!enabled && retryCount < 2) {
-        console.log(
-          '🔒 CRITICAL: Ensuring mute is applied for ListenOnly mode...',
-        );
-        setTimeout(async () => {
-          console.log('🔄 Double-checking mute status...');
-          AgoraModule.IsLocalAudioMuted(isMuted => {
-            console.log(
-              `📊 Agora reports mute status: ${isMuted ? 'MUTED' : 'UNMUTED'}`,
-            );
-            if (!isMuted) {
-              console.log('⚠️ MUTE FAILED! Forcing mute again...');
-              AgoraModule.MuteLocalAudio(true); // Force mute again
-
-              // Try one more time after another delay
-              setTimeout(() => {
-                console.log('🔄 Final mute attempt...');
-                AgoraModule.MuteLocalAudio(true);
-              }, 300);
-            } else {
-              console.log(
-                '✅ Mute status confirmed - user is properly muted for ListenOnly mode',
-              );
-            }
-          });
-        }, 300);
-      }
-
       return true;
     } catch (error) {
       console.error('❌ Failed to toggle microphone:', error);
-
-      // Retry up to 2 times for muting (critical for ListenOnly)
-      if (!enabled && retryCount < 2) {
-        console.log(
-          `🔄 Retrying mute operation... (attempt ${retryCount + 2})`,
-        );
-        return await toggleMicrophone(enabled, retryCount + 1);
-      }
-
       return false;
     }
   };

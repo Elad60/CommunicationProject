@@ -64,7 +64,6 @@ namespace winrt::FinalProject::implementation
         void StartEchoTest();
         void StopEchoTest();
         void JoinChannel(const std::string& channelName);
-        void JoinChannelWithOptions(const std::string& channelName, bool publishAudio);
         void LeaveChannel();
         void ReleaseEngine();
         std::string GetStatus();
@@ -118,12 +117,6 @@ namespace winrt::FinalProject::implementation
         void JoinChannel(std::string channelName) noexcept
         {
             AgoraManager::GetInstance()->JoinChannel(channelName);
-        }
-
-        REACT_METHOD(JoinChannelWithOptions)
-        void JoinChannelWithOptions(std::string channelName, bool publishAudio) noexcept
-        {
-            AgoraManager::GetInstance()->JoinChannelWithOptions(channelName, publishAudio);
         }
 
         REACT_METHOD(LeaveChannel)
