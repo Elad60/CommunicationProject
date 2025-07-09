@@ -122,6 +122,9 @@ const MainScreen = ({navigation}) => {
           );
           const joinSuccess = await joinVoiceChannel(channelId, current.name);
           if (joinSuccess) {
+            console.log(
+              '🔇 CRITICAL: Calling toggleMicrophone(false) to MUTE user in ListenOnly mode',
+            );
             await toggleMicrophone(false); // Mute microphone for listen-only
           }
           break;
@@ -130,11 +133,17 @@ const MainScreen = ({navigation}) => {
           console.log('🎤 State: ListenAndTalk - Enabling microphone');
           if (activeVoiceChannel === channelId) {
             // Already in the channel, just enable microphone
+            console.log(
+              '🔊 CRITICAL: Calling toggleMicrophone(true) to UNMUTE user in ListenAndTalk mode',
+            );
             await toggleMicrophone(true);
           } else {
             // Join channel and enable microphone
             const joinSuccess = await joinVoiceChannel(channelId, current.name);
             if (joinSuccess) {
+              console.log(
+                '🔊 CRITICAL: Calling toggleMicrophone(true) to UNMUTE user in ListenAndTalk mode',
+              );
               await toggleMicrophone(true);
             }
           }
@@ -247,6 +256,11 @@ const MainScreen = ({navigation}) => {
       setVoiceStatus('connected');
       console.log(`✅ Successfully joined voice channel: ${channelName}`);
 
+      // Give Agora a moment to stabilize the connection before setting mute state
+      setTimeout(() => {
+        console.log('🔧 Channel joined, ready for microphone state control');
+      }, 100);
+
       return true;
     } catch (error) {
       console.error('❌ Failed to join voice channel:', error);
@@ -297,10 +311,15 @@ const MainScreen = ({navigation}) => {
 
       console.log(`🎤 ${enabled ? 'Enabling' : 'Disabling'} microphone...`);
 
-      AgoraModule.MuteLocalAudio(!enabled); // Note: Agora's mute is inverted
+      // Fixed: Use correct logic for muteLocalAudioStream
+      // enabled=true (ListenAndTalk) -> mute=false (don't mute, allow talking)
+      // enabled=false (ListenOnly) -> mute=true (mute microphone, only listen)
+      AgoraModule.MuteLocalAudio(!enabled);
       setIsMicrophoneEnabled(enabled);
 
-      console.log(`✅ Microphone ${enabled ? 'enabled' : 'disabled'}`);
+      console.log(
+        `✅ Microphone ${enabled ? 'enabled (unmuted)' : 'disabled (muted)'}`,
+      );
       return true;
     } catch (error) {
       console.error('❌ Failed to toggle microphone:', error);
@@ -538,6 +557,42 @@ const MainScreen = ({navigation}) => {
     }
   };
 
+  // Debug function to check current mute status
+  const checkMuteStatus = () => {
+    try {
+      if (!AgoraModule) {
+        Alert.alert('Error', '❌ AgoraModule not available');
+        return;
+      }
+
+      // Check if IsLocalAudioMuted method exists
+      if (AgoraModule.IsLocalAudioMuted) {
+        AgoraModule.IsLocalAudioMuted(isMuted => {
+          Alert.alert(
+            'Mute Status Debug',
+            `🔍 Current Agora mute state: ${isMuted ? 'MUTED' : 'UNMUTED'}\n` +
+              `🎯 App thinks microphone is: ${
+                isMicrophoneEnabled ? 'ENABLED' : 'DISABLED'
+              }\n` +
+              `📡 Active voice channel: ${activeVoiceChannel || 'None'}\n` +
+              `🔗 Voice status: ${voiceStatus}`,
+          );
+        });
+      } else {
+        Alert.alert(
+          'Mute Status Debug',
+          `🎯 App state only:\n` +
+            `Microphone enabled: ${isMicrophoneEnabled ? 'YES' : 'NO'}\n` +
+            `Active voice channel: ${activeVoiceChannel || 'None'}\n` +
+            `Voice status: ${voiceStatus}\n\n` +
+            `⚠️ IsLocalAudioMuted method not available in C++ module`,
+        );
+      }
+    } catch (error) {
+      Alert.alert('Error', `❌ Failed to check mute status: ${error.message}`);
+    }
+  };
+
   // Check function loading status
   const checkFunctionStatus = () => {
     try {
@@ -705,6 +760,13 @@ const MainScreen = ({navigation}) => {
           style={styles.emergencyResetButton}
           onPress={emergencyVoiceReset}>
           <Text style={styles.testButtonText}>🚨 Reset</Text>
+        </TouchableOpacity>
+
+        {/* Debug Mute State Button */}
+        <TouchableOpacity
+          style={styles.debugMuteButton}
+          onPress={checkMuteStatus}>
+          <Text style={styles.testButtonText}>🔍 Mute?</Text>
         </TouchableOpacity>
 
         {/* Module Status Display */}
@@ -887,6 +949,16 @@ const styles = StyleSheet.create({
     left: 200,
     bottom: 150,
     backgroundColor: '#D32F2F',
+    padding: 8,
+    borderRadius: 5,
+    elevation: 5,
+    minWidth: 80,
+  },
+  debugMuteButton: {
+    position: 'absolute',
+    left: 290,
+    bottom: 150,
+    backgroundColor: '#607D8B',
     padding: 8,
     borderRadius: 5,
     elevation: 5,
