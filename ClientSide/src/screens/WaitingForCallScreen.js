@@ -14,19 +14,26 @@ import {useSettings} from '../context/SettingsContext';
 import {privateCallApi} from '../utils/apiService';
 
 const WaitingForCallScreen = ({route, navigation}) => {
-  const {otherUser} = route.params;
+  const {otherUser, invitationId, channelName} = route.params;
   const {user} = useAuth();
   const {darkMode} = useSettings();
 
-  const [invitationId, setInvitationId] = useState(null);
   const [waitingTime, setWaitingTime] = useState(0);
   const [pulseAnim] = useState(new Animated.Value(1));
-  const [status, setStatus] = useState('Calling...');
+  const [status, setStatus] = useState('Sending invitation...');
+  const [isPolling, setIsPolling] = useState(false);
 
-  // Timer for waiting time
+  // Timer for waiting time (max 60 seconds)
   useEffect(() => {
     const timer = setInterval(() => {
-      setWaitingTime(prev => prev + 1);
+      setWaitingTime(prev => {
+        if (prev >= 59) {
+          // 60 seconds timeout
+          handleTimeout();
+          return 60;
+        }
+        return prev + 1;
+      });
     }, 1000);
     return () => clearInterval(timer);
   }, []);
@@ -51,10 +58,17 @@ const WaitingForCallScreen = ({route, navigation}) => {
     return () => pulseAnimation.stop();
   }, [pulseAnim]);
 
-  // Send call invitation when screen mounts
+  // Start polling for response when screen mounts
   useEffect(() => {
-    sendCallInvitation();
-  }, []);
+    if (invitationId) {
+      console.log(`📞 Starting to wait for response from ${otherUser.username}`);
+      console.log(`📊 Invitation ID: ${invitationId}`);
+      console.log(`📡 Channel Name: ${channelName}`);
+      
+      setStatus('Waiting for response...');
+      startPollingForResponse();
+    }
+  }, [invitationId]);
 
   // Handle back button
   useEffect(() => {
@@ -65,143 +79,136 @@ const WaitingForCallScreen = ({route, navigation}) => {
     return () => backHandler.remove();
   }, []);
 
-  // Send call invitation
-  const sendCallInvitation = async () => {
-    try {
-      console.log(`📞 Sending call invitation to ${otherUser.username}`);
-      console.log(`📊 User ID: ${user.id}, Other User ID: ${otherUser.id}`);
-      
-      // For now, simulate the invitation flow since backend endpoints may not exist yet
-      const simulatedInvitationId = `call_${user.id}_${otherUser.id}_${Date.now()}`;
-      console.log(`🔧 Simulated invitation ID: ${simulatedInvitationId}`);
-      
-      setInvitationId(simulatedInvitationId);
-      
-      // Try to send real invitation, but fallback to simulation if it fails
-      try {
-        const result = await privateCallApi.sendCallInvitation(user.id, otherUser.id);
-        console.log('✅ Real API call succeeded:', result);
-        setInvitationId(result.invitationId);
-        startPollingForResponse(result.invitationId);
-      } catch (apiError) {
-        console.log('⚠️ Real API not available, using simulation mode');
-        console.error('API Error details:', apiError.message);
-        
-        // Show user that we're in demo mode
-        Alert.alert(
-          'Demo Mode',
-          `Call invitation sent to ${otherUser.username}!\n\nNote: This is demo mode since the server endpoints are not ready yet.\n\nFor testing: The other user should manually start a call with you.`,
-          [{text: 'OK'}]
-        );
-        
-        // Start simulation polling
-        startSimulationPolling(simulatedInvitationId);
-      }
-    } catch (error) {
-      console.error('Critical error in sendCallInvitation:', error);
-      Alert.alert(
-        'Call Failed',
-        `Failed to initiate call. Error: ${error.message}`,
-        [{text: 'OK', onPress: () => navigation.goBack()}]
-      );
-    }
-  };
-
-  // Simulation polling for demo purposes
-  const startSimulationPolling = (invitationId) => {
-    console.log('🎭 Starting simulation polling...');
-    let pollCount = 0;
+  // Handle timeout (60 seconds)
+  const handleTimeout = async () => {
+    console.log('⏰ Call invitation timed out after 60 seconds');
+    setIsPolling(false);
+    setStatus('No Answer');
     
-    const pollInterval = setInterval(() => {
-      pollCount++;
-      console.log(`🔄 Simulation poll ${pollCount}...`);
-      
-      // After 10 seconds, simulate timeout
-      if (pollCount >= 5) {
-        clearInterval(pollInterval);
-        console.log('⏰ Simulation timeout');
-        setStatus('Demo: No Answer');
-        
-        Alert.alert(
-          'Demo Timeout',
-          `This is a demo. In real usage, ${otherUser.username} would have 30 seconds to respond.\n\nTo test the actual call, both users should manually navigate to a private call.`,
-          [{text: 'OK', onPress: () => navigation.goBack()}]
-        );
-      }
-    }, 2000);
-
-    // Cleanup interval when component unmounts
-    return () => clearInterval(pollInterval);
+    try {
+      // Cancel the invitation on the server
+      await privateCallApi.cancelInvitation(invitationId, user.id);
+      console.log('✅ Invitation cancelled due to timeout');
+    } catch (error) {
+      console.error('❌ Error cancelling invitation on timeout:', error);
+    }
+    
+    Alert.alert(
+      'No Answer',
+      `${otherUser.username} didn't respond to your call within 60 seconds.`,
+      [{text: 'OK', onPress: () => navigation.goBack()}]
+    );
   };
 
   // Poll for call response
-  const startPollingForResponse = (invitationId) => {
-    console.log('🔄 Starting real API polling...');
+  const startPollingForResponse = () => {
+    console.log('🔄 Starting polling for call response...');
+    setIsPolling(true);
     
     const pollInterval = setInterval(async () => {
+      if (!isPolling) {
+        clearInterval(pollInterval);
+        return;
+      }
+      
       try {
-        const response = await privateCallApi.checkOutgoingCallStatus(invitationId, user.id);
+        console.log('🔄 Polling for call status...');
+        const response = await privateCallApi.getCallStatus(invitationId, user.id);
         console.log('📊 Polling response:', response);
         
-        if (response.status === 'accepted') {
-          clearInterval(pollInterval);
-          console.log('✅ Call accepted! Starting private call...');
+        if (response.Success) {
+          const currentStatus = response.Status;
           
-          // Navigate to private call screen
-          navigation.replace('PrivateCall', {
-            otherUser,
-            invitationId,
-            isCallAccepted: true,
-          });
-        } else if (response.status === 'rejected') {
-          clearInterval(pollInterval);
-          console.log('❌ Call rejected');
-          setStatus('Call Rejected');
-          
-          Alert.alert(
-            'Call Rejected',
-            `${otherUser.username} declined your call.`,
-            [{text: 'OK', onPress: () => navigation.goBack()}]
-          );
-        } else if (response.status === 'timeout') {
-          clearInterval(pollInterval);
-          console.log('⏰ Call timed out');
-          setStatus('No Answer');
-          
-          Alert.alert(
-            'No Answer',
-            `${otherUser.username} didn't answer your call.`,
-            [{text: 'OK', onPress: () => navigation.goBack()}]
-          );
+          if (currentStatus === 'accepted') {
+            clearInterval(pollInterval);
+            setIsPolling(false);
+            console.log('✅ Call accepted! Navigating to private call...');
+            
+            // Navigate to private call screen
+            navigation.replace('PrivateCall', {
+              otherUser,
+              invitationId,
+              channelName: response.ChannelName || channelName,
+              isCallAccepted: true,
+              isCaller: true, // This user is the caller
+              currentUserId: user.id, // Add current user ID for server monitoring
+            });
+            
+          } else if (currentStatus === 'rejected') {
+            clearInterval(pollInterval);
+            setIsPolling(false);
+            console.log('❌ Call rejected');
+            setStatus('Call Rejected');
+            
+            Alert.alert(
+              'Call Rejected',
+              `${otherUser.username} declined your call.`,
+              [{text: 'OK', onPress: () => navigation.goBack()}]
+            );
+            
+          } else if (currentStatus === 'cancelled') {
+            clearInterval(pollInterval);
+            setIsPolling(false);
+            console.log('🚫 Call was cancelled');
+            setStatus('Call Cancelled');
+            navigation.goBack();
+            
+          } else if (currentStatus === 'expired') {
+            clearInterval(pollInterval);
+            setIsPolling(false);
+            console.log('⏰ Call expired on server');
+            setStatus('Call Expired');
+            
+            Alert.alert(
+              'Call Expired',
+              `The call invitation has expired.`,
+              [{text: 'OK', onPress: () => navigation.goBack()}]
+            );
+          } else {
+            // Still pending - continue polling
+            console.log(`🕐 Call still pending: ${currentStatus}`);
+            setStatus('Waiting for response...');
+          }
+        } else {
+          console.error('❌ Failed to get call status:', response);
         }
-      } catch (error) {
-        console.error('Error polling for call response:', error);
-        console.error('Full error object:', error);
-        clearInterval(pollInterval);
-        setStatus('Connection Error');
         
-        Alert.alert(
-          'Connection Error',
-          `Lost connection while waiting for response.\nError: ${error.message}`,
-          [{text: 'OK', onPress: () => navigation.goBack()}]
-        );
+      } catch (error) {
+        console.error('❌ Error polling for call response:', error);
+        // Don't stop polling on single error - might be temporary network issue
+        console.log('🔄 Continuing to poll despite error...');
       }
     }, 2000); // Poll every 2 seconds
 
-    // Cleanup interval when component unmounts
-    return () => clearInterval(pollInterval);
+    // Cleanup function
+    return () => {
+      console.log('🛑 Stopping polling for call response');
+      clearInterval(pollInterval);
+      setIsPolling(false);
+    };
   };
 
   // Cancel call
   const handleCancelCall = async () => {
+    console.log('🚫 User requested to cancel call');
+    
     try {
+      setIsPolling(false);
+      setStatus('Cancelling...');
+      
       if (invitationId) {
-        await privateCallApi.cancelCallInvitation(invitationId, user.id);
-        console.log('📞 Call invitation canceled');
+        const response = await privateCallApi.cancelInvitation(invitationId, user.id);
+        if (response.Success) {
+          console.log('✅ Call invitation cancelled successfully');
+        } else {
+          console.log('⚠️ Cancel response was not successful:', response.Message);
+        }
       }
+      
       navigation.goBack();
     } catch (error) {
-      console.error('Error canceling call:', error);
+      console.error('❌ Error canceling call:', error);
+      // Even if cancellation fails, go back - user wants to leave
       navigation.goBack();
     }
   };
@@ -222,8 +229,8 @@ const WaitingForCallScreen = ({route, navigation}) => {
       {/* Header */}
       <View style={styles.header}>
         <Text style={[styles.headerTitle, {color: textColor}]}>Calling...</Text>
-        <Text style={[styles.waitingTime, {color: textColor}]}>
-          {formatWaitingTime(waitingTime)}
+        <Text style={[styles.waitingTime, {color: waitingTime >= 50 ? '#ff4444' : textColor}]}>
+          {formatWaitingTime(waitingTime)} / 1:00
         </Text>
       </View>
 
@@ -276,22 +283,22 @@ const WaitingForCallScreen = ({route, navigation}) => {
       {/* Instructions */}
       <View style={styles.instructionsContainer}>
         <Text style={[styles.instructionsTitle, {color: textColor}]}>
-          How it works:
+          Call Status:
         </Text>
         <Text style={[styles.instructionText, {color: darkMode ? '#ccc' : '#666'}]}>
-          📧 {otherUser.username} will receive a call invitation
+          📧 Invitation sent to {otherUser.username}
         </Text>
         <Text style={[styles.instructionText, {color: darkMode ? '#ccc' : '#666'}]}>
-          ⏰ They have 30 seconds to respond
+          ⏰ They have 60 seconds to respond
         </Text>
         <Text style={[styles.instructionText, {color: darkMode ? '#ccc' : '#666'}]}>
-          ✅ If accepted, you'll both join the private call
+          📱 Channel: {channelName}
         </Text>
         <Text style={[styles.instructionText, {color: darkMode ? '#ccc' : '#666'}]}>
-          ❌ If declined, you'll be notified
+          🔄 Checking for response every 2 seconds
         </Text>
         <Text style={[styles.instructionText, {color: darkMode ? '#ccc' : '#666'}]}>
-          🔄 You can cancel the call at any time
+          🚫 You can cancel the call at any time
         </Text>
       </View>
     </SafeAreaView>

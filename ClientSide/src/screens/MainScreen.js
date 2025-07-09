@@ -1,19 +1,21 @@
 import React, {useState, useEffect} from 'react';
 import {
   View,
+  Text,
   StyleSheet,
   ScrollView,
   TouchableOpacity,
   ActivityIndicator,
-  Text,
-  NativeModules,
   Alert,
+  NativeModules,
+  Image,
 } from 'react-native';
 import RadioChannel from '../components/RadioChannel';
 import AppLayout from '../components/AppLayout';
 import {useAuth} from '../context/AuthContext';
 import {radioChannelsApi} from '../utils/apiService';
 import {useSettings} from '../context/SettingsContext';
+import useIncomingCallListener from '../hooks/useIncomingCallListener';
 
 const {AgoraModule, TestModule} = NativeModules;
 
@@ -32,6 +34,9 @@ const MainScreen = ({navigation}) => {
 
   const {user} = useAuth();
   const {showFrequency, showStatus} = useSettings();
+
+  // Add incoming call listener
+  const {isListening} = useIncomingCallListener(navigation);
 
   // Fetch radio channels for the authenticated user
   const fetchRadioChannels = async () => {
@@ -409,6 +414,17 @@ const MainScreen = ({navigation}) => {
         <View style={styles.statusContainer}>
           <Text style={styles.statusTitle}>Module Status:</Text>
           <Text style={styles.statusText}>{moduleStatus}</Text>
+          
+          {/* Incoming Call Listener Status */}
+          <View style={styles.listenerStatus}>
+            <View style={[
+              styles.listenerDot,
+              {backgroundColor: isListening ? '#00cc00' : '#ff4444'}
+            ]} />
+            <Text style={styles.listenerText}>
+              Call Listener: {isListening ? 'Active' : 'Inactive'}
+            </Text>
+          </View>
         </View>
       </View>
     </AppLayout>
@@ -579,6 +595,21 @@ const styles = StyleSheet.create({
     borderRadius: 5,
     elevation: 5,
     minWidth: 80,
+  },
+  listenerStatus: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginTop: 5,
+  },
+  listenerDot: {
+    width: 10,
+    height: 10,
+    borderRadius: 5,
+    marginRight: 5,
+  },
+  listenerText: {
+    color: '#fff',
+    fontSize: 12,
   },
 });
 

@@ -12,9 +12,10 @@ import {
 } from 'react-native';
 import AppLayout from '../components/AppLayout';
 import {useAuth} from '../context/AuthContext';
-import {groupUsersApi} from '../utils/apiService';
+import {groupUsersApi, privateCallApi} from '../utils/apiService';
 import {useSettings} from '../context/SettingsContext';
 import { useDebouncedDimensions } from '../utils/useDebouncedDimensions';
+import useIncomingCallListener from '../hooks/useIncomingCallListener';
 
 const GroupsScreen = ({navigation}) => {
   // Destructuring user and changeGroup from AuthContext
@@ -36,6 +37,9 @@ const GroupsScreen = ({navigation}) => {
   
   // Debounced dimensions for responsive UI
   const { height, width } = useDebouncedDimensions(300);
+
+  // Add incoming call listener
+  const {isListening} = useIncomingCallListener(navigation);
 
   // Function to fetch users for the current group
   const fetchGroupUsers = async () => {
@@ -79,61 +83,62 @@ const GroupsScreen = ({navigation}) => {
   const onUserPress = userId => {
     const selectedUser = groupUsers.find(u => u.id === userId);
     
-    Alert.alert(
-      'Call Options',
-      `What would you like to do with ${selectedUser.username}?`,
-      [
-        {
-          text: 'Private Call',
-          onPress: () => startPrivateCall(selectedUser),
-        },
-        {
-          text: 'Direct Call (Test)',
-          onPress: () => startDirectCall(selectedUser),
-        },
-        {
-          text: 'Cancel',
-          style: 'cancel',
-        },
-      ]
-    );
+    // Directly start private call without dialog
+    startPrivateCall(selectedUser);
   };
 
   // Function to start private call (send invitation)
-  const startPrivateCall = (otherUser) => {
-    console.log(`📞 Sending call invitation to ${otherUser.username}`);
-    navigation.navigate('WaitingForCall', {otherUser});
-  };
-
-  // Function for direct call (bypass invitation system for testing)
-  const startDirectCall = (otherUser) => {
-    console.log(`🔗 Starting direct call with ${otherUser.username} (test mode)`);
-    Alert.alert(
-      'Direct Call',
-      `Starting direct call with ${otherUser.username}.\n\nThis bypasses the invitation system for testing purposes.`,
-      [
-        {text: 'Cancel', style: 'cancel'},
-        {
-          text: 'Start Call',
-          onPress: () => navigation.navigate('PrivateCall', {
-            otherUser,
-            isCallAccepted: true,
-          }),
-        },
-      ]
-    );
+  const startPrivateCall = async (otherUser) => {
+    console.log(`📞 Starting private call with ${otherUser.username}`);
+    
+    try {
+      // Show loading state
+      Alert.alert(
+        'Sending Invitation',
+        `Calling ${otherUser.username}...`,
+        [],
+        { cancelable: false }
+      );
+      
+      // Send invitation using the API
+      const response = await privateCallApi.sendInvitation(user.id, otherUser.id);
+      
+      if (response.Success) {
+        console.log('✅ Invitation sent successfully:', response);
+        
+        // Navigate to waiting screen with invitation details
+        navigation.navigate('WaitingForCall', {
+          otherUser,
+          invitationId: response.InvitationId,
+          channelName: response.ChannelName,
+        });
+      } else {
+        Alert.alert(
+          'Call Failed',
+          response.Message || 'Failed to send call invitation. Please try again.',
+          [{text: 'OK'}]
+        );
+      }
+    } catch (error) {
+      console.error('❌ Error sending call invitation:', error);
+      Alert.alert(
+        'Call Failed',
+        error.message || 'Failed to send call invitation. Please try again.',
+        [{text: 'OK'}]
+      );
+    }
   };
 
   // Function to show instructions in an alert
   const showInstructions = () => {
     Alert.alert(
       '💡 How to make Private Calls',
-      '• Tap on any user for call options\n\n' +
-      '📞 Private Call - Send invitation & wait for response\n\n' +
-      '🔗 Direct Call (Test) - Start call immediately for testing\n\n' +
-      '• 🟢 Online users are available\n' +
-      '• 🔴 Offline users may not respond\n\n' +
-      '• Use mute/speaker controls during calls',
+      '• Tap on any user to start a private call\n\n' +
+      '📞 Your invitation will be sent immediately\n\n' +
+      '• 🟢 Online users are more likely to respond\n' +
+      '• 🔴 Offline users may not see your call\n\n' +
+      '• You can cancel the call while waiting\n' +
+      '• The other user has 1 minute to respond',
       [{text: 'Got it!', style: 'default'}]
     );
   };
@@ -233,6 +238,17 @@ const GroupsScreen = ({navigation}) => {
         <Text style={[styles.label, {color: textColor}]}>
           Change Your Group:
         </Text>
+        
+        {/* Call Listener Status */}
+        <View style={styles.callListenerStatus}>
+          <View style={[
+            styles.listenerDot,
+            {backgroundColor: isListening ? '#00cc00' : '#ff4444'}
+          ]} />
+          <Text style={[styles.listenerText, {color: textColor}]}>
+            Call Listener: {isListening ? 'Active' : 'Inactive'}
+          </Text>
+        </View>
       </View>
       <View
         style={[
@@ -333,6 +349,22 @@ const styles = StyleSheet.create({
     textAlign: 'center',
     marginTop: 20,
     width: '100%',
+  },
+  callListenerStatus: {
+    flexDirection: 'row',
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginTop: 10,
+    paddingHorizontal: 10,
+  },
+  listenerDot: {
+    width: 10,
+    height: 10,
+    borderRadius: 5,
+    marginRight: 5,
+  },
+  listenerText: {
+    fontSize: 12,
   },
 });
 

@@ -217,5 +217,160 @@ const groupUsersApi = {
   },
 };
 
+// 📞 Private Calls API
+const privateCallApi = {
+  // Send a private call invitation to another user
+  sendInvitation: async (callerId, receiverId) => {
+    try {
+      const response = await api.post('/PrivateCalls/send', {
+        callerId,
+        receiverId,
+      });
+      return response.data;
+    } catch (error) {
+      console.error('Error sending call invitation:', error);
+      if (error.response && error.response.data) {
+        throw error.response.data;
+      }
+      throw {
+        success: false,
+        message: 'Failed to send call invitation. Please try again.',
+      };
+    }
+  },
+
+  // Get incoming call invitations for a user
+  getIncomingCalls: async (userId) => {
+    try {
+      const response = await api.get(`/PrivateCalls/incoming/${userId}`);
+      return response.data;
+    } catch (error) {
+      console.error('Error fetching incoming calls:', error);
+      if (error.response && error.response.data) {
+        throw error.response.data;
+      }
+      throw {
+        success: false,
+        incomingCalls: [],
+        count: 0,
+      };
+    }
+  },
+
+  // Accept a private call invitation
+  acceptInvitation: async (invitationId, userId) => {
+    try {
+      const response = await api.post('/PrivateCalls/accept', {
+        invitationId,
+        userId,
+      });
+      return response.data;
+    } catch (error) {
+      console.error('Error accepting call invitation:', error);
+      if (error.response && error.response.data) {
+        throw error.response.data;
+      }
+      throw {
+        success: false,
+        message: 'Failed to accept call invitation. Please try again.',
+      };
+    }
+  },
+
+  // Reject a private call invitation
+  rejectInvitation: async (invitationId, userId) => {
+    try {
+      const response = await api.post('/PrivateCalls/reject', {
+        invitationId,
+        userId,
+      });
+      return response.data;
+    } catch (error) {
+      console.error('Error rejecting call invitation:', error);
+      if (error.response && error.response.data) {
+        throw error.response.data;
+      }
+      throw {
+        success: false,
+        message: 'Failed to reject call invitation. Please try again.',
+      };
+    }
+  },
+
+  // Cancel a private call invitation (for caller)
+  cancelInvitation: async (invitationId, userId) => {
+    try {
+      const response = await api.post('/PrivateCalls/cancel', {
+        invitationId,
+        userId,
+      });
+      return response.data;
+    } catch (error) {
+      console.error('Error cancelling call invitation:', error);
+      if (error.response && error.response.data) {
+        throw error.response.data;
+      }
+      throw {
+        success: false,
+        message: 'Failed to cancel call invitation. Please try again.',
+      };
+    }
+  },
+
+  // Get the status of a private call invitation
+  getCallStatus: async (invitationId, userId) => {
+    try {
+      const response = await api.get(`/PrivateCalls/status/${invitationId}/${userId}`);
+      return response.data;
+    } catch (error) {
+      console.error('Error fetching call status:', error);
+      if (error.response && error.response.data) {
+        throw error.response.data;
+      }
+      throw {
+        success: false,
+        status: 'unknown',
+      };
+    }
+  },
+
+  // End a private call
+  endCall: async (invitationId, endReason = 'completed') => {
+    try {
+      const response = await api.post('/PrivateCalls/end', {
+        invitationId,
+        endReason,
+      });
+      return response.data;
+    } catch (error) {
+      console.error('Error ending call:', error);
+      if (error.response && error.response.data) {
+        throw error.response.data;
+      }
+      throw {
+        success: false,
+        message: 'Failed to end call. Please try again.',
+      };
+    }
+  },
+
+  // Get call statistics for a user (optional - for future use)
+  getUserStats: async (userId, daysBack = 30) => {
+    try {
+      const response = await api.get(`/PrivateCalls/stats/${userId}?daysBack=${daysBack}`);
+      return response.data;
+    } catch (error) {
+      console.error('Error fetching user call stats:', error);
+      if (error.response && error.response.data) {
+        throw error.response.data;
+      }
+      throw {
+        success: false,
+        stats: null,
+      };
+    }
+  },
+};
+
 // Export all API modules for use throughout the app
-export {radioChannelsApi, authApi, adminApi, groupUsersApi, announcementsApi};
+export {radioChannelsApi, authApi, adminApi, groupUsersApi, announcementsApi, privateCallApi};

@@ -4,164 +4,161 @@ import {
   Text,
   StyleSheet,
   TouchableOpacity,
-  SafeAreaView,
-  BackHandler,
   Alert,
+  Image,
+  SafeAreaView,
   Animated,
-  Vibration,
 } from 'react-native';
 import {useAuth} from '../context/AuthContext';
 import {useSettings} from '../context/SettingsContext';
 import {privateCallApi} from '../utils/apiService';
 
 const IncomingCallScreen = ({route, navigation}) => {
-  const {invitation} = route.params;
+  const {callInvitation} = route.params;
   const {user} = useAuth();
   const {darkMode} = useSettings();
-
-  const [ringingTime, setRingingTime] = useState(0);
+  
+  // State management
+  const [isResponding, setIsResponding] = useState(false);
+  const [timeLeft, setTimeLeft] = useState(60); // 60 seconds to respond
   const [pulseAnim] = useState(new Animated.Value(1));
-  const [shakeAnim] = useState(new Animated.Value(0));
 
-  // Timer for ringing time
+  // Create pulsing animation for the avatar
   useEffect(() => {
-    const timer = setInterval(() => {
-      setRingingTime(prev => prev + 1);
-    }, 1000);
-    return () => clearInterval(timer);
-  }, []);
-
-  // Pulse animation for the incoming call indicator
-  useEffect(() => {
-    const pulseAnimation = Animated.loop(
+    const pulse = Animated.loop(
       Animated.sequence([
         Animated.timing(pulseAnim, {
-          toValue: 1.2,
-          duration: 800,
+          toValue: 1.1,
+          duration: 1000,
           useNativeDriver: true,
         }),
         Animated.timing(pulseAnim, {
           toValue: 1,
-          duration: 800,
+          duration: 1000,
           useNativeDriver: true,
         }),
-      ])
+      ]),
     );
-    pulseAnimation.start();
-    return () => pulseAnimation.stop();
-  }, [pulseAnim]);
-
-  // Shake animation for the accept/reject buttons
-  useEffect(() => {
-    const shakeAnimation = Animated.loop(
-      Animated.sequence([
-        Animated.timing(shakeAnim, {
-          toValue: -5,
-          duration: 100,
-          useNativeDriver: true,
-        }),
-        Animated.timing(shakeAnim, {
-          toValue: 5,
-          duration: 100,
-          useNativeDriver: true,
-        }),
-        Animated.timing(shakeAnim, {
-          toValue: 0,
-          duration: 100,
-          useNativeDriver: true,
-        }),
-        Animated.timing(shakeAnim, {
-          toValue: 0,
-          duration: 2000,
-          useNativeDriver: true,
-        }),
-      ])
-    );
-    shakeAnimation.start();
-    return () => shakeAnimation.stop();
-  }, [shakeAnim]);
-
-  // Vibration pattern
-  useEffect(() => {
-    const vibrationPattern = [0, 1000, 500, 1000, 500, 1000];
-    Vibration.vibrate(vibrationPattern, true);
+    pulse.start();
     
-    return () => {
-      Vibration.cancel();
-    };
+    return () => pulse.stop();
   }, []);
 
-  // Handle back button (prevent going back during incoming call)
+  // Countdown timer
   useEffect(() => {
-    const backHandler = BackHandler.addEventListener('hardwareBackPress', () => {
-      // Don't allow back button during incoming call
-      return true;
-    });
-    return () => backHandler.remove();
-  }, []);
-
-  // Auto-reject after 30 seconds
-  useEffect(() => {
-    const autoRejectTimer = setTimeout(() => {
-      console.log('⏰ Auto-rejecting call after 30 seconds');
-      handleRejectCall();
-    }, 30000);
-
-    return () => clearTimeout(autoRejectTimer);
-  }, []);
-
-  // Accept call
-  const handleAcceptCall = async () => {
-    try {
-      console.log(`✅ Accepting call from ${invitation.callerName}`);
-      Vibration.cancel();
-      
-      // Accept the invitation
-      await privateCallApi.acceptCallInvitation(invitation.invitationId, user.id);
-      
-      // Navigate to private call screen
-      navigation.replace('PrivateCall', {
-        otherUser: {
-          id: invitation.callerId,
-          username: invitation.callerName,
-          email: invitation.callerEmail,
-          role: invitation.callerRole,
-        },
-        invitationId: invitation.invitationId,
-        isCallAccepted: true,
+    const timer = setInterval(() => {
+      setTimeLeft(prev => {
+        if (prev <= 1) {
+          // Time expired - automatically reject
+          handleTimeout();
+          return 0;
+        }
+        return prev - 1;
       });
-    } catch (error) {
-      console.error('Error accepting call:', error);
-      Alert.alert(
-        'Error',
-        'Failed to accept call. Please try again.',
-        [{text: 'OK', onPress: handleRejectCall}]
-      );
-    }
-  };
+    }, 1000);
 
-  // Reject call
-  const handleRejectCall = async () => {
+    return () => clearInterval(timer);
+  }, []);
+
+  // Handle timeout
+  const handleTimeout = async () => {
+    console.log('⏰ Call invitation timed out');
+    
     try {
-      console.log(`❌ Rejecting call from ${invitation.callerName}`);
-      Vibration.cancel();
-      
-      // Reject the invitation
-      await privateCallApi.rejectCallInvitation(invitation.invitationId, user.id);
-      
-      // Navigate back
-      navigation.goBack();
+      await privateCallApi.rejectInvitation(callInvitation.Id, user.id);
+      console.log('✅ Call automatically rejected due to timeout');
     } catch (error) {
-      console.error('Error rejecting call:', error);
+      console.error('❌ Error auto-rejecting call:', error);
+    }
+    
+    Alert.alert(
+      'Call Missed',
+      'The call invitation has expired.',
+      [
+        {
+          text: 'OK',
+          onPress: () => navigation.goBack(),
+        },
+      ]
+    );
+  };
+
+  // Accept call invitation
+  const acceptCall = async () => {
+    if (isResponding) return;
+    
+    console.log(`✅ Accepting call from ${callInvitation.CallerName}`);
+    setIsResponding(true);
+    
+    try {
+      const response = await privateCallApi.acceptInvitation(callInvitation.Id, user.id);
+      
+      if (response.Success) {
+        console.log('✅ Call accepted successfully:', response);
+        
+        // Navigate to private call screen
+        navigation.replace('PrivateCall', {
+          otherUser: {
+            id: callInvitation.CallerId,
+            username: callInvitation.CallerName,
+            email: callInvitation.CallerEmail,
+            role: callInvitation.CallerRole,
+          },
+          invitationId: callInvitation.Id,
+          channelName: response.ChannelName,
+          isCallAccepted: true,
+          isCaller: false, // This user is the receiver
+          currentUserId: user.id, // Add current user ID for server monitoring
+        });
+      } else {
+        Alert.alert(
+          'Call Failed',
+          response.Message || 'Failed to accept the call. Please try again.',
+          [{text: 'OK', onPress: () => navigation.goBack()}]
+        );
+      }
+    } catch (error) {
+      console.error('❌ Error accepting call:', error);
+      Alert.alert(
+        'Call Failed',
+        error.message || 'Failed to accept the call. Please try again.',
+        [{text: 'OK', onPress: () => navigation.goBack()}]
+      );
+    } finally {
+      setIsResponding(false);
+    }
+  };
+
+  // Reject call invitation
+  const rejectCall = async () => {
+    if (isResponding) return;
+    
+    console.log(`❌ Rejecting call from ${callInvitation.CallerName}`);
+    setIsResponding(true);
+    
+    try {
+      const response = await privateCallApi.rejectInvitation(callInvitation.Id, user.id);
+      
+      if (response.Success) {
+        console.log('✅ Call rejected successfully');
+        navigation.goBack();
+      } else {
+        console.error('❌ Failed to reject call:', response.Message);
+        // Even if rejection fails, go back - user doesn't want the call
+        navigation.goBack();
+      }
+    } catch (error) {
+      console.error('❌ Error rejecting call:', error);
+      // Even if rejection fails, go back - user doesn't want the call
       navigation.goBack();
     }
   };
 
-  // Format ringing time
-  const formatRingingTime = (seconds) => {
+  // Format time remaining
+  const formatTime = (seconds) => {
     const mins = Math.floor(seconds / 60);
     const secs = seconds % 60;
-    return `${mins.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`;
+    return `${mins}:${secs.toString().padStart(2, '0')}`;
   };
 
   const backgroundColor = darkMode ? '#1a1a1a' : '#f0f0f0';
@@ -173,96 +170,73 @@ const IncomingCallScreen = ({route, navigation}) => {
       {/* Header */}
       <View style={styles.header}>
         <Text style={[styles.headerTitle, {color: textColor}]}>Incoming Call</Text>
-        <Text style={[styles.ringingTime, {color: textColor}]}>
-          {formatRingingTime(ringingTime)}
+        <Text style={[styles.timeRemaining, {color: timeLeft <= 10 ? '#ff4444' : textColor}]}>
+          {formatTime(timeLeft)}
         </Text>
       </View>
 
       {/* Caller Info */}
-      <View style={[styles.callerInfo, {backgroundColor: cardColor}]}>
+      <View style={styles.callerContainer}>
         <Animated.View 
           style={[
             styles.callerAvatar,
             {
+              backgroundColor: '#4CAF50',
               transform: [{scale: pulseAnim}],
-            },
+            }
           ]}
         >
-          <Text style={[styles.avatarText, {color: '#fff'}]}>
-            {invitation.callerName.charAt(0).toUpperCase()}
+          <Text style={styles.avatarText}>
+            {callInvitation.CallerName.charAt(0).toUpperCase()}
           </Text>
         </Animated.View>
         
         <Text style={[styles.callerName, {color: textColor}]}>
-          {invitation.callerName}
+          {callInvitation.CallerName}
         </Text>
-        <Text style={[styles.callerEmail, {color: darkMode ? '#ccc' : '#666'}]}>
-          {invitation.callerEmail}
+        
+        <Text style={[styles.callerDetails, {color: darkMode ? '#ccc' : '#666'}]}>
+          {callInvitation.CallerEmail}
         </Text>
+        
         <Text style={[styles.callerRole, {color: darkMode ? '#91aad4' : '#004080'}]}>
-          {invitation.callerRole}
+          {callInvitation.CallerRole}
         </Text>
       </View>
 
-      {/* Incoming Call Animation */}
-      <View style={styles.incomingContainer}>
-        <View style={styles.incomingRings}>
-          <Animated.View style={[styles.ring, styles.ring1, {transform: [{scale: pulseAnim}]}]} />
-          <Animated.View style={[styles.ring, styles.ring2, {transform: [{scale: pulseAnim}]}]} />
-          <Animated.View style={[styles.ring, styles.ring3, {transform: [{scale: pulseAnim}]}]} />
-        </View>
-        <Text style={[styles.incomingText, {color: textColor}]}>
-          📞 {invitation.callerName} wants to start a private call
+      {/* Call Message */}
+      <View style={styles.messageContainer}>
+        <Text style={[styles.messageText, {color: textColor}]}>
+          is calling you...
         </Text>
       </View>
 
       {/* Action Buttons */}
-      <Animated.View 
-        style={[
-          styles.actionButtons,
-          {
-            transform: [{translateX: shakeAnim}],
-          },
-        ]}
-      >
+      <View style={styles.actionsContainer}>
         <TouchableOpacity
           style={[styles.actionButton, styles.rejectButton]}
-          onPress={handleRejectCall}
+          onPress={rejectCall}
+          disabled={isResponding}
         >
-          <Text style={styles.actionButtonText}>❌</Text>
-          <Text style={styles.actionButtonLabel}>Reject</Text>
+          <Text style={styles.rejectButtonText}>📞</Text>
+          <Text style={styles.buttonLabel}>Decline</Text>
         </TouchableOpacity>
 
         <TouchableOpacity
           style={[styles.actionButton, styles.acceptButton]}
-          onPress={handleAcceptCall}
+          onPress={acceptCall}
+          disabled={isResponding}
         >
-          <Text style={styles.actionButtonText}>✅</Text>
-          <Text style={styles.actionButtonLabel}>Accept</Text>
+          <Text style={styles.acceptButtonText}>📞</Text>
+          <Text style={styles.buttonLabel}>Accept</Text>
         </TouchableOpacity>
-      </Animated.View>
-
-      {/* Quick Actions */}
-      <View style={styles.quickActions}>
-        <Text style={[styles.quickActionsTitle, {color: textColor}]}>
-          Quick Actions:
-        </Text>
-        <Text style={[styles.quickActionText, {color: darkMode ? '#ccc' : '#666'}]}>
-          • Swipe up to accept
-        </Text>
-        <Text style={[styles.quickActionText, {color: darkMode ? '#ccc' : '#666'}]}>
-          • Swipe down to reject
-        </Text>
-        <Text style={[styles.quickActionText, {color: darkMode ? '#ccc' : '#666'}]}>
-          • Call will auto-reject in 30 seconds
-        </Text>
       </View>
 
-      {/* Auto-reject warning */}
-      {ringingTime > 20 && (
-        <View style={styles.warningContainer}>
-          <Text style={[styles.warningText, {color: '#ff4444'}]}>
-            ⚠️ Call will be rejected in {30 - ringingTime} seconds
+      {/* Loading indicator */}
+      {isResponding && (
+        <View style={styles.loadingContainer}>
+          <Text style={[styles.loadingText, {color: textColor}]}>
+            Responding...
           </Text>
         </View>
       )}
@@ -277,94 +251,69 @@ const styles = StyleSheet.create({
   },
   header: {
     alignItems: 'center',
-    marginBottom: 30,
+    marginBottom: 40,
   },
   headerTitle: {
     fontSize: 24,
     fontWeight: 'bold',
     marginBottom: 10,
   },
-  ringingTime: {
+  timeRemaining: {
     fontSize: 18,
-    fontWeight: '600',
-    color: '#ff6b35',
+    fontWeight: 'bold',
   },
-  callerInfo: {
+  callerContainer: {
     alignItems: 'center',
-    padding: 20,
-    borderRadius: 15,
-    marginBottom: 30,
-    elevation: 3,
-    shadowColor: '#000',
-    shadowOffset: {width: 0, height: 2},
-    shadowOpacity: 0.1,
-    shadowRadius: 4,
+    marginBottom: 40,
   },
   callerAvatar: {
     width: 120,
     height: 120,
     borderRadius: 60,
-    backgroundColor: '#ff6b35',
     justifyContent: 'center',
     alignItems: 'center',
-    marginBottom: 15,
+    marginBottom: 20,
+    elevation: 5,
+    shadowColor: '#000',
+    shadowOffset: {width: 0, height: 3},
+    shadowOpacity: 0.3,
+    shadowRadius: 5,
   },
   avatarText: {
     fontSize: 48,
     fontWeight: 'bold',
+    color: '#fff',
   },
   callerName: {
-    fontSize: 26,
+    fontSize: 28,
     fontWeight: 'bold',
-    marginBottom: 5,
+    marginBottom: 8,
+    textAlign: 'center',
   },
-  callerEmail: {
+  callerDetails: {
     fontSize: 16,
-    marginBottom: 10,
+    marginBottom: 4,
+    textAlign: 'center',
   },
   callerRole: {
     fontSize: 16,
     fontWeight: '600',
-  },
-  incomingContainer: {
-    alignItems: 'center',
-    marginBottom: 40,
-  },
-  incomingRings: {
-    width: 180,
-    height: 180,
-    justifyContent: 'center',
-    alignItems: 'center',
-    marginBottom: 20,
-  },
-  ring: {
-    position: 'absolute',
-    borderRadius: 90,
-    borderWidth: 3,
-    borderColor: '#ff6b35',
-    opacity: 0.4,
-  },
-  ring1: {
-    width: 100,
-    height: 100,
-  },
-  ring2: {
-    width: 140,
-    height: 140,
-  },
-  ring3: {
-    width: 180,
-    height: 180,
-  },
-  incomingText: {
-    fontSize: 16,
     textAlign: 'center',
-    fontWeight: '600',
   },
-  actionButtons: {
+  messageContainer: {
+    alignItems: 'center',
+    marginBottom: 60,
+  },
+  messageText: {
+    fontSize: 20,
+    fontStyle: 'italic',
+    textAlign: 'center',
+  },
+  actionsContainer: {
     flexDirection: 'row',
     justifyContent: 'space-around',
-    marginBottom: 30,
+    alignItems: 'center',
+    marginBottom: 40,
   },
   actionButton: {
     width: 80,
@@ -376,45 +325,37 @@ const styles = StyleSheet.create({
     shadowColor: '#000',
     shadowOffset: {width: 0, height: 3},
     shadowOpacity: 0.3,
-    shadowRadius: 6,
+    shadowRadius: 5,
   },
   rejectButton: {
     backgroundColor: '#ff4444',
+    transform: [{rotate: '135deg'}],
   },
   acceptButton: {
     backgroundColor: '#4CAF50',
   },
-  actionButtonText: {
+  rejectButtonText: {
     fontSize: 24,
-    marginBottom: 5,
+    color: '#fff',
+    transform: [{rotate: '-135deg'}],
   },
-  actionButtonLabel: {
+  acceptButtonText: {
+    fontSize: 24,
+    color: '#fff',
+  },
+  buttonLabel: {
     color: '#fff',
     fontSize: 12,
     fontWeight: 'bold',
+    marginTop: 4,
   },
-  quickActions: {
-    marginBottom: 20,
-  },
-  quickActionsTitle: {
-    fontSize: 16,
-    fontWeight: 'bold',
-    marginBottom: 10,
-  },
-  quickActionText: {
-    fontSize: 14,
-    marginBottom: 5,
-  },
-  warningContainer: {
+  loadingContainer: {
     alignItems: 'center',
-    padding: 10,
-    borderRadius: 10,
-    backgroundColor: 'rgba(255, 68, 68, 0.1)',
+    marginTop: 20,
   },
-  warningText: {
-    fontSize: 14,
-    fontWeight: 'bold',
-    textAlign: 'center',
+  loadingText: {
+    fontSize: 16,
+    fontStyle: 'italic',
   },
 });
 
