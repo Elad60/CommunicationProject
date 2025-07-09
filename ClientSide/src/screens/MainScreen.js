@@ -30,6 +30,12 @@ const MainScreen = ({navigation}) => {
   const [error, setError] = useState(null);
   const [moduleStatus, setModuleStatus] = useState('Not tested yet');
 
+  // Voice Communication State Management
+  const [activeVoiceChannel, setActiveVoiceChannel] = useState(null); // Which channel is currently connected to voice
+  const [voiceStatus, setVoiceStatus] = useState('disconnected'); // 'disconnected', 'connecting', 'connected'
+  const [isMicrophoneEnabled, setIsMicrophoneEnabled] = useState(false); // Is microphone active
+  const [isAgoraInitialized, setIsAgoraInitialized] = useState(false); // Is Agora engine ready
+
   const {user} = useAuth();
   const {showFrequency, showStatus} = useSettings();
 
@@ -59,27 +65,109 @@ const MainScreen = ({navigation}) => {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [user]);
 
+  // Initialize Agora engine when component mounts
+  useEffect(() => {
+    const setupVoiceEngine = async () => {
+      console.log('🎬 MainScreen loaded - initializing voice engine...');
+      await initializeAgoraEngine();
+    };
+
+    setupVoiceEngine();
+
+    // Cleanup function - leave voice channel when component unmounts
+    return () => {
+      console.log('🧹 MainScreen unmounting - cleaning up voice...');
+      try {
+        if (AgoraModule) {
+          AgoraModule.LeaveChannel();
+        }
+      } catch (error) {
+        console.error('❌ Error during component unmount cleanup:', error);
+      }
+    };
+  }, []); // Run once on mount
+
   // Handle selection of a radio channel
   const handleChannelSelect = id => {
     setSelectedChannel(id); // Set selected channel by id
   };
 
-  // Handle toggle of radio channel state (Idle, ListenOnly, ListenAndTalk)
+  // Handle toggle of radio channel state (Idle, ListenOnly, ListenAndTalk) with Voice Integration
   const handleToggleChannelState = async channelId => {
     const current = radioChannels.find(c => c.id === channelId);
     const nextState = getNextState(current.channelState); // Get the next state for the channel
 
+    console.log(
+      `🔄 Channel ${channelId} state change: ${current.channelState} → ${nextState}`,
+    );
+
+    // Update the UI state immediately for responsiveness
     const updatedChannels = radioChannels.map(c =>
       c.id === channelId ? {...c, channelState: nextState} : c,
     );
-    setRadioChannels(updatedChannels); // Update the channel state locally
+    setRadioChannels(updatedChannels);
 
+    // ==================== VOICE INTEGRATION LOGIC ====================
     try {
+      // Handle voice operations based on the new state
+      switch (nextState) {
+        case 'Idle':
+          console.log('🔇 State: Idle - Leaving voice channel');
+          await leaveVoiceChannel();
+          break;
+
+        case 'ListenOnly':
+          console.log(
+            '👂 State: ListenOnly - Joining channel, muting microphone',
+          );
+          const joinSuccess = await joinVoiceChannel(channelId, current.name);
+          if (joinSuccess) {
+            await toggleMicrophone(false); // Mute microphone for listen-only
+          }
+          break;
+
+        case 'ListenAndTalk':
+          console.log('🎤 State: ListenAndTalk - Enabling microphone');
+          if (activeVoiceChannel === channelId) {
+            // Already in the channel, just enable microphone
+            await toggleMicrophone(true);
+          } else {
+            // Join channel and enable microphone
+            const joinSuccess = await joinVoiceChannel(channelId, current.name);
+            if (joinSuccess) {
+              await toggleMicrophone(true);
+            }
+          }
+          break;
+
+        default:
+          console.log('⚠️ Unknown channel state:', nextState);
+      }
+
+      // Update backend only after voice operations succeed
       const userId = user?.id;
       if (!userId) throw new Error('User ID not found');
-      await radioChannelsApi.updateChannelState(userId, channelId, nextState); // Update channel state in the backend
+      await radioChannelsApi.updateChannelState(userId, channelId, nextState);
+
+      console.log(
+        `✅ Channel ${channelId} successfully updated to ${nextState}`,
+      );
     } catch (error) {
-      console.error('Error updating channel state:', error); // Handle errors during state update
+      console.error('❌ Error updating channel state or voice:', error);
+
+      // Revert UI state if operations failed
+      const revertedChannels = radioChannels.map(c =>
+        c.id === channelId ? {...c, channelState: current.channelState} : c,
+      );
+      setRadioChannels(revertedChannels);
+
+      // Show user-friendly error
+      Alert.alert(
+        'Connection Error',
+        `Failed to ${
+          nextState === 'Idle' ? 'disconnect from' : 'connect to'
+        } voice channel. Please try again.`,
+      );
     }
   };
 
@@ -101,6 +189,201 @@ const MainScreen = ({navigation}) => {
   const handleAddChannel = () => {
     navigation.navigate('PickRadios'); // Navigate to pick radios screen
     console.log('Add channel button pressed');
+  };
+
+  // ==================== VOICE INTEGRATION HELPER FUNCTIONS ====================
+
+  // Initialize Agora engine (call once when app starts)
+  const initializeAgoraEngine = async () => {
+    try {
+      console.log('🚀 Initializing Agora engine...');
+
+      if (!AgoraModule) {
+        console.error('❌ AgoraModule not available');
+        return false;
+      }
+
+      AgoraModule.InitializeAgoraEngine('e5631d55e8a24b08b067bb73f8797fe3');
+      setIsAgoraInitialized(true);
+      console.log('✅ Agora engine initialized successfully');
+      return true;
+    } catch (error) {
+      console.error('❌ Failed to initialize Agora engine:', error);
+      setIsAgoraInitialized(false);
+      return false;
+    }
+  };
+
+  // Join a voice channel for a specific radio channel
+  const joinVoiceChannel = async (channelId, channelName) => {
+    try {
+      console.log(
+        `🎤 Joining voice channel for: ${channelName} (ID: ${channelId})`,
+      );
+
+      if (!isAgoraInitialized) {
+        console.log('🔧 Agora not initialized, initializing now...');
+        const initialized = await initializeAgoraEngine();
+        if (!initialized) {
+          throw new Error('Failed to initialize Agora engine');
+        }
+      }
+
+      setVoiceStatus('connecting');
+
+      // Leave current channel if connected to another
+      if (activeVoiceChannel && activeVoiceChannel !== channelId) {
+        console.log(`🔄 Leaving current channel: ${activeVoiceChannel}`);
+        AgoraModule.LeaveChannel();
+      }
+
+      // Create unique channel name for Agora
+      const agoraChannelName = `radio_channel_${channelId}`;
+      console.log(`📡 Joining Agora channel: ${agoraChannelName}`);
+
+      AgoraModule.JoinChannel(agoraChannelName);
+
+      setActiveVoiceChannel(channelId);
+      setVoiceStatus('connected');
+      console.log(`✅ Successfully joined voice channel: ${channelName}`);
+
+      return true;
+    } catch (error) {
+      console.error('❌ Failed to join voice channel:', error);
+      setVoiceStatus('disconnected');
+      setActiveVoiceChannel(null);
+      return false;
+    }
+  };
+
+  // Leave current voice channel
+  const leaveVoiceChannel = async () => {
+    try {
+      if (!activeVoiceChannel) {
+        console.log('ℹ️ No active voice channel to leave');
+        return true;
+      }
+
+      console.log(`👋 Leaving voice channel: ${activeVoiceChannel}`);
+      setVoiceStatus('connecting'); // Show connecting status while leaving
+
+      AgoraModule.LeaveChannel();
+
+      setActiveVoiceChannel(null);
+      setVoiceStatus('disconnected');
+      setIsMicrophoneEnabled(false);
+      console.log('✅ Successfully left voice channel');
+
+      return true;
+    } catch (error) {
+      console.error('❌ Failed to leave voice channel:', error);
+      // Still reset state even if leave failed
+      setActiveVoiceChannel(null);
+      setVoiceStatus('disconnected');
+      setIsMicrophoneEnabled(false);
+      return false;
+    }
+  };
+
+  // Toggle microphone on/off
+  const toggleMicrophone = async enabled => {
+    try {
+      if (!activeVoiceChannel) {
+        console.log(
+          '⚠️ Cannot toggle microphone - not connected to voice channel',
+        );
+        return false;
+      }
+
+      console.log(`🎤 ${enabled ? 'Enabling' : 'Disabling'} microphone...`);
+
+      AgoraModule.MuteLocalAudio(!enabled); // Note: Agora's mute is inverted
+      setIsMicrophoneEnabled(enabled);
+
+      console.log(`✅ Microphone ${enabled ? 'enabled' : 'disabled'}`);
+      return true;
+    } catch (error) {
+      console.error('❌ Failed to toggle microphone:', error);
+      return false;
+    }
+  };
+
+  // ==================== ERROR HANDLING & CLEANUP FUNCTIONS ====================
+
+  // Handle voice connection errors gracefully
+  const handleVoiceError = (error, operation) => {
+    console.error(`❌ Voice ${operation} failed:`, error);
+
+    // Reset voice states on error
+    setVoiceStatus('disconnected');
+    setActiveVoiceChannel(null);
+    setIsMicrophoneEnabled(false);
+
+    // Show user-friendly error message
+    const errorMessages = {
+      join: 'Failed to join voice channel. Please check your connection and try again.',
+      leave: 'Error leaving voice channel. Connection has been reset.',
+      microphone: 'Failed to toggle microphone. Please try again.',
+      initialize: 'Failed to initialize voice system. Please restart the app.',
+    };
+
+    Alert.alert(
+      'Voice Connection Error',
+      errorMessages[operation] || 'An unknown voice error occurred.',
+    );
+  };
+
+  // Cleanup function for component unmount or app backgrounding
+  const cleanupVoiceConnection = async () => {
+    try {
+      console.log('🧹 Cleaning up voice connections...');
+
+      if (activeVoiceChannel) {
+        await leaveVoiceChannel();
+      }
+
+      // Reset all voice states
+      setVoiceStatus('disconnected');
+      setActiveVoiceChannel(null);
+      setIsMicrophoneEnabled(false);
+      setIsAgoraInitialized(false);
+
+      console.log('✅ Voice cleanup completed');
+    } catch (error) {
+      console.error('❌ Error during voice cleanup:', error);
+    }
+  };
+
+  // Emergency reset function for when things go wrong
+  const emergencyVoiceReset = async () => {
+    try {
+      console.log('🚨 Emergency voice reset initiated...');
+
+      Alert.alert('Voice Reset', 'Resetting voice connection...', [
+        {text: 'OK'},
+      ]);
+
+      // Force leave channel
+      if (AgoraModule) {
+        AgoraModule.LeaveChannel();
+        AgoraModule.ReleaseEngine();
+      }
+
+      // Reset all states
+      await cleanupVoiceConnection();
+
+      // Reinitialize if possible
+      setTimeout(async () => {
+        await initializeAgoraEngine();
+        Alert.alert(
+          'Voice Reset',
+          'Voice system has been reset. You can now try connecting again.',
+        );
+      }, 1000);
+    } catch (error) {
+      console.error('❌ Emergency reset failed:', error);
+      Alert.alert('Reset Failed', 'Please restart the application.');
+    }
   };
 
   // Test function to verify native module is working
@@ -358,6 +641,18 @@ const MainScreen = ({navigation}) => {
                   showFrequency={showFrequency}
                   showStatus={showStatus}
                   numberOfChannels={radioChannels.length}
+                  // Voice connection props
+                  isVoiceConnected={activeVoiceChannel === channel.id}
+                  voiceStatus={
+                    activeVoiceChannel === channel.id
+                      ? voiceStatus
+                      : 'disconnected'
+                  }
+                  isMicrophoneEnabled={
+                    activeVoiceChannel === channel.id
+                      ? isMicrophoneEnabled
+                      : false
+                  }
                 />
               </TouchableOpacity>
             ))}
@@ -403,6 +698,13 @@ const MainScreen = ({navigation}) => {
 
         <TouchableOpacity style={styles.stopEchoButton} onPress={stopEchoTest}>
           <Text style={styles.testButtonText}>Stop Echo</Text>
+        </TouchableOpacity>
+
+        {/* Emergency Voice Reset Button */}
+        <TouchableOpacity
+          style={styles.emergencyResetButton}
+          onPress={emergencyVoiceReset}>
+          <Text style={styles.testButtonText}>🚨 Reset</Text>
         </TouchableOpacity>
 
         {/* Module Status Display */}
@@ -575,6 +877,16 @@ const styles = StyleSheet.create({
     left: 110,
     bottom: 150,
     backgroundColor: '#E91E63',
+    padding: 8,
+    borderRadius: 5,
+    elevation: 5,
+    minWidth: 80,
+  },
+  emergencyResetButton: {
+    position: 'absolute',
+    left: 200,
+    bottom: 150,
+    backgroundColor: '#D32F2F',
     padding: 8,
     borderRadius: 5,
     elevation: 5,
