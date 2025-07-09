@@ -1,7 +1,7 @@
-import React, { useMemo } from 'react';
-import { View, Text, StyleSheet, Image } from 'react-native';
+import React, {useMemo} from 'react';
+import {View, Text, StyleSheet, Image} from 'react-native';
 import {useSettings} from '../context/SettingsContext';
-import { useDebouncedDimensions } from '../utils/useDebouncedDimensions';
+import {useDebouncedDimensions} from '../utils/useDebouncedDimensions';
 
 const RadioChannel = ({
   name,
@@ -11,12 +11,16 @@ const RadioChannel = ({
   isSelected,
   channelState,
   numberOfChannels,
+  // Voice connection props
+  isVoiceConnected = false,
+  voiceStatus = 'disconnected', // 'disconnected', 'connecting', 'connected'
+  isMicrophoneEnabled = false,
 }) => {
   // Access settings context values
-  const { darkMode, showFrequency, showStatus} = useSettings();
+  const {darkMode, showFrequency, showStatus} = useSettings();
 
   // Get screen dimensions with a 300ms debounce to avoid excessive renders
-  const { height, width } = useDebouncedDimensions(300);
+  const {height, width} = useDebouncedDimensions(300);
 
   // Return background color based on the channel's state
   const getBackgroundColor = () => {
@@ -58,39 +62,98 @@ const RadioChannel = ({
   };
 
   // Destructure icon paths
-  const { headphones, mic } = getIconPaths();
+  const {headphones, mic} = getIconPaths();
 
-  
+  // Get voice connection indicator color and style
+  const getVoiceIndicatorStyle = () => {
+    switch (voiceStatus) {
+      case 'connected':
+        return {
+          backgroundColor: isMicrophoneEnabled ? '#ff6b35' : '#4CAF50', // Orange for talking, Green for listening
+          opacity: 1,
+        };
+      case 'connecting':
+        return {
+          backgroundColor: '#FFC107', // Yellow for connecting
+          opacity: 0.7, // Pulsing effect will be added with animation
+        };
+      case 'disconnected':
+      default:
+        return {
+          backgroundColor: '#555', // Gray for disconnected
+          opacity: 1,
+        };
+    }
+  };
+
+  // Get voice status text for display
+  const getVoiceStatusText = () => {
+    if (!isVoiceConnected) return '';
+
+    switch (voiceStatus) {
+      case 'connected':
+        return isMicrophoneEnabled ? '🎤 Talking' : '👂 Listening';
+      case 'connecting':
+        return '🔄 Connecting...';
+      case 'disconnected':
+      default:
+        return '';
+    }
+  };
+
   return (
-    <View style={[styles.container, { backgroundColor: getBackgroundColor() }]}>
+    <View style={[styles.container, {backgroundColor: getBackgroundColor()}]}>
       {/* Display channel name */}
-      <Text style={[styles.name, { color: darkMode ? '#fff' : '#000' }]}>{name}</Text>
+      <Text style={[styles.name, {color: darkMode ? '#fff' : '#000'}]}>
+        {name}
+      </Text>
 
-      {/* Optionally show frequency and mode */}
-      {showFrequency && (
-        <Text style={[styles.frequency, { color: darkMode ? '#fff' : '#000' }]}>
-          {frequency} {mode}
+      {/* Voice status indicator (shows instead of frequency when voice connected) */}
+      {isVoiceConnected ? (
+        <Text style={[styles.voiceStatus, {color: darkMode ? '#fff' : '#000'}]}>
+          {getVoiceStatusText()}
         </Text>
+      ) : (
+        showFrequency && (
+          <Text style={[styles.frequency, {color: darkMode ? '#fff' : '#000'}]}>
+            {frequency} {mode}
+          </Text>
+        )
       )}
 
-      {/* Optionally show usage status */}
-      {showStatus && (
-        <Text style={[styles.status, { color: darkMode ? '#fff' : '#000' }]}>
+      {/* Conditionally show status */}
+      {showStatus && !isVoiceConnected && (
+        <Text style={[styles.status, {color: darkMode ? '#fff' : '#000'}]}>
           {isActive ? 'Active' : 'Not used'}
         </Text>
       )}
 
-      {/* Display icons + activity indicator */}
+      {/* Display headphone and mic icons with voice connection indicator */}
       <View style={styles.iconContainer}>
         <Image source={headphones} style={styles.iconImage} />
         <View
           style={[
             styles.statusIndicator,
-            { backgroundColor: isActive ? '#00cc00' : '#555' }, // Green if active
+            getVoiceIndicatorStyle(),
+            // Add pulsing animation for connecting state
+            voiceStatus === 'connecting' && styles.pulsingIndicator,
           ]}
         />
         <Image source={mic} style={styles.iconImage} />
       </View>
+
+      {/* Voice connection border indicator */}
+      {isVoiceConnected && (
+        <View
+          style={[
+            styles.voiceConnectionBorder,
+            {
+              borderColor: isMicrophoneEnabled ? '#ff6b35' : '#4CAF50',
+              borderWidth: voiceStatus === 'connected' ? 2 : 1,
+            },
+          ]}
+        />
+      )}
     </View>
   );
 };
@@ -121,6 +184,12 @@ const styles = StyleSheet.create({
     fontSize: 12,
     textAlign: 'center',
   },
+  voiceStatus: {
+    fontSize: 12,
+    textAlign: 'center',
+    fontWeight: 'bold',
+    marginVertical: 2,
+  },
   iconContainer: {
     flexDirection: 'row',
     justifyContent: 'space-between',
@@ -139,6 +208,19 @@ const styles = StyleSheet.create({
     height: 14,
     borderRadius: 7,
     marginHorizontal: 5,
+  },
+  pulsingIndicator: {
+    // Animation will be handled by React Native Animated API if needed
+    opacity: 0.6,
+  },
+  voiceConnectionBorder: {
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    right: 0,
+    bottom: 0,
+    borderRadius: 5,
+    pointerEvents: 'none', // Allow touches to pass through
   },
 });
 
