@@ -13,7 +13,7 @@ import {useSettings} from '../context/SettingsContext';
 import {privateCallApi} from '../utils/apiService';
 
 const PrivateCallScreen = ({route, navigation}) => {
-  const {otherUser, invitationId, currentUserId} = route.params;
+  const {otherUser, invitationId, currentUserId, channelName, isCaller, isCallAccepted} = route.params;
   const {darkMode} = useSettings();
   const [callDuration, setCallDuration] = useState(0);
   const [isMuted, setIsMuted] = useState(false);
@@ -22,12 +22,20 @@ const PrivateCallScreen = ({route, navigation}) => {
   const [isCallActive, setIsCallActive] = useState(true);
   const intervalRef = useRef(null);
   const statusCheckRef = useRef(null);
-
+  
   console.log('🔵 PrivateCallScreen mounted with:', {
     otherUser: otherUser?.username,
     invitationId,
     currentUserId,
   });
+
+  // Component lifecycle logging
+  useEffect(() => {
+    console.log('🎬 PrivateCallScreen MOUNTED');
+    return () => {
+      console.log('🏁 PrivateCallScreen UNMOUNTED - cleaning up all resources');
+    };
+  }, []);
 
   // Start call duration timer
   useEffect(() => {
@@ -47,8 +55,26 @@ const PrivateCallScreen = ({route, navigation}) => {
   useEffect(() => {
     console.log('👁️ Starting call status monitoring...');
     
+    let isMonitoring = true; // Flag to prevent multiple alerts
+    let intervalId = null; // Store interval ID locally
+    
     const checkCallStatus = async () => {
+      console.log('🔍 checkCallStatus called, isMonitoring:', isMonitoring, 'isCallActive:', isCallActive);
+      
+      // Don't check if we're no longer monitoring
+      if (!isMonitoring) {
+        console.log('🛑 Stopping call status check - monitoring stopped');
+        return;
+      }
+      
+      // Don't check if call is not active
+      if (!isCallActive) {
+        console.log('🛑 Stopping call status check - call not active');
+        return;
+      }
+      
       try {
+        console.log('🔄 Polling for call status...');
         const response = await privateCallApi.getCallStatus(invitationId, currentUserId);
         
         if (response.success) {
@@ -57,11 +83,21 @@ const PrivateCallScreen = ({route, navigation}) => {
           // If call was ended by the other user
           if (response.status === 'cancelled' || response.status === 'ended') {
             console.log('❌ Call ended by other user');
+            
+            // Stop monitoring IMMEDIATELY
+            isMonitoring = false;
             setIsCallActive(false);
             
-            // Stop monitoring
+            // Clear the interval IMMEDIATELY
+            if (intervalId) {
+              console.log('🧹 Clearing local interval:', intervalId);
+              clearInterval(intervalId);
+              intervalId = null;
+            }
             if (statusCheckRef.current) {
+              console.log('🧹 Clearing ref interval:', statusCheckRef.current);
               clearInterval(statusCheckRef.current);
+              statusCheckRef.current = null;
             }
             
             // Show notification and navigate back
@@ -71,11 +107,16 @@ const PrivateCallScreen = ({route, navigation}) => {
               [
                 {
                   text: 'OK',
-                  onPress: () => navigation.replace('Groups'),
+                                      onPress: () => {
+                      console.log('📞 Other user ended call - returning to Groups (GlobalCallListener will resume polling)');
+                      navigation.replace('Groups');
+                    },
                 },
               ],
               { cancelable: false }
             );
+            
+            return; // Stop execution
           }
         }
       } catch (error) {
@@ -88,11 +129,20 @@ const PrivateCallScreen = ({route, navigation}) => {
     checkCallStatus();
     
     // Then check every 3 seconds
-    statusCheckRef.current = setInterval(checkCallStatus, 3000);
+    intervalId = setInterval(checkCallStatus, 3000);
+    statusCheckRef.current = intervalId;
+    console.log('✅ Started polling with interval ID:', intervalId);
 
     return () => {
+      console.log('🧹 Cleaning up call status monitoring, interval ID:', intervalId);
+      isMonitoring = false; // Stop monitoring on cleanup
+      if (intervalId) {
+        clearInterval(intervalId);
+        intervalId = null;
+      }
       if (statusCheckRef.current) {
         clearInterval(statusCheckRef.current);
+        statusCheckRef.current = null;
       }
     };
   }, [invitationId, currentUserId, navigation]);
@@ -121,12 +171,17 @@ const PrivateCallScreen = ({route, navigation}) => {
     setIsEnding(true);
     setIsCallActive(false);
     
-    // Stop all timers
+    // Stop all timers IMMEDIATELY
+    console.log('🛑 Stopping all timers...');
     if (intervalRef.current) {
+      console.log('🧹 Clearing duration timer:', intervalRef.current);
       clearInterval(intervalRef.current);
+      intervalRef.current = null;
     }
     if (statusCheckRef.current) {
+      console.log('🧹 Clearing status check timer:', statusCheckRef.current);
       clearInterval(statusCheckRef.current);
+      statusCheckRef.current = null;
     }
     
     try {
@@ -142,6 +197,7 @@ const PrivateCallScreen = ({route, navigation}) => {
     }
     
     // Always navigate back, even if API call fails
+    console.log('📞 User ended call - returning to Groups (GlobalCallListener will resume polling)');
     navigation.replace('Groups');
   };
 

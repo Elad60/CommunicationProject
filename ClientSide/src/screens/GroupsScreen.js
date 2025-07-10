@@ -15,9 +15,11 @@ import {useAuth} from '../context/AuthContext';
 import {groupUsersApi, privateCallApi} from '../utils/apiService';
 import {useSettings} from '../context/SettingsContext';
 import { useDebouncedDimensions } from '../utils/useDebouncedDimensions';
-import useIncomingCallListener from '../hooks/useIncomingCallListener';
+// import useIncomingCallListener from '../hooks/useIncomingCallListener'; // MOVED TO GLOBAL
 
 const GroupsScreen = ({navigation}) => {
+  console.log('🟢 GroupsScreen RENDERED');
+  
   // Destructuring user and changeGroup from AuthContext
   const {user, changeGroup} = useAuth();
   
@@ -38,8 +40,31 @@ const GroupsScreen = ({navigation}) => {
   // Debounced dimensions for responsive UI
   const { height, width } = useDebouncedDimensions(300);
 
-  // Add incoming call listener
-  const {isListening} = useIncomingCallListener(navigation);
+  // Component lifecycle logging
+  useEffect(() => {
+    console.log('🎬 GroupsScreen MOUNTED');
+    return () => {
+      console.log('🏁 GroupsScreen UNMOUNTED');
+    };
+  }, []);
+
+  // Navigation listener to detect focus/blur
+  useEffect(() => {
+    const unsubscribe = navigation.addListener('focus', () => {
+      console.log('🔵 GroupsScreen FOCUSED');
+    });
+
+    const unsubscribeBlur = navigation.addListener('blur', () => {
+      console.log('🔴 GroupsScreen BLURRED');
+    });
+
+    return () => {
+      unsubscribe();
+      unsubscribeBlur();
+    };
+  }, [navigation]);
+
+  // Incoming call listening is now handled globally by GlobalCallListener
 
   // Function to fetch users for the current group
   const fetchGroupUsers = async () => {
@@ -255,10 +280,10 @@ const GroupsScreen = ({navigation}) => {
         <View style={styles.callListenerStatus}>
           <View style={[
             styles.listenerDot,
-            {backgroundColor: isListening ? '#00cc00' : '#ff4444'}
+            {backgroundColor: '#00cc00'}
           ]} />
           <Text style={[styles.listenerText, {color: textColor}]}>
-            Call Listener: {isListening ? 'Active' : 'Inactive'}
+            Call Listener: Global (Active in all screens except Private Call)
           </Text>
         </View>
       </View>

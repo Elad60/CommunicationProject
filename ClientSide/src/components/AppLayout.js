@@ -13,7 +13,7 @@ import ControlPanel from './ControlPanel';
 import NavPanel from './NavPanel';
 import {useSettings} from '../context/SettingsContext';
 import LogoutButton from './LogoutButton';
-import {useIncomingCallListener} from '../hooks/useIncomingCallListener';
+// import {useIncomingCallListener} from '../hooks/useIncomingCallListener'; // FULLY DISABLED
 
 const AppLayout = ({
   children,

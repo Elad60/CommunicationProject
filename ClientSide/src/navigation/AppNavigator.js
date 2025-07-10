@@ -15,6 +15,7 @@ import PickRadiosScreen from '../screens/PickRadiosScreen';
 import PrivateCallScreen from '../screens/PrivateCallScreen';
 import WaitingForCallScreen from '../screens/WaitingForCallScreen';
 import IncomingCallScreen from '../screens/IncomingCallScreen';
+import GlobalCallListener from '../components/GlobalCallListener';
 
 const Stack = createStackNavigator();
 
@@ -52,22 +53,25 @@ const AppNavigator = () => {
         </Stack.Navigator>
       ) : (
         // App navigator when user is logged in
-        <Stack.Navigator
-          initialRouteName="Main"
-          screenOptions={{
-            headerShown: false, // Hide the default header since we have our own in AppLayout
-          }}>
-          <Stack.Screen name="Main" component={MainScreen} />
-          <Stack.Screen name="Settings" component={SettingsScreen} />
-          <Stack.Screen name="ChannelConfig" component={ChannelConfigScreen} />
-          <Stack.Screen name="Groups" component={GroupsScreen} />
-          <Stack.Screen name="Announcements" component={AnnouncementsScreen} />
-          <Stack.Screen name="UserManagement" component={UserManagementScreen}/>
-          <Stack.Screen name="PickRadios" component={PickRadiosScreen} />
-          <Stack.Screen name="PrivateCall" component={PrivateCallScreen} />
-          <Stack.Screen name="WaitingForCall" component={WaitingForCallScreen} />
-          <Stack.Screen name="IncomingCall" component={IncomingCallScreen} />
-        </Stack.Navigator>
+        <>
+          <Stack.Navigator
+            initialRouteName="Main"
+            screenOptions={{
+              headerShown: false, // Hide the default header since we have our own in AppLayout
+            }}>
+            <Stack.Screen name="Main" component={MainScreen} />
+            <Stack.Screen name="Settings" component={SettingsScreen} />
+            <Stack.Screen name="ChannelConfig" component={ChannelConfigScreen} />
+            <Stack.Screen name="Groups" component={GroupsScreen} />
+            <Stack.Screen name="Announcements" component={AnnouncementsScreen} />
+            <Stack.Screen name="UserManagement" component={UserManagementScreen}/>
+            <Stack.Screen name="PickRadios" component={PickRadiosScreen} />
+            <Stack.Screen name="PrivateCall" component={PrivateCallScreen} />
+            <Stack.Screen name="WaitingForCall" component={WaitingForCallScreen} />
+            <Stack.Screen name="IncomingCall" component={IncomingCallScreen} />
+          </Stack.Navigator>
+          <GlobalCallListener />
+        </>
       )}
     </NavigationContainer>
   );

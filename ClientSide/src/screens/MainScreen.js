@@ -15,7 +15,6 @@ import AppLayout from '../components/AppLayout';
 import {useAuth} from '../context/AuthContext';
 import {radioChannelsApi} from '../utils/apiService';
 import {useSettings} from '../context/SettingsContext';
-import useIncomingCallListener from '../hooks/useIncomingCallListener';
 
 const {AgoraModule, TestModule} = NativeModules;
 
@@ -25,6 +24,7 @@ console.log('AgoraModule:', AgoraModule);
 console.log('TestModule:', TestModule);
 
 const MainScreen = ({navigation}) => {
+  console.log('🟢 MainScreen RENDERED');
   console.log('MainScreen rendered');
   const [selectedChannel, setSelectedChannel] = useState(null);
   const [radioChannels, setRadioChannels] = useState([]);
@@ -35,8 +35,31 @@ const MainScreen = ({navigation}) => {
   const {user} = useAuth();
   const {showFrequency, showStatus} = useSettings();
 
-  // Add incoming call listener
-  const {isListening} = useIncomingCallListener(navigation);
+  // Note: useIncomingCallListener is ONLY used in GroupsScreen to avoid conflicts
+
+  // Component lifecycle logging
+  useEffect(() => {
+    console.log('🎬 MainScreen MOUNTED');
+    return () => {
+      console.log('🏁 MainScreen UNMOUNTED');
+    };
+  }, []);
+
+  // Navigation listener to detect focus/blur
+  useEffect(() => {
+    const unsubscribe = navigation.addListener('focus', () => {
+      console.log('🔵 MainScreen FOCUSED');
+    });
+
+    const unsubscribeBlur = navigation.addListener('blur', () => {
+      console.log('🔴 MainScreen BLURRED');
+    });
+
+    return () => {
+      unsubscribe();
+      unsubscribeBlur();
+    };
+  }, [navigation]);
 
   // Fetch radio channels for the authenticated user
   const fetchRadioChannels = async () => {
@@ -415,16 +438,7 @@ const MainScreen = ({navigation}) => {
           <Text style={styles.statusTitle}>Module Status:</Text>
           <Text style={styles.statusText}>{moduleStatus}</Text>
           
-          {/* Incoming Call Listener Status */}
-          <View style={styles.listenerStatus}>
-            <View style={[
-              styles.listenerDot,
-              {backgroundColor: isListening ? '#00cc00' : '#ff4444'}
-            ]} />
-            <Text style={styles.listenerText}>
-              Call Listener: {isListening ? 'Active' : 'Inactive'}
-            </Text>
-          </View>
+
         </View>
       </View>
     </AppLayout>

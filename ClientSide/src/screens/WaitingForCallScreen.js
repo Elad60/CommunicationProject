@@ -12,11 +12,13 @@ import {
 import {useAuth} from '../context/AuthContext';
 import {useSettings} from '../context/SettingsContext';
 import {privateCallApi} from '../utils/apiService';
+import useIncomingCallListener from '../hooks/useIncomingCallListener';
 
 const WaitingForCallScreen = ({route, navigation}) => {
   const {otherUser, invitationId, channelName} = route.params;
   const {user} = useAuth();
   const {darkMode} = useSettings();
+  const {resumeListening} = useIncomingCallListener(navigation);
 
   const [waitingTime, setWaitingTime] = useState(0);
   const [pulseAnim] = useState(new Animated.Value(1));
@@ -98,6 +100,9 @@ const WaitingForCallScreen = ({route, navigation}) => {
       `${otherUser.username} didn't respond to your call within 60 seconds.`,
       [{text: 'OK', onPress: () => {
         // Use replace instead of goBack to avoid navigation errors
+        // Resume listening for incoming calls
+        console.log('🔄 Resuming incoming call polling after timeout...');
+        resumeListening();
         navigation.replace('Groups');
       }}]
     );
@@ -164,13 +169,21 @@ const WaitingForCallScreen = ({route, navigation}) => {
           Alert.alert(
             'Call Rejected',
             `${otherUser.username} declined your call.`,
-            [{text: 'OK', onPress: () => navigation.replace('Groups')}]
+            [{text: 'OK', onPress: () => {
+              // Resume listening for incoming calls
+              console.log('🔄 Resuming incoming call polling after rejection...');
+              resumeListening();
+              navigation.replace('Groups');
+            }}]
           );
           
         } else if (currentStatus === 'cancelled') {
           setIsPolling(false);
           console.log('🚫 Call was cancelled');
           setStatus('Call Cancelled');
+          // Resume listening for incoming calls
+          console.log('🔄 Resuming incoming call polling after cancelled...');
+          resumeListening();
           navigation.replace('Groups');
           
         } else if (currentStatus === 'expired') {
@@ -181,7 +194,12 @@ const WaitingForCallScreen = ({route, navigation}) => {
           Alert.alert(
             'Call Expired',
             `The call invitation has expired.`,
-            [{text: 'OK', onPress: () => navigation.replace('Groups')}]
+            [{text: 'OK', onPress: () => {
+              // Resume listening for incoming calls
+              console.log('🔄 Resuming incoming call polling after expired...');
+              resumeListening();
+              navigation.replace('Groups');
+            }}]
           );
         } else {
           // Still pending - continue polling
@@ -254,7 +272,12 @@ const WaitingForCallScreen = ({route, navigation}) => {
     Alert.alert(
       'Call Cancelled',
       `You have left the call to ${otherUser.username}.`,
-      [{text: 'OK', onPress: () => navigation.replace('Groups')}]
+      [{text: 'OK', onPress: () => {
+        // Resume listening for incoming calls
+        console.log('🔄 Resuming incoming call polling after user cancelled...');
+        resumeListening();
+        navigation.replace('Groups');
+      }}]
     );
   };
 

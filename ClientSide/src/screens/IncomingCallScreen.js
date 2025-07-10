@@ -12,11 +12,13 @@ import {
 import {useAuth} from '../context/AuthContext';
 import {useSettings} from '../context/SettingsContext';
 import {privateCallApi} from '../utils/apiService';
+import useIncomingCallListener from '../hooks/useIncomingCallListener';
 
 const IncomingCallScreen = ({route, navigation}) => {
   const {callInvitation} = route.params;
   const {user} = useAuth();
   const {darkMode} = useSettings();
+  const {resumeListening} = useIncomingCallListener(navigation);
   
   // State management
   const [isResponding, setIsResponding] = useState(false);
@@ -77,7 +79,12 @@ const IncomingCallScreen = ({route, navigation}) => {
       [
         {
           text: 'OK',
-          onPress: () => navigation.goBack(),
+          onPress: () => {
+            // Resume listening for incoming calls
+            console.log('🔄 Resuming incoming call polling after timeout...');
+            resumeListening();
+            navigation.goBack();
+          },
         },
       ]
     );
@@ -93,7 +100,7 @@ const IncomingCallScreen = ({route, navigation}) => {
     try {
       const response = await privateCallApi.acceptInvitation(callInvitation.Id, user.id);
       
-      if (response.Success) {
+      if (response.success) {
         console.log('✅ Call accepted successfully:', response);
         
         // Navigate to private call screen
@@ -105,7 +112,7 @@ const IncomingCallScreen = ({route, navigation}) => {
             role: callInvitation.CallerRole,
           },
           invitationId: callInvitation.Id,
-          channelName: response.ChannelName,
+          channelName: response.channelName || 'default-channel',
           isCallAccepted: true,
           isCaller: false, // This user is the receiver
           currentUserId: user.id, // Add current user ID for server monitoring
@@ -113,8 +120,13 @@ const IncomingCallScreen = ({route, navigation}) => {
       } else {
         Alert.alert(
           'Call Failed',
-          response.Message || 'Failed to accept the call. Please try again.',
-          [{text: 'OK', onPress: () => navigation.goBack()}]
+          response.message || 'Failed to accept the call. Please try again.',
+          [{text: 'OK', onPress: () => {
+            // Resume listening for incoming calls
+            console.log('🔄 Resuming incoming call polling after failed accept...');
+            resumeListening();
+            navigation.goBack();
+          }}]
         );
       }
     } catch (error) {
@@ -122,7 +134,12 @@ const IncomingCallScreen = ({route, navigation}) => {
       Alert.alert(
         'Call Failed',
         error.message || 'Failed to accept the call. Please try again.',
-        [{text: 'OK', onPress: () => navigation.goBack()}]
+        [{text: 'OK', onPress: () => {
+          // Resume listening for incoming calls
+          console.log('🔄 Resuming incoming call polling after error in accept...');
+          resumeListening();
+          navigation.goBack();
+        }}]
       );
     } finally {
       setIsResponding(false);
@@ -139,17 +156,26 @@ const IncomingCallScreen = ({route, navigation}) => {
     try {
       const response = await privateCallApi.rejectInvitation(callInvitation.Id, user.id);
       
-      if (response.Success) {
+      if (response.success) {
         console.log('✅ Call rejected successfully');
+        // Resume listening for incoming calls
+        console.log('🔄 Resuming incoming call polling after reject...');
+        resumeListening();
         navigation.goBack();
       } else {
-        console.error('❌ Failed to reject call:', response.Message);
+        console.error('❌ Failed to reject call:', response.message);
         // Even if rejection fails, go back - user doesn't want the call
+        // Resume listening for incoming calls
+        console.log('🔄 Resuming incoming call polling after failed reject...');
+        resumeListening();
         navigation.goBack();
       }
     } catch (error) {
       console.error('❌ Error rejecting call:', error);
       // Even if rejection fails, go back - user doesn't want the call
+      // Resume listening for incoming calls
+      console.log('🔄 Resuming incoming call polling after error in reject...');
+      resumeListening();
       navigation.goBack();
     }
   };
