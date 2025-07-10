@@ -28,8 +28,10 @@ const WaitingForCallScreen = ({route, navigation}) => {
     const timer = setInterval(() => {
       setWaitingTime(prev => {
         if (prev >= 59) {
-          // 60 seconds timeout
-          handleTimeout();
+          // 60 seconds timeout - only call once
+          if (prev === 59) {
+            handleTimeout();
+          }
           return 60;
         }
         return prev + 1;
@@ -64,6 +66,9 @@ const WaitingForCallScreen = ({route, navigation}) => {
       console.log(`📞 Starting to wait for response from ${otherUser.username}`);
       console.log(`📊 Invitation ID: ${invitationId}`);
       console.log(`📡 Channel Name: ${channelName}`);
+      console.log(`👤 User ID: ${user.id}`);
+      console.log(`🌐 API Base URL: http://localhost:7220/api`);
+      console.log(`🎯 API Call will be: GET /PrivateCalls/status/${invitationId}/${user.id}`);
       
       setStatus('Waiting for response...');
       startPollingForResponse();
@@ -82,21 +87,19 @@ const WaitingForCallScreen = ({route, navigation}) => {
   // Handle timeout (60 seconds)
   const handleTimeout = async () => {
     console.log('⏰ Call invitation timed out after 60 seconds');
+    
+    // Stop polling first to prevent multiple calls
     setIsPolling(false);
     setStatus('No Answer');
     
-    try {
-      // Cancel the invitation on the server
-      await privateCallApi.cancelInvitation(invitationId, user.id);
-      console.log('✅ Invitation cancelled due to timeout');
-    } catch (error) {
-      console.error('❌ Error cancelling invitation on timeout:', error);
-    }
-    
+    // Don't try to cancel - just show timeout message
     Alert.alert(
       'No Answer',
       `${otherUser.username} didn't respond to your call within 60 seconds.`,
-      [{text: 'OK', onPress: () => navigation.goBack()}]
+      [{text: 'OK', onPress: () => {
+        // Use replace instead of goBack to avoid navigation errors
+        navigation.replace('Groups');
+      }}]
     );
   };
 
@@ -105,79 +108,11 @@ const WaitingForCallScreen = ({route, navigation}) => {
     console.log('🔄 Starting polling for call response...');
     setIsPolling(true);
     
-    const pollInterval = setInterval(async () => {
-      if (!isPolling) {
-        clearInterval(pollInterval);
-        return;
-      }
-      
-      try {
-        console.log('🔄 Polling for call status...');
-        const response = await privateCallApi.getCallStatus(invitationId, user.id);
-        console.log('📊 Polling response:', response);
-        
-        if (response.Success) {
-          const currentStatus = response.Status;
-          
-          if (currentStatus === 'accepted') {
-            clearInterval(pollInterval);
-            setIsPolling(false);
-            console.log('✅ Call accepted! Navigating to private call...');
-            
-            // Navigate to private call screen
-            navigation.replace('PrivateCall', {
-              otherUser,
-              invitationId,
-              channelName: response.ChannelName || channelName,
-              isCallAccepted: true,
-              isCaller: true, // This user is the caller
-              currentUserId: user.id, // Add current user ID for server monitoring
-            });
-            
-          } else if (currentStatus === 'rejected') {
-            clearInterval(pollInterval);
-            setIsPolling(false);
-            console.log('❌ Call rejected');
-            setStatus('Call Rejected');
-            
-            Alert.alert(
-              'Call Rejected',
-              `${otherUser.username} declined your call.`,
-              [{text: 'OK', onPress: () => navigation.goBack()}]
-            );
-            
-          } else if (currentStatus === 'cancelled') {
-            clearInterval(pollInterval);
-            setIsPolling(false);
-            console.log('🚫 Call was cancelled');
-            setStatus('Call Cancelled');
-            navigation.goBack();
-            
-          } else if (currentStatus === 'expired') {
-            clearInterval(pollInterval);
-            setIsPolling(false);
-            console.log('⏰ Call expired on server');
-            setStatus('Call Expired');
-            
-            Alert.alert(
-              'Call Expired',
-              `The call invitation has expired.`,
-              [{text: 'OK', onPress: () => navigation.goBack()}]
-            );
-          } else {
-            // Still pending - continue polling
-            console.log(`🕐 Call still pending: ${currentStatus}`);
-            setStatus('Waiting for response...');
-          }
-        } else {
-          console.error('❌ Failed to get call status:', response);
-        }
-        
-      } catch (error) {
-        console.error('❌ Error polling for call response:', error);
-        // Don't stop polling on single error - might be temporary network issue
-        console.log('🔄 Continuing to poll despite error...');
-      }
+    // Start immediate first call
+    checkCallStatus();
+    
+    const pollInterval = setInterval(() => {
+      checkCallStatus();
     }, 2000); // Poll every 2 seconds
 
     // Cleanup function
@@ -188,29 +123,139 @@ const WaitingForCallScreen = ({route, navigation}) => {
     };
   };
 
-  // Cancel call
+  // Separate function to check call status
+  const checkCallStatus = async () => {
+    console.log('🔍 checkCallStatus called, isPolling:', isPolling);
+    
+    try {
+      console.log('🔄 Polling for call status...');
+      const response = await privateCallApi.getCallStatus(invitationId, user.id);
+      console.log('📊 Polling response:', JSON.stringify(response, null, 2));
+      
+      if (response.success) {  // ← Fixed: lowercase 'success'
+        const currentStatus = response.status;  // ← Fixed: lowercase 'status'
+        console.log(`🎯 Current status: "${currentStatus}"`);  // ← Added detailed logging
+        
+                  if (currentStatus === 'accepted') {
+            setIsPolling(false);
+            console.log('✅ Call accepted! Navigating to private call...');
+            
+            // Stop all polling immediately to prevent loops
+            console.log('🛑 STOPPING ALL POLLING - Call accepted');
+            
+            // Navigate to private call screen
+            navigation.replace('PrivateCall', {
+              otherUser,
+              invitationId,
+              channelName: response.channelName || channelName,  // ← Fixed: lowercase 'channelName'
+              isCallAccepted: true,
+              isCaller: true, // This user is the caller
+              currentUserId: user.id, // Add current user ID for server monitoring
+            });
+            
+            // Return to prevent further execution
+            return;
+          
+        } else if (currentStatus === 'rejected') {
+          setIsPolling(false);
+          console.log('❌ Call rejected');
+          setStatus('Call Rejected');
+          
+          Alert.alert(
+            'Call Rejected',
+            `${otherUser.username} declined your call.`,
+            [{text: 'OK', onPress: () => navigation.replace('Groups')}]
+          );
+          
+        } else if (currentStatus === 'cancelled') {
+          setIsPolling(false);
+          console.log('🚫 Call was cancelled');
+          setStatus('Call Cancelled');
+          navigation.replace('Groups');
+          
+        } else if (currentStatus === 'expired') {
+          setIsPolling(false);
+          console.log('⏰ Call expired on server');
+          setStatus('Call Expired');
+          
+          Alert.alert(
+            'Call Expired',
+            `The call invitation has expired.`,
+            [{text: 'OK', onPress: () => navigation.replace('Groups')}]
+          );
+        } else {
+          // Still pending - continue polling
+          console.log(`🕐 Call still pending: ${currentStatus}`);
+          setStatus('Waiting for response...');
+        }
+      } else {
+        console.error('❌ Failed to get call status:', response);
+      }
+      
+    } catch (error) {
+      console.error('❌ Error polling for call response:', error);
+      // Don't stop polling on single error - might be temporary network issue
+      console.log('🔄 Continuing to poll despite error...');
+    }
+  };
+
+  // Cancel call with confirmation
   const handleCancelCall = async () => {
     console.log('🚫 User requested to cancel call');
     
-    try {
-      setIsPolling(false);
-      setStatus('Cancelling...');
-      
-      if (invitationId) {
-        const response = await privateCallApi.cancelInvitation(invitationId, user.id);
-        if (response.Success) {
-          console.log('✅ Call invitation cancelled successfully');
-        } else {
-          console.log('⚠️ Cancel response was not successful:', response.Message);
+    // Show confirmation dialog
+    Alert.alert(
+      'Cancel Call',
+      `Are you sure you want to cancel the call to ${otherUser.username}?`,
+      [
+        {
+          text: 'Keep Waiting',
+          style: 'cancel',
+          onPress: () => console.log('User chose to keep waiting')
+        },
+        {
+          text: 'Cancel Call',
+          style: 'destructive',
+          onPress: () => performCancelCall()
         }
+      ]
+    );
+  };
+
+  // Perform the actual cancellation
+  const performCancelCall = async () => {
+    console.log('🚫 User wants to cancel call - stopping polling immediately');
+    
+    // Stop polling immediately regardless of server response
+    setIsPolling(false);
+    setStatus('Cancelling call...');
+    
+    // Try to cancel on server, but don't fail if it doesn't work
+    if (invitationId) {
+      try {
+        console.log('📤 Attempting to cancel on server...');
+        const response = await privateCallApi.cancelInvitation(invitationId, user.id);
+        
+        if (response.success) {
+          console.log('✅ Server confirmed cancellation');
+        } else {
+          console.log('⚠️ Server could not cancel (probably already changed status)');
+        }
+      } catch (error) {
+        console.log('⚠️ Server cancel failed (probably already changed status):', error.message);
+        // This is OK - the call might already be accepted/expired/etc
       }
-      
-      navigation.goBack();
-    } catch (error) {
-      console.error('❌ Error canceling call:', error);
-      // Even if cancellation fails, go back - user wants to leave
-      navigation.goBack();
     }
+    
+    // Always navigate back successfully - user wants to leave
+    console.log('✅ Navigating back to Groups');
+    setStatus('Call Cancelled');
+    
+    Alert.alert(
+      'Call Cancelled',
+      `You have left the call to ${otherUser.username}.`,
+      [{text: 'OK', onPress: () => navigation.replace('Groups')}]
+    );
   };
 
   // Format waiting time
@@ -272,13 +317,33 @@ const WaitingForCallScreen = ({route, navigation}) => {
         </Text>
       </View>
 
-      {/* Cancel Button */}
-      <TouchableOpacity
-        style={[styles.cancelButton, {backgroundColor: '#ff4444'}]}
-        onPress={handleCancelCall}
-      >
-        <Text style={styles.cancelButtonText}>Cancel Call</Text>
-      </TouchableOpacity>
+      {/* Action Buttons */}
+      <View style={styles.actionButtonsContainer}>
+        <TouchableOpacity
+          style={[styles.actionButton, {backgroundColor: '#ff4444'}]}
+          onPress={handleCancelCall}
+        >
+          <Text style={styles.actionButtonText}>🚫 Cancel Call</Text>
+        </TouchableOpacity>
+        
+        <TouchableOpacity
+          style={[styles.actionButton, {backgroundColor: '#2196F3'}]}
+          onPress={() => {
+            Alert.alert(
+              'Call Information',
+              `📞 Calling: ${otherUser.username}\n` +
+              `📧 Email: ${otherUser.email}\n` +
+              `🆔 Invitation ID: ${invitationId}\n` +
+              `📡 Channel: ${channelName}\n` +
+              `⏰ Waiting: ${formatWaitingTime(waitingTime)}\n` +
+              `🔄 Status: ${status}`,
+              [{text: 'OK'}]
+            );
+          }}
+        >
+          <Text style={styles.actionButtonText}>ℹ️ Call Info</Text>
+        </TouchableOpacity>
+      </View>
 
       {/* Instructions */}
       <View style={styles.instructionsContainer}>
@@ -397,20 +462,26 @@ const styles = StyleSheet.create({
     textAlign: 'center',
     fontStyle: 'italic',
   },
-  cancelButton: {
+  actionButtonsContainer: {
+    flexDirection: 'row',
+    justifyContent: 'space-around',
+    marginBottom: 30,
+    paddingHorizontal: 20,
+  },
+  actionButton: {
     padding: 15,
     borderRadius: 25,
     alignItems: 'center',
-    marginBottom: 30,
     elevation: 3,
     shadowColor: '#000',
     shadowOffset: {width: 0, height: 2},
     shadowOpacity: 0.2,
     shadowRadius: 4,
+    minWidth: 120,
   },
-  cancelButtonText: {
+  actionButtonText: {
     color: '#fff',
-    fontSize: 18,
+    fontSize: 16,
     fontWeight: 'bold',
   },
   instructionsContainer: {

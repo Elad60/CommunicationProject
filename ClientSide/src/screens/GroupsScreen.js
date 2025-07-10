@@ -83,8 +83,23 @@ const GroupsScreen = ({navigation}) => {
   const onUserPress = userId => {
     const selectedUser = groupUsers.find(u => u.id === userId);
     
-    // Directly start private call without dialog
-    startPrivateCall(selectedUser);
+    // Show confirmation dialog before starting private call
+    Alert.alert(
+      'Start Private Call',
+      `Are you sure you want to call ${selectedUser.username}?`,
+      [
+        {
+          text: 'Cancel',
+          style: 'cancel',
+          onPress: () => console.log('Call cancelled by user')
+        },
+        {
+          text: 'Call',
+          style: 'default',
+          onPress: () => startPrivateCall(selectedUser)
+        }
+      ]
+    );
   };
 
   // Function to start private call (send invitation)
@@ -92,35 +107,32 @@ const GroupsScreen = ({navigation}) => {
     console.log(`📞 Starting private call with ${otherUser.username}`);
     
     try {
-      // Show loading state
-      Alert.alert(
-        'Sending Invitation',
-        `Calling ${otherUser.username}...`,
-        [],
-        { cancelable: false }
-      );
-      
-      // Send invitation using the API
+      // Send invitation using the API first
       const response = await privateCallApi.sendInvitation(user.id, otherUser.id);
       
-      if (response.Success) {
+      console.log('📋 Full API response:', response);
+      
+      if (response.success) {  // ← Fixed: lowercase 'success'
         console.log('✅ Invitation sent successfully:', response);
         
         // Navigate to waiting screen with invitation details
         navigation.navigate('WaitingForCall', {
           otherUser,
-          invitationId: response.InvitationId,
-          channelName: response.ChannelName,
+          invitationId: response.invitationId,  // ← Fixed: lowercase 'invitationId'
+          channelName: response.channelName,    // ← Fixed: lowercase 'channelName'
         });
       } else {
+        console.log('❌ Invitation failed:', response.message);
+        
         Alert.alert(
           'Call Failed',
-          response.Message || 'Failed to send call invitation. Please try again.',
+          response.message || 'Failed to send call invitation. Please try again.',
           [{text: 'OK'}]
         );
       }
     } catch (error) {
       console.error('❌ Error sending call invitation:', error);
+      
       Alert.alert(
         'Call Failed',
         error.message || 'Failed to send call invitation. Please try again.',
