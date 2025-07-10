@@ -12,13 +12,11 @@ import {
 import {useAuth} from '../context/AuthContext';
 import {useSettings} from '../context/SettingsContext';
 import {privateCallApi} from '../utils/apiService';
-import useIncomingCallListener from '../hooks/useIncomingCallListener';
 
 const IncomingCallScreen = ({route, navigation}) => {
   const {callInvitation} = route.params;
   const {user} = useAuth();
   const {darkMode} = useSettings();
-  const {resumeListening} = useIncomingCallListener(navigation);
   
   // State management
   const [isResponding, setIsResponding] = useState(false);
@@ -80,10 +78,9 @@ const IncomingCallScreen = ({route, navigation}) => {
         {
           text: 'OK',
           onPress: () => {
-            // Resume listening for incoming calls
-            console.log('🔄 Resuming incoming call polling after timeout...');
-            resumeListening();
-            navigation.goBack();
+                      // GlobalCallListener will resume polling automatically
+          console.log('📞 Call timed out - returning to Groups (GlobalCallListener will resume polling)');
+          navigation.reset({index:0, routes:[{name:'Groups'}]});
           },
         },
       ]
@@ -104,28 +101,36 @@ const IncomingCallScreen = ({route, navigation}) => {
         console.log('✅ Call accepted successfully:', response);
         
         // Navigate to private call screen
-        navigation.replace('PrivateCall', {
-          otherUser: {
-            id: callInvitation.CallerId,
-            username: callInvitation.CallerName,
-            email: callInvitation.CallerEmail,
-            role: callInvitation.CallerRole,
-          },
-          invitationId: callInvitation.Id,
-          channelName: response.channelName || 'default-channel',
-          isCallAccepted: true,
-          isCaller: false, // This user is the receiver
-          currentUserId: user.id, // Add current user ID for server monitoring
+        navigation.reset({
+          index: 1,
+          routes: [
+            {name: 'Groups'},
+            {
+              name: 'PrivateCall',
+              params: {
+                otherUser: {
+                  id: callInvitation.CallerId,
+                  username: callInvitation.CallerName,
+                  email: callInvitation.CallerEmail,
+                  role: callInvitation.CallerRole,
+                },
+                invitationId: callInvitation.Id,
+                channelName: response.channelName || 'default-channel',
+                isCallAccepted: true,
+                isCaller: false, // This user is the receiver
+                currentUserId: user.id, // Add current user ID for server monitoring
+              }
+            }
+          ]
         });
       } else {
         Alert.alert(
           'Call Failed',
           response.message || 'Failed to accept the call. Please try again.',
           [{text: 'OK', onPress: () => {
-            // Resume listening for incoming calls
-            console.log('🔄 Resuming incoming call polling after failed accept...');
-            resumeListening();
-            navigation.goBack();
+            // GlobalCallListener will resume polling automatically
+            console.log('📞 Failed to accept call - returning to Groups (GlobalCallListener will resume polling)');
+            navigation.reset({index:0, routes:[{name:'Groups'}]});
           }}]
         );
       }
@@ -135,10 +140,9 @@ const IncomingCallScreen = ({route, navigation}) => {
         'Call Failed',
         error.message || 'Failed to accept the call. Please try again.',
         [{text: 'OK', onPress: () => {
-          // Resume listening for incoming calls
-          console.log('🔄 Resuming incoming call polling after error in accept...');
-          resumeListening();
-          navigation.goBack();
+          // GlobalCallListener will resume polling automatically
+          console.log('📞 Error accepting call - returning to Groups (GlobalCallListener will resume polling)');
+          navigation.reset({index:0, routes:[{name:'Groups'}]});
         }}]
       );
     } finally {
@@ -158,25 +162,22 @@ const IncomingCallScreen = ({route, navigation}) => {
       
       if (response.success) {
         console.log('✅ Call rejected successfully');
-        // Resume listening for incoming calls
-        console.log('🔄 Resuming incoming call polling after reject...');
-        resumeListening();
-        navigation.goBack();
+        // GlobalCallListener will resume polling automatically
+        console.log('📞 Call rejected - returning to Groups (GlobalCallListener will resume polling)');
+        navigation.reset({index:0, routes:[{name:'Groups'}]});
       } else {
         console.error('❌ Failed to reject call:', response.message);
         // Even if rejection fails, go back - user doesn't want the call
-        // Resume listening for incoming calls
-        console.log('🔄 Resuming incoming call polling after failed reject...');
-        resumeListening();
-        navigation.goBack();
+        // GlobalCallListener will resume polling automatically
+        console.log('📞 Failed to reject call - returning to Groups (GlobalCallListener will resume polling)');
+        navigation.reset({index:0, routes:[{name:'Groups'}]});
       }
     } catch (error) {
       console.error('❌ Error rejecting call:', error);
       // Even if rejection fails, go back - user doesn't want the call
-      // Resume listening for incoming calls
-      console.log('🔄 Resuming incoming call polling after error in reject...');
-      resumeListening();
-      navigation.goBack();
+      // GlobalCallListener will resume polling automatically
+      console.log('📞 Error rejecting call - returning to Groups (GlobalCallListener will resume polling)');
+      navigation.reset({index:0, routes:[{name:'Groups'}]});
     }
   };
 

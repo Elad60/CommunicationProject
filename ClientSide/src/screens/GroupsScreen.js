@@ -7,7 +7,6 @@ import {
   ScrollView,
   TouchableOpacity,
   ActivityIndicator,
-  Image,
   Alert,
 } from 'react-native';
 import AppLayout from '../components/AppLayout';

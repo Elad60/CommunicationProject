@@ -1,4 +1,4 @@
-import React, {useState, useEffect} from 'react';
+import React, {useState, useEffect, useRef} from 'react';
 import {
   View,
   Text,
@@ -12,22 +12,25 @@ import {
 import {useAuth} from '../context/AuthContext';
 import {useSettings} from '../context/SettingsContext';
 import {privateCallApi} from '../utils/apiService';
-import useIncomingCallListener from '../hooks/useIncomingCallListener';
 
 const WaitingForCallScreen = ({route, navigation}) => {
   const {otherUser, invitationId, channelName} = route.params;
   const {user} = useAuth();
   const {darkMode} = useSettings();
-  const {resumeListening} = useIncomingCallListener(navigation);
 
   const [waitingTime, setWaitingTime] = useState(0);
   const [pulseAnim] = useState(new Animated.Value(1));
   const [status, setStatus] = useState('Sending invitation...');
   const [isPolling, setIsPolling] = useState(false);
+  
+  // Refs for interval management
+  const waitingTimerRef = useRef(null);
+  const pollIntervalRef = useRef(null);
 
   // Timer for waiting time (max 60 seconds)
   useEffect(() => {
-    const timer = setInterval(() => {
+    console.log('⏱️ Starting waiting timer...');
+    waitingTimerRef.current = setInterval(() => {
       setWaitingTime(prev => {
         if (prev >= 59) {
           // 60 seconds timeout - only call once
@@ -39,7 +42,14 @@ const WaitingForCallScreen = ({route, navigation}) => {
         return prev + 1;
       });
     }, 1000);
-    return () => clearInterval(timer);
+    
+    return () => {
+      console.log('🧹 Cleaning up waiting timer');
+      if (waitingTimerRef.current) {
+        clearInterval(waitingTimerRef.current);
+        waitingTimerRef.current = null;
+      }
+    };
   }, []);
 
   // Pulse animation for the calling indicator
@@ -75,6 +85,12 @@ const WaitingForCallScreen = ({route, navigation}) => {
       setStatus('Waiting for response...');
       startPollingForResponse();
     }
+    
+    // Cleanup on unmount
+    return () => {
+      console.log('🧹 WaitingForCallScreen unmounting - cleaning up all polling');
+      stopPollingForResponse();
+    };
   }, [invitationId]);
 
   // Handle back button
@@ -90,8 +106,8 @@ const WaitingForCallScreen = ({route, navigation}) => {
   const handleTimeout = async () => {
     console.log('⏰ Call invitation timed out after 60 seconds');
     
-    // Stop polling first to prevent multiple calls
-    setIsPolling(false);
+    // Stop all polling first to prevent multiple calls
+    stopPollingForResponse();
     setStatus('No Answer');
     
     // Don't try to cancel - just show timeout message
@@ -99,11 +115,9 @@ const WaitingForCallScreen = ({route, navigation}) => {
       'No Answer',
       `${otherUser.username} didn't respond to your call within 60 seconds.`,
       [{text: 'OK', onPress: () => {
-        // Use replace instead of goBack to avoid navigation errors
-        // Resume listening for incoming calls
-        console.log('🔄 Resuming incoming call polling after timeout...');
-        resumeListening();
-        navigation.replace('Groups');
+        // GlobalCallListener will resume polling automatically
+        console.log('📞 Call timed out - returning to Groups (GlobalCallListener will resume polling)');
+        navigation.reset({index:0, routes:[{name:'Groups'}]});
       }}]
     );
   };
@@ -113,19 +127,34 @@ const WaitingForCallScreen = ({route, navigation}) => {
     console.log('🔄 Starting polling for call response...');
     setIsPolling(true);
     
+    // Clear any existing interval first
+    if (pollIntervalRef.current) {
+      console.log('🧹 Clearing existing poll interval');
+      clearInterval(pollIntervalRef.current);
+      pollIntervalRef.current = null;
+    }
+    
     // Start immediate first call
     checkCallStatus();
     
-    const pollInterval = setInterval(() => {
+    // Store interval reference so we can clear it later
+    pollIntervalRef.current = setInterval(() => {
       checkCallStatus();
     }, 2000); // Poll every 2 seconds
+    
+    console.log('✅ Polling started with interval ID:', pollIntervalRef.current);
+  };
 
-    // Cleanup function
-    return () => {
-      console.log('🛑 Stopping polling for call response');
-      clearInterval(pollInterval);
-      setIsPolling(false);
-    };
+  // Stop polling for call response
+  const stopPollingForResponse = () => {
+    console.log('🛑 Stopping polling for call response');
+    setIsPolling(false);
+    
+    if (pollIntervalRef.current) {
+      console.log('🧹 Clearing poll interval:', pollIntervalRef.current);
+      clearInterval(pollIntervalRef.current);
+      pollIntervalRef.current = null;
+    }
   };
 
   // Separate function to check call status
@@ -142,63 +171,69 @@ const WaitingForCallScreen = ({route, navigation}) => {
         console.log(`🎯 Current status: "${currentStatus}"`);  // ← Added detailed logging
         
                   if (currentStatus === 'accepted') {
-            setIsPolling(false);
             console.log('✅ Call accepted! Navigating to private call...');
             
             // Stop all polling immediately to prevent loops
             console.log('🛑 STOPPING ALL POLLING - Call accepted');
+            stopPollingForResponse();
             
             // Navigate to private call screen
-            navigation.replace('PrivateCall', {
-              otherUser,
-              invitationId,
-              channelName: response.channelName || channelName,  // ← Fixed: lowercase 'channelName'
-              isCallAccepted: true,
-              isCaller: true, // This user is the caller
-              currentUserId: user.id, // Add current user ID for server monitoring
+            navigation.reset({
+              index: 1,
+              routes: [
+                {name: 'Groups'},
+                {
+                  name: 'PrivateCall',
+                  params: {
+                    otherUser,
+                    invitationId,
+                    channelName: response.channelName || channelName,
+                    isCallAccepted: true,
+                    isCaller: true, // This user is the caller
+                    currentUserId: user.id, // Add current user ID for server monitoring
+                  }
+                }
+              ]
             });
             
             // Return to prevent further execution
             return;
           
         } else if (currentStatus === 'rejected') {
-          setIsPolling(false);
           console.log('❌ Call rejected');
+          stopPollingForResponse();
           setStatus('Call Rejected');
           
           Alert.alert(
             'Call Rejected',
             `${otherUser.username} declined your call.`,
             [{text: 'OK', onPress: () => {
-              // Resume listening for incoming calls
-              console.log('🔄 Resuming incoming call polling after rejection...');
-              resumeListening();
-              navigation.replace('Groups');
+              // GlobalCallListener will resume polling automatically
+              console.log('📞 Call rejected - returning to Groups (GlobalCallListener will resume polling)');
+              navigation.reset({index:0, routes:[{name:'Groups'}]});
             }}]
           );
           
         } else if (currentStatus === 'cancelled') {
-          setIsPolling(false);
           console.log('🚫 Call was cancelled');
+          stopPollingForResponse();
           setStatus('Call Cancelled');
-          // Resume listening for incoming calls
-          console.log('🔄 Resuming incoming call polling after cancelled...');
-          resumeListening();
-          navigation.replace('Groups');
+          // GlobalCallListener will resume polling automatically
+          console.log('📞 Call cancelled - returning to Groups (GlobalCallListener will resume polling)');
+          navigation.reset({index:0, routes:[{name:'Groups'}]});
           
         } else if (currentStatus === 'expired') {
-          setIsPolling(false);
           console.log('⏰ Call expired on server');
+          stopPollingForResponse();
           setStatus('Call Expired');
           
           Alert.alert(
             'Call Expired',
             `The call invitation has expired.`,
             [{text: 'OK', onPress: () => {
-              // Resume listening for incoming calls
-              console.log('🔄 Resuming incoming call polling after expired...');
-              resumeListening();
-              navigation.replace('Groups');
+              // GlobalCallListener will resume polling automatically
+              console.log('📞 Call expired - returning to Groups (GlobalCallListener will resume polling)');
+              navigation.reset({index:0, routes:[{name:'Groups'}]});
             }}]
           );
         } else {
@@ -245,7 +280,7 @@ const WaitingForCallScreen = ({route, navigation}) => {
     console.log('🚫 User wants to cancel call - stopping polling immediately');
     
     // Stop polling immediately regardless of server response
-    setIsPolling(false);
+    stopPollingForResponse();
     setStatus('Cancelling call...');
     
     // Try to cancel on server, but don't fail if it doesn't work
@@ -273,10 +308,9 @@ const WaitingForCallScreen = ({route, navigation}) => {
       'Call Cancelled',
       `You have left the call to ${otherUser.username}.`,
       [{text: 'OK', onPress: () => {
-        // Resume listening for incoming calls
-        console.log('🔄 Resuming incoming call polling after user cancelled...');
-        resumeListening();
-        navigation.replace('Groups');
+        // GlobalCallListener will resume polling automatically
+        console.log('📞 User cancelled call - returning to Groups (GlobalCallListener will resume polling)');
+        navigation.reset({index:0, routes:[{name:'Groups'}]});
       }}]
     );
   };

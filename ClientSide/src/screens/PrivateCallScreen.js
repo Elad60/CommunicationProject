@@ -8,7 +8,6 @@ import {
   SafeAreaView,
   BackHandler,
 } from 'react-native';
-import {useAuth} from '../context/AuthContext';
 import {useSettings} from '../context/SettingsContext';
 import {privateCallApi} from '../utils/apiService';
 
@@ -16,8 +15,6 @@ const PrivateCallScreen = ({route, navigation}) => {
   const {otherUser, invitationId, currentUserId, channelName, isCaller, isCallAccepted} = route.params;
   const {darkMode} = useSettings();
   const [callDuration, setCallDuration] = useState(0);
-  const [isMuted, setIsMuted] = useState(false);
-  const [isSpeakerOn, setIsSpeakerOn] = useState(false);
   const [isEnding, setIsEnding] = useState(false);
   const [isCallActive, setIsCallActive] = useState(true);
   const intervalRef = useRef(null);
@@ -109,7 +106,7 @@ const PrivateCallScreen = ({route, navigation}) => {
                   text: 'OK',
                                       onPress: () => {
                       console.log('📞 Other user ended call - returning to Groups (GlobalCallListener will resume polling)');
-                      navigation.replace('Groups');
+                      navigation.reset({index:0, routes:[{name:'Groups'}]});
                     },
                 },
               ],
@@ -198,7 +195,7 @@ const PrivateCallScreen = ({route, navigation}) => {
     
     // Always navigate back, even if API call fails
     console.log('📞 User ended call - returning to Groups (GlobalCallListener will resume polling)');
-    navigation.replace('Groups');
+    navigation.reset({index:0, routes:[{name:'Groups'}]});
   };
 
   // Simulate call features (for testing)

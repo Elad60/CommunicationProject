@@ -18,7 +18,7 @@ const useIncomingCallListener = (navigation) => {
       console.log('🔍 Checking for incoming calls...');
       const response = await privateCallApi.getIncomingCalls(user.id);
       
-      if (response.Success && response.IncomingCalls && response.IncomingCalls.length > 0) {
+      if (response.success && response.IncomingCalls && response.IncomingCalls.length > 0) {
         const latestCall = response.IncomingCalls[0];
         console.log('📞 Found incoming call:', latestCall);
         
