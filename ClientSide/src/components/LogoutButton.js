@@ -1,6 +1,5 @@
 import React, {useState} from 'react';
-import {Text, StyleSheet, Pressable, View} from 'react-native';
-import Icon from 'react-native-vector-icons/MaterialIcons';
+import {Text, StyleSheet, Pressable, View, Image} from 'react-native';
 
 // Professional LogoutButton with clean corporate design
 const LogoutButton = ({onLogout, darkMode = false}) => {
@@ -33,11 +32,15 @@ const LogoutButton = ({onLogout, darkMode = false}) => {
         },
       ]}>
       <View style={styles.content}>
-        <Icon
-          name="logout"
-          size={16}
-          color={hovering ? colors.iconHover : colors.icon}
-          style={styles.icon}
+        <Image
+          source={require('../../assets/logos/logout.png')}
+          style={[
+            styles.logoImage,
+            {
+              tintColor: hovering ? colors.iconHover : colors.icon,
+            },
+          ]}
+          resizeMode="contain"
         />
 
         <Text
@@ -76,7 +79,9 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
   },
-  icon: {
+  logoImage: {
+    width: 16,
+    height: 16,
     marginRight: 6,
   },
   text: {
