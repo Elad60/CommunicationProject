@@ -6,6 +6,7 @@ import {
   StyleSheet,
   TouchableOpacity,
   StatusBar,
+  Image,
 } from 'react-native';
 import {useDebouncedDimensions} from '../utils/useDebouncedDimensions';
 import {useAuth} from '../context/AuthContext';
@@ -82,9 +83,11 @@ const AppLayout = ({
         {/* Left Section - App Title/Logo */}
         <View style={styles.headerLeft}>
           <View style={styles.logoContainer}>
-            <View style={[styles.logoIcon, {backgroundColor: accentColor}]}>
-              <Text style={styles.logoText}>📡</Text>
-            </View>
+            <Image
+              source={require('../../assets/logos/comm.webp')}
+              style={styles.logoImage}
+              resizeMode="cover"
+            />
             <View style={styles.titleContainer}>
               <Text style={[styles.appTitle, {color: primaryTextColor}]}>
                 {title || 'TechMer'}
@@ -211,6 +214,15 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
   },
+  logoCircle: {
+    width: 48,
+    height: 48,
+    borderRadius: 24,
+    backgroundColor: '#2196F3',
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginRight: 12,
+  },
   logoIcon: {
     width: 36,
     height: 36,
@@ -274,6 +286,15 @@ const styles = StyleSheet.create({
   headerRight: {
     flex: 1,
     alignItems: 'flex-end',
+  },
+  logoImage: {
+    width: 48,
+    height: 48,
+    borderRadius: 24,
+    marginRight: 12,
+    borderWidth: 1,
+    borderColor: '#e0e0e0',
+    backgroundColor: '#fff',
   },
 });
 
