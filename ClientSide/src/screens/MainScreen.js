@@ -127,6 +127,8 @@ const MainScreen = ({navigation}) => {
             AgoraModule.MuteLocalAudio(true);
             setIsMicrophoneEnabled(false);
           } else {
+            // Immediately set microphone state based on channel state
+            setIsMicrophoneEnabled(false);
             const joinSuccess = await joinVoiceChannel(channelId, current.name);
             if (joinSuccess) {
               const muteTimeout = setTimeout(() => {
@@ -143,6 +145,8 @@ const MainScreen = ({navigation}) => {
             AgoraModule.MuteLocalAudio(false);
             setIsMicrophoneEnabled(true);
           } else {
+            // Immediately set microphone state based on channel state
+            setIsMicrophoneEnabled(true);
             const joinSuccess = await joinVoiceChannel(channelId, current.name);
             if (joinSuccess) {
               const unmuteTimeout = setTimeout(() => {
@@ -295,7 +299,7 @@ const MainScreen = ({navigation}) => {
 
       clearPendingAudioTimeouts();
       setVoiceStatus('connecting');
-      
+
       AgoraModule.LeaveChannel();
 
       setActiveVoiceChannel(null);
@@ -383,7 +387,9 @@ const MainScreen = ({navigation}) => {
   // Emergency reset function for when things go wrong
   const emergencyVoiceReset = async () => {
     try {
-      Alert.alert('Voice Reset', 'Resetting voice connection...', [{text: 'OK'}]);
+      Alert.alert('Voice Reset', 'Resetting voice connection...', [
+        {text: 'OK'},
+      ]);
 
       if (AgoraModule) {
         AgoraModule.LeaveChannel();
@@ -394,7 +400,10 @@ const MainScreen = ({navigation}) => {
 
       setTimeout(async () => {
         await initializeAgoraEngine();
-        Alert.alert('Voice Reset', 'Voice system has been reset. You can now try connecting again.');
+        Alert.alert(
+          'Voice Reset',
+          'Voice system has been reset. You can now try connecting again.',
+        );
       }, 1000);
     } catch (error) {
       console.error('❌ Emergency reset failed:', error);
@@ -467,7 +476,7 @@ const MainScreen = ({navigation}) => {
                   }
                   isMicrophoneEnabled={
                     activeVoiceChannel === channel.id
-                      ? isMicrophoneEnabled
+                      ? channel.channelState === 'ListenAndTalk'
                       : false
                   }
                 />
