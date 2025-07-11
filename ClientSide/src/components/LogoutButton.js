@@ -1,88 +1,88 @@
-import React, { useRef, useState } from 'react';
-import { Animated, Text, StyleSheet, View, Pressable, Image } from 'react-native';
-import Icon from 'react-native-vector-icons/FontAwesome';
+import React, {useState} from 'react';
+import {Text, StyleSheet, Pressable, View} from 'react-native';
+import Icon from 'react-native-vector-icons/MaterialIcons';
 
-// LogoutButton component - expands on hover to reveal "Logout" text
-const LogoutButton = ({ onLogout }) => {
-  // Animated value for controlling the button width
-  const widthAnim = useRef(new Animated.Value(45)).current;
-  
-  // State to track hover status
+// Professional LogoutButton with clean corporate design
+const LogoutButton = ({onLogout, darkMode = false}) => {
   const [hovering, setHovering] = useState(false);
 
-  // Handle hover-in effect: expands button width and shows label
-  const handleHoverIn = () => {
-    setHovering(true);
-    Animated.timing(widthAnim, {
-      toValue: 120,  // Expanded width
-      duration: 300, 
-      useNativeDriver: false,
-    }).start();
-  };
-
-  // Handle hover-out effect: shrinks button back to original size
-  const handleHoverOut = () => {
-    setHovering(false);
-    Animated.timing(widthAnim, {
-      toValue: 45,  // Original width
-      duration: 300,
-      useNativeDriver: false,
-    }).start();
+  // Professional color scheme
+  const colors = {
+    background: darkMode ? '#2a2a2a' : '#f8f9fa',
+    backgroundHover: darkMode ? '#3a3a3a' : '#e9ecef',
+    border: darkMode ? '#404040' : '#dee2e6',
+    borderHover: darkMode ? '#555555' : '#adb5bd',
+    text: darkMode ? '#e9ecef' : '#495057',
+    textHover: darkMode ? '#ffffff' : '#212529',
+    icon: darkMode ? '#dc3545' : '#dc3545',
+    iconHover: darkMode ? '#c82333' : '#c82333',
   };
 
   return (
     <Pressable
-      onPress={onLogout}           
-      onHoverIn={handleHoverIn}    
-      onHoverOut={handleHoverOut}  
-      style={{ marginLeft: 10 }}>
-        
-      {/* Main Button View */}
-      <Animated.View style={[styles.button, { width: widthAnim }]}>
-        
-        {/* Icon Section */}
-        <View style={styles.iconWrapper}>
-          <Image
-            source={require('../../assets/logos/logout.png')} // Custom logout icon
-            style={styles.icon}
-            resizeMode="contain"
-          />
-        </View>
+      onPress={onLogout}
+      onHoverIn={() => setHovering(true)}
+      onHoverOut={() => setHovering(false)}
+      style={[
+        styles.container,
+        {
+          backgroundColor: hovering
+            ? colors.backgroundHover
+            : colors.background,
+          borderColor: hovering ? colors.borderHover : colors.border,
+        },
+      ]}>
+      <View style={styles.content}>
+        <Icon
+          name="logout"
+          size={16}
+          color={hovering ? colors.iconHover : colors.icon}
+          style={styles.icon}
+        />
 
-        {/* Text Section (visible when hovered) */}
-        {hovering && <Text style={styles.text}>Logout</Text>}
-      </Animated.View>
+        <Text
+          style={[
+            styles.text,
+            {
+              color: hovering ? colors.textHover : colors.text,
+            },
+          ]}>
+          Sign out
+        </Text>
+      </View>
     </Pressable>
   );
 };
 
-// Styles for the button and components
 const styles = StyleSheet.create({
-  button: {
-    height: 25,
-    borderRadius: 40,
-    backgroundColor: 'rgb(255, 65, 65)', 
-    flexDirection: 'row',
-    alignItems: 'center',
-    overflow: 'hidden', 
-    paddingLeft: 10,
-    elevation: 5, 
+  container: {
+    borderWidth: 1,
+    borderRadius: 6,
+    paddingVertical: 8,
+    paddingHorizontal: 12,
+    marginLeft: 8,
+    minWidth: 90,
+    // Subtle shadow for depth
+    shadowOffset: {
+      width: 0,
+      height: 1,
+    },
+    shadowOpacity: 0.05,
+    shadowRadius: 2,
+    elevation: 1,
   },
-  iconWrapper: {
-    width: 30,
+  content: {
+    flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
   },
-  text: {
-    color: 'black',
-    fontSize: 15,
-    fontWeight: '600',
-    paddingHorizontal: 10,
-  },
   icon: {
-    width: 22,
-    height: 22,
-    color: 'black', 
+    marginRight: 6,
+  },
+  text: {
+    fontSize: 13,
+    fontWeight: '500',
+    letterSpacing: 0.2,
   },
 });
 
