@@ -90,195 +90,107 @@ const MainScreen = ({navigation}) => {
     setSelectedChannel(id); // Set selected channel by id
   };
 
-  // Handle toggle of radio channel state (Idle, ListenOnly, ListenAndTalk) with Voice Integration
-  const handleToggleChannelState = async channelId => {
+  // Unified channel state handler with Voice Integration
+  const handleChannelStateChange = async (channelId, direction = 'forward') => {
     const current = radioChannels.find(c => c.id === channelId);
-    const nextState = getNextState(current.channelState); // Get the next state for the channel
+    const newState =
+      direction === 'forward'
+        ? getNextState(current.channelState)
+        : getPreviousState(current.channelState);
 
-    console.log(
-      `🔄 Channel ${channelId} state change: ${current.channelState} → ${nextState}`,
-    );
-
-    // AUTO-IDLE OTHER CHANNELS: If entering ListenOnly or ListenAndTalk, set all other channels to Idle
-    let updatedChannels;
-    if (nextState === 'ListenOnly' || nextState === 'ListenAndTalk') {
-      console.log('🔄 Setting all other channels to Idle state...');
-      updatedChannels = radioChannels.map(c => {
-        if (c.id === channelId) {
-          return {...c, channelState: nextState}; // Set current channel to new state
-        } else if (c.channelState !== 'Idle') {
-          console.log(`📭 Setting channel ${c.id} (${c.name}) to Idle`);
-          return {...c, channelState: 'Idle'}; // Set all other channels to Idle
-        } else {
-          return c; // Keep already idle channels as they are
-        }
-      });
-    } else {
-      // If going to Idle, only update current channel
-      updatedChannels = radioChannels.map(c =>
-        c.id === channelId ? {...c, channelState: nextState} : c,
-      );
-    }
+    // Update UI state
+    const updatedChannels =
+      newState === 'ListenOnly' || newState === 'ListenAndTalk'
+        ? radioChannels.map(c =>
+            c.id === channelId
+              ? {...c, channelState: newState}
+              : c.channelState !== 'Idle'
+              ? {...c, channelState: 'Idle'}
+              : c,
+          )
+        : radioChannels.map(c =>
+            c.id === channelId ? {...c, channelState: newState} : c,
+          );
 
     setRadioChannels(updatedChannels);
 
-    // ==================== VOICE INTEGRATION LOGIC ====================
     try {
-      // RACE CONDITION FIX: Clear any pending audio timeouts first
       clearPendingAudioTimeouts();
 
-      // Handle voice operations based on the new state
-      switch (nextState) {
+      // Handle voice operations
+      switch (newState) {
         case 'Idle':
-          console.log('🔇 State: Idle - Leaving voice channel');
           await leaveVoiceChannel();
           break;
-
         case 'ListenOnly':
-          console.log(
-            '👂 State: ListenOnly - Joining channel and muting microphone',
-          );
           if (activeVoiceChannel === channelId) {
-            // Already in channel, immediately mute
-            console.log(
-              '🔇 Already in channel - immediately applying mute for ListenOnly',
-            );
             AgoraModule.MuteLocalAudio(true);
             setIsMicrophoneEnabled(false);
           } else {
-            // Join new channel
-            const joinSuccessListen = await joinVoiceChannel(
-              channelId,
-              current.name,
-            );
-            if (joinSuccessListen) {
-              // Schedule mute with timeout tracking
-              console.log('⏳ Scheduling mute for ListenOnly mode...');
-              const muteTimeout = setTimeout(async () => {
-                console.log('🔇 APPLYING MUTE for ListenOnly mode...');
+            const joinSuccess = await joinVoiceChannel(channelId, current.name);
+            if (joinSuccess) {
+              const muteTimeout = setTimeout(() => {
                 AgoraModule.MuteLocalAudio(true);
                 setIsMicrophoneEnabled(false);
                 setPendingMuteTimeout(null);
-
-                // Verify mute worked
-                setTimeout(() => {
-                  AgoraModule.IsLocalAudioMuted(isMuted => {
-                    console.log(
-                      `🔍 Mute verification: ${
-                        isMuted ? 'SUCCESS ✅' : 'FAILED ❌'
-                      }`,
-                    );
-                    if (!isMuted) {
-                      console.log('🔄 Retrying mute...');
-                      AgoraModule.MuteLocalAudio(true);
-                    }
-                  });
-                }, 500);
               }, 1500);
               setPendingMuteTimeout(muteTimeout);
-
-              console.log(
-                '✅ Successfully joined in ListenOnly mode - mute scheduled',
-              );
             }
           }
           break;
-
         case 'ListenAndTalk':
-          console.log(
-            '🎤 State: ListenAndTalk - Joining channel with microphone enabled',
-          );
           if (activeVoiceChannel === channelId) {
-            // Already in channel, immediately unmute
-            console.log(
-              '🔊 Already in channel - immediately enabling microphone for ListenAndTalk',
-            );
             AgoraModule.MuteLocalAudio(false);
             setIsMicrophoneEnabled(true);
           } else {
-            // Join new channel
-            const joinSuccessTalk = await joinVoiceChannel(
-              channelId,
-              current.name,
-            );
-            if (joinSuccessTalk) {
-              // Schedule unmute with timeout tracking
-              console.log('⏳ Scheduling unmute for ListenAndTalk mode...');
+            const joinSuccess = await joinVoiceChannel(channelId, current.name);
+            if (joinSuccess) {
               const unmuteTimeout = setTimeout(() => {
-                console.log('🔊 ENSURING UNMUTE for ListenAndTalk mode...');
                 AgoraModule.MuteLocalAudio(false);
                 setIsMicrophoneEnabled(true);
                 setPendingUnmuteTimeout(null);
               }, 1000);
               setPendingUnmuteTimeout(unmuteTimeout);
-
-              console.log(
-                '✅ Successfully joined in ListenAndTalk mode - unmute scheduled',
-              );
             }
           }
           break;
-
-        default:
-          console.log('⚠️ Unknown channel state:', nextState);
       }
 
-      // Update backend for all changed channels
+      // Update backend
       const userId = user?.id;
       if (!userId) throw new Error('User ID not found');
 
-      // Update the main channel
-      await radioChannelsApi.updateChannelState(userId, channelId, nextState);
-      console.log(
-        `✅ Channel ${channelId} successfully updated to ${nextState}`,
-      );
+      await radioChannelsApi.updateChannelState(userId, channelId, newState);
 
-      // Update other channels that were set to Idle (if any)
-      if (nextState === 'ListenOnly' || nextState === 'ListenAndTalk') {
+      // Set other channels to Idle if needed
+      if (newState === 'ListenOnly' || newState === 'ListenAndTalk') {
         const channelsToSetIdle = radioChannels.filter(
           c => c.id !== channelId && c.channelState !== 'Idle',
         );
 
-        for (const channel of channelsToSetIdle) {
-          try {
-            await radioChannelsApi.updateChannelState(
-              userId,
-              channel.id,
-              'Idle',
-            );
-            console.log(
-              `✅ Channel ${channel.id} (${channel.name}) set to Idle in backend`,
-            );
-          } catch (error) {
-            console.error(
-              `❌ Failed to set channel ${channel.id} to Idle:`,
-              error,
-            );
-          }
-        }
-
-        if (channelsToSetIdle.length > 0) {
-          console.log(
-            `✅ Successfully set ${channelsToSetIdle.length} other channels to Idle`,
-          );
-        }
+        await Promise.all(
+          channelsToSetIdle.map(channel =>
+            radioChannelsApi.updateChannelState(userId, channel.id, 'Idle'),
+          ),
+        );
       }
     } catch (error) {
-      console.error('❌ Error updating channel state or voice:', error);
-
-      // Revert ALL UI changes if operations failed (not just the main channel)
-      console.log('🔄 Reverting all channel state changes due to error...');
-      setRadioChannels(radioChannels); // Revert to original state before any changes
-
-      // Show user-friendly error
+      console.error('❌ Error updating channel state:', error);
+      setRadioChannels(radioChannels);
       Alert.alert(
         'Connection Error',
         `Failed to ${
-          nextState === 'Idle' ? 'disconnect from' : 'connect to'
-        } voice channel. Please try again.`,
+          newState === 'Idle' ? 'disconnect from' : 'connect to'
+        } voice channel.`,
       );
     }
   };
+
+  // Wrapper functions for backwards compatibility
+  const handleToggleChannelState = channelId =>
+    handleChannelStateChange(channelId, 'forward');
+  const handleReverseChannelState = channelId =>
+    handleChannelStateChange(channelId, 'reverse');
 
   // Helper function to get the next state of a channel
   const getNextState = state => {
@@ -294,10 +206,23 @@ const MainScreen = ({navigation}) => {
     }
   };
 
+  // Helper function to get the previous state of a channel (reverse cycle)
+  const getPreviousState = state => {
+    switch (state) {
+      case 'Idle':
+        return 'ListenAndTalk';
+      case 'ListenOnly':
+        return 'Idle';
+      case 'ListenAndTalk':
+        return 'ListenOnly';
+      default:
+        return 'Idle';
+    }
+  };
+
   // Handle adding a new radio channel
   const handleAddChannel = () => {
-    navigation.navigate('PickRadios'); // Navigate to pick radios screen
-    console.log('Add channel button pressed');
+    navigation.navigate('PickRadios');
   };
 
   // ==================== VOICE INTEGRATION HELPER FUNCTIONS ====================
@@ -305,12 +230,10 @@ const MainScreen = ({navigation}) => {
   // Clear any pending audio state timeouts to prevent race conditions
   const clearPendingAudioTimeouts = () => {
     if (pendingMuteTimeout) {
-      console.log('🚫 Clearing pending mute timeout');
       clearTimeout(pendingMuteTimeout);
       setPendingMuteTimeout(null);
     }
     if (pendingUnmuteTimeout) {
-      console.log('🚫 Clearing pending unmute timeout');
       clearTimeout(pendingUnmuteTimeout);
       setPendingUnmuteTimeout(null);
     }
@@ -319,8 +242,6 @@ const MainScreen = ({navigation}) => {
   // Initialize Agora engine (call once when app starts)
   const initializeAgoraEngine = async () => {
     try {
-      console.log('🚀 Initializing Agora engine...');
-
       if (!AgoraModule) {
         console.error('❌ AgoraModule not available');
         return false;
@@ -328,7 +249,6 @@ const MainScreen = ({navigation}) => {
 
       AgoraModule.InitializeAgoraEngine('e5631d55e8a24b08b067bb73f8797fe3');
       setIsAgoraInitialized(true);
-      console.log('✅ Agora engine initialized successfully');
       return true;
     } catch (error) {
       console.error('❌ Failed to initialize Agora engine:', error);
@@ -337,15 +257,10 @@ const MainScreen = ({navigation}) => {
     }
   };
 
-  // Join a voice channel for a specific radio channel (BACK TO SIMPLE VERSION)
+  // Join a voice channel for a specific radio channel
   const joinVoiceChannel = async (channelId, channelName) => {
     try {
-      console.log(
-        `🎤 Joining voice channel for: ${channelName} (ID: ${channelId})`,
-      );
-
       if (!isAgoraInitialized) {
-        console.log('🔧 Agora not initialized, initializing now...');
         const initialized = await initializeAgoraEngine();
         if (!initialized) {
           throw new Error('Failed to initialize Agora engine');
@@ -356,21 +271,14 @@ const MainScreen = ({navigation}) => {
 
       // Leave current channel if connected to another
       if (activeVoiceChannel && activeVoiceChannel !== channelId) {
-        console.log(`🔄 Leaving current channel: ${activeVoiceChannel}`);
         AgoraModule.LeaveChannel();
       }
 
-      // Create unique channel name for Agora
       const agoraChannelName = `radio_channel_${channelId}`;
-      console.log(`📡 Joining Agora channel: ${agoraChannelName}`);
-
-      // BACK TO SIMPLE: Use regular JoinChannel that works
       AgoraModule.JoinChannel(agoraChannelName);
 
       setActiveVoiceChannel(channelId);
       setVoiceStatus('connected');
-      console.log(`✅ Successfully joined voice channel: ${channelName}`);
-
       return true;
     } catch (error) {
       console.error('❌ Failed to join voice channel:', error);
@@ -383,29 +291,19 @@ const MainScreen = ({navigation}) => {
   // Leave current voice channel
   const leaveVoiceChannel = async () => {
     try {
-      if (!activeVoiceChannel) {
-        console.log('ℹ️ No active voice channel to leave');
-        return true;
-      }
+      if (!activeVoiceChannel) return true;
 
-      console.log(`👋 Leaving voice channel: ${activeVoiceChannel}`);
-
-      // Clear any pending audio timeouts when leaving
       clearPendingAudioTimeouts();
-
-      setVoiceStatus('connecting'); // Show connecting status while leaving
-
+      setVoiceStatus('connecting');
+      
       AgoraModule.LeaveChannel();
 
       setActiveVoiceChannel(null);
       setVoiceStatus('disconnected');
       setIsMicrophoneEnabled(false);
-      console.log('✅ Successfully left voice channel');
-
       return true;
     } catch (error) {
       console.error('❌ Failed to leave voice channel:', error);
-      // Still reset state even if leave failed
       clearPendingAudioTimeouts();
       setActiveVoiceChannel(null);
       setVoiceStatus('disconnected');
@@ -467,22 +365,16 @@ const MainScreen = ({navigation}) => {
   // Cleanup function for component unmount or app backgrounding
   const cleanupVoiceConnection = async () => {
     try {
-      console.log('🧹 Cleaning up voice connections...');
-
-      // Clear any pending timeouts first
       clearPendingAudioTimeouts();
 
       if (activeVoiceChannel) {
         await leaveVoiceChannel();
       }
 
-      // Reset all voice states
       setVoiceStatus('disconnected');
       setActiveVoiceChannel(null);
       setIsMicrophoneEnabled(false);
       setIsAgoraInitialized(false);
-
-      console.log('✅ Voice cleanup completed');
     } catch (error) {
       console.error('❌ Error during voice cleanup:', error);
     }
@@ -491,28 +383,18 @@ const MainScreen = ({navigation}) => {
   // Emergency reset function for when things go wrong
   const emergencyVoiceReset = async () => {
     try {
-      console.log('🚨 Emergency voice reset initiated...');
+      Alert.alert('Voice Reset', 'Resetting voice connection...', [{text: 'OK'}]);
 
-      Alert.alert('Voice Reset', 'Resetting voice connection...', [
-        {text: 'OK'},
-      ]);
-
-      // Force leave channel
       if (AgoraModule) {
         AgoraModule.LeaveChannel();
         AgoraModule.ReleaseEngine();
       }
 
-      // Reset all states
       await cleanupVoiceConnection();
 
-      // Reinitialize if possible
       setTimeout(async () => {
         await initializeAgoraEngine();
-        Alert.alert(
-          'Voice Reset',
-          'Voice system has been reset. You can now try connecting again.',
-        );
+        Alert.alert('Voice Reset', 'Voice system has been reset. You can now try connecting again.');
       }, 1000);
     } catch (error) {
       console.error('❌ Emergency reset failed:', error);
@@ -560,6 +442,11 @@ const MainScreen = ({navigation}) => {
                 onPress={() => {
                   handleChannelSelect(channel.id);
                   handleToggleChannelState(channel.id);
+                }}
+                onLongPress={() => {
+                  // Long press for reverse state cycle
+                  handleChannelSelect(channel.id);
+                  handleReverseChannelState(channel.id);
                 }}>
                 <RadioChannel
                   name={channel.name}
