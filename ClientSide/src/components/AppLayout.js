@@ -103,15 +103,13 @@ const AppLayout = ({
         <View style={styles.headerCenter}>
           {user && (
             <View style={styles.userStatusContainer}>
-              <View
-                style={[styles.statusIndicator, {backgroundColor: '#4CAF50'}]}
-              />
+
               <View style={styles.userInfoContainer}>
                 <Text style={[styles.userName, {color: primaryTextColor}]}>
                   {user.username}
                 </Text>
                 <Text style={[styles.userRole, {color: secondaryTextColor}]}>
-                  {user.role} • Online
+                  Connected • Ready
                 </Text>
               </View>
             </View>
@@ -258,15 +256,22 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     backgroundColor: 'rgba(33, 150, 243, 0.1)',
-    paddingHorizontal: 12,
-    paddingVertical: 6,
+    paddingHorizontal: 14,
+    paddingVertical: 8,
     borderRadius: 20,
   },
   statusIndicator: {
     width: 8,
     height: 8,
     borderRadius: 4,
-    marginRight: 8,
+    marginRight: 10,
+    shadowOffset: {
+      width: 0,
+      height: 1,
+    },
+    shadowOpacity: 0.2,
+    shadowRadius: 2,
+    elevation: 2,
   },
   userInfoContainer: {
     alignItems: 'center',
@@ -282,6 +287,7 @@ const styles = StyleSheet.create({
     lineHeight: 13,
     marginTop: 1,
   },
+
   // Right Section - Actions
   headerRight: {
     flex: 1,
