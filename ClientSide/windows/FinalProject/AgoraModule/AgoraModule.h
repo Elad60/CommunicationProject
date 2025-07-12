@@ -9,6 +9,7 @@
 #include "IAgoraRtcEngine.h"
 #include "AgoraBase.h"
 #include "AgoraMediaBase.h"
+#include "IAgoraRtcEngineEx.h"
 
 namespace winrt::FinalProject::implementation
 {
@@ -37,14 +38,19 @@ namespace winrt::FinalProject::implementation
         static AgoraManager* instance;
         static std::mutex mutex_;
         
-        IRtcEngine* m_rtcEngine = nullptr;
+        IRtcEngineEx* m_rtcEngine = nullptr;
         std::unique_ptr<AgoraEventHandler> m_eventHandler;
         std::string m_appId;
-        std::string m_currentChannel;
         bool m_isInitialized = false;
         bool m_isEchoTestRunning = false;
         
-        // New state tracking variables
+        // Multi-channel connection management
+        std::map<std::string, RtcConnection> m_activeConnections;
+        std::map<std::string, bool> m_connectionStates; // true = connected
+        std::map<std::string, bool> m_channelMuteStates; // true = muted
+        std::string m_talkingChannel; // Which channel is currently talking
+        
+        // Legacy state tracking (for backward compatibility)
         bool m_isLocalAudioMuted = false;
         bool m_isLocalAudioEnabled = true;
         int m_recordingVolume = 100;
@@ -68,7 +74,16 @@ namespace winrt::FinalProject::implementation
         void ReleaseEngine();
         std::string GetStatus();
         
-        // New voice communication methods
+        // Multi-channel methods
+        void JoinChannelEx(const std::string& channelName);
+        void LeaveChannelEx(const std::string& channelName);
+        void MuteChannel(const std::string& channelName, bool mute);
+        void SetTalkingChannel(const std::string& channelName);
+        bool IsChannelConnected(const std::string& channelName);
+        bool IsChannelMuted(const std::string& channelName);
+        std::vector<std::string> GetConnectedChannels();
+        
+        // Legacy voice communication methods (for backward compatibility)
         void MuteLocalAudio(bool mute);
         void EnableLocalAudio(bool enabled);
         void AdjustRecordingVolume(int volume);
@@ -123,6 +138,48 @@ namespace winrt::FinalProject::implementation
         void LeaveChannel() noexcept
         {
             AgoraManager::GetInstance()->LeaveChannel();
+        }
+
+        // Multi-channel React Native methods
+        REACT_METHOD(JoinChannelEx)
+        void JoinChannelEx(std::string channelName) noexcept
+        {
+            AgoraManager::GetInstance()->JoinChannelEx(channelName);
+        }
+
+        REACT_METHOD(LeaveChannelEx)
+        void LeaveChannelEx(std::string channelName) noexcept
+        {
+            AgoraManager::GetInstance()->LeaveChannelEx(channelName);
+        }
+
+        REACT_METHOD(MuteChannel)
+        void MuteChannel(std::string channelName, bool mute) noexcept
+        {
+            AgoraManager::GetInstance()->MuteChannel(channelName, mute);
+        }
+
+        REACT_METHOD(SetTalkingChannel)
+        void SetTalkingChannel(std::string channelName) noexcept
+        {
+            AgoraManager::GetInstance()->SetTalkingChannel(channelName);
+        }
+
+        REACT_METHOD(IsChannelConnected)
+        void IsChannelConnected(std::string channelName, std::function<void(bool)> const& callback) noexcept
+        {
+            callback(AgoraManager::GetInstance()->IsChannelConnected(channelName));
+        }
+
+        REACT_METHOD(GetConnectedChannels)
+        void GetConnectedChannels(std::function<void(std::string)> const& callback) noexcept
+        {
+            auto channels = AgoraManager::GetInstance()->GetConnectedChannels();
+            std::string result;
+            for (const auto& channel : channels) {
+                result += channel + ",";
+            }
+            callback(result);
         }
 
         REACT_METHOD(ReleaseEngine)
