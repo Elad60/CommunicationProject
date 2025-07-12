@@ -257,7 +257,7 @@ namespace winrt::FinalProject::implementation
 
             OutputDebugStringA("🔧 CONFIGURING CHANNEL OPTIONS FOR VOICE COMMUNICATION...\n");
             ChannelMediaOptions options;
-            options.publishMicrophoneTrack = true;          // 🎤 PUBLISH YOUR VOICE
+            options.publishMicrophoneTrack = true;          // 🎤 PUBLISH YOUR VOICE (app can mute later)
             options.autoSubscribeAudio = true;             // 👂 HEAR OTHERS
             options.autoSubscribeVideo = false;            // ❌ NO VIDEO
             options.enableAudioRecordingOrPlayout = true;  // 🔊 ENABLE AUDIO
@@ -289,7 +289,9 @@ namespace winrt::FinalProject::implementation
             
             if (result == 0) {
                 m_currentChannel = channelName;
+                m_isLocalAudioMuted = false;  // Always start unmuted, app will mute if needed
                 OutputDebugStringA(("🎉 SUCCESS! Initiated join to channel: " + channelName + "\n").c_str());
+                OutputDebugStringA("🔓 Microphone starts UNMUTED (app will control mute for ListenOnly)\n");
                 OutputDebugStringA("⏳ Waiting for onJoinChannelSuccess callback...\n");
                 OutputDebugStringA("👀 Watch for onUserJoined when other device connects!\n");
             } else {
@@ -325,7 +327,9 @@ namespace winrt::FinalProject::implementation
             
             m_rtcEngine->leaveChannel();
             m_currentChannel.clear();
+            m_isLocalAudioMuted = false;  // Reset mute state when leaving channel
             OutputDebugStringA("✅ Left channel\n");
+            OutputDebugStringA("🔄 Mute state reset to UNMUTED\n");
         } catch (...) {
             OutputDebugStringA("❌ Exception in LeaveChannel\n");
         }
@@ -343,8 +347,9 @@ namespace winrt::FinalProject::implementation
 
             int result = m_rtcEngine->muteLocalAudioStream(mute);
             if (result == 0) {
-                m_isLocalAudioMuted = mute;
+                m_isLocalAudioMuted = mute;  // Track the mute state internally
                 OutputDebugStringA(("✅ Microphone " + std::string(mute ? "MUTED" : "UNMUTED") + " successfully\n").c_str());
+                OutputDebugStringA(("📊 Internal mute state updated to: " + std::string(mute ? "MUTED" : "UNMUTED") + "\n").c_str());
             } else {
                 OutputDebugStringA(("❌ Failed to mute/unmute, error: " + std::to_string(result) + "\n").c_str());
             }
@@ -479,6 +484,17 @@ namespace winrt::FinalProject::implementation
         }
     }
 
+    bool AgoraManager::IsLocalAudioMuted()
+    {
+        try {
+            OutputDebugStringA(("🔍 IsLocalAudioMuted - Checking mute status: " + std::string(m_isLocalAudioMuted ? "MUTED" : "UNMUTED") + "\n").c_str());
+            return m_isLocalAudioMuted;
+        } catch (...) {
+            OutputDebugStringA("❌ Exception in IsLocalAudioMuted\n");
+            return false;
+        }
+    }
+
     void AgoraManager::ReleaseEngine()
     {
         try {
@@ -535,57 +551,5 @@ namespace winrt::FinalProject::implementation
         }
 
         return status;
-    }
-
-    // New functions for private calls
-
-    void AgoraManager::SetSpeakerphoneOn(bool enable)
-    {
-        try {
-            if (!m_rtcEngine) {
-                OutputDebugStringA("❌ Engine not initialized - cannot set speakerphone\n");
-                return;
-            }
-
-            // Note: setEnableSpeakerphone is not available on Windows desktop
-            // This is a mobile-only feature. On Windows, audio routing is handled by OS.
-            m_isSpeakerphoneOn = enable;
-            std::string msg = enable ? "✅ Speakerphone enabled (Windows: OS managed)\n" : "✅ Speakerphone disabled (Windows: OS managed)\n";
-            OutputDebugStringA(msg.c_str());
-            
-        } catch (...) {
-            OutputDebugStringA("❌ Exception in SetSpeakerphoneOn\n");
-        }
-    }
-
-    bool AgoraManager::IsLocalAudioMuted()
-    {
-        return m_isLocalAudioMuted;
-    }
-
-    bool AgoraManager::IsSpeakerphoneOn()
-    {
-        return m_isSpeakerphoneOn;
-    }
-
-    std::string AgoraManager::GetCurrentChannel()
-    {
-        return m_currentChannel;
-    }
-
-    int AgoraManager::GetConnectionState()
-    {
-        try {
-            if (!m_rtcEngine) {
-                return -1; // Not initialized
-            }
-
-            CONNECTION_STATE_TYPE state = m_rtcEngine->getConnectionState();
-            OutputDebugStringA(("🔍 Connection state: " + std::to_string(state) + "\n").c_str());
-            return static_cast<int>(state);
-        } catch (...) {
-            OutputDebugStringA("❌ Exception in GetConnectionState\n");
-            return -1;
-        }
     }
 }
