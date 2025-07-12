@@ -27,8 +27,6 @@ const SettingsScreen = ({ navigation }) => {
     setBrightness,
     darkMode,
     setDarkMode,
-    maxSimultaneousChannels,
-    setMaxSimultaneousChannels,
   } = useSettings();
 
   // Toggle setting value for switches
@@ -82,25 +80,6 @@ const SettingsScreen = ({ navigation }) => {
               label="Brightness ☀️"
               darkMode={darkMode}
             />
-          </View>
-
-          {/* Voice Settings Section */}
-          <View style={styles.section}>
-            <Text style={[styles.sectionTitle, { color: textColor }]}>Voice Settings</Text>
-            <CustomSlider
-              value={maxSimultaneousChannels}
-              onValueChange={setMaxSimultaneousChannels}
-              label="Max Simultaneous Channels 🎧"
-              darkMode={darkMode}
-              minimumValue={1}
-              maximumValue={10}
-              step={1}
-            />
-            <View style={styles.settingItem}>
-              <Text style={[styles.settingLabel, { color: textColor }]}>
-                Current Limit: {maxSimultaneousChannels}/10 channels
-              </Text>
-            </View>
           </View>
 
           {/* System Section */}

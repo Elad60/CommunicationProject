@@ -15,11 +15,6 @@ const RadioChannel = ({
   isVoiceConnected = false,
   voiceStatus = 'disconnected', // 'disconnected', 'connecting', 'connected'
   isMicrophoneEnabled = false,
-  // Multi-channel props
-  isListening = false,
-  isTalking = false,
-  listeningCount = 0,
-  maxListeningChannels = 5,
 }) => {
   // Access settings context values
   const {darkMode, showFrequency, showStatus} = useSettings();
@@ -29,10 +24,6 @@ const RadioChannel = ({
 
   // Return background color based on the channel's state
   const getBackgroundColor = () => {
-    if (isTalking) {
-      return darkMode ? '#2d4a2d' : '#4CAF50'; // Bright green for talking
-    }
-
     switch (channelState) {
       case 'ListenOnly':
         return darkMode ? '#1f3d1f' : '#99cc99'; // green shades
@@ -46,13 +37,6 @@ const RadioChannel = ({
 
   // Return icon paths based on channel state
   const getIconPaths = () => {
-    if (isTalking) {
-      return {
-        headphones: require('../../assets/logos/headphones.png'),
-        mic: require('../../assets/logos/microphone.png'),
-      };
-    }
-
     switch (channelState) {
       case 'Idle':
         return {
@@ -82,24 +66,10 @@ const RadioChannel = ({
 
   // Get voice connection indicator color and style
   const getVoiceIndicatorStyle = () => {
-    if (isTalking) {
-      return {
-        backgroundColor: '#ff6b35', // Orange for talking
-        opacity: 1,
-      };
-    }
-
-    if (isListening) {
-      return {
-        backgroundColor: '#4CAF50', // Green for listening
-        opacity: 1,
-      };
-    }
-
     switch (voiceStatus) {
       case 'connected':
         return {
-          backgroundColor: '#4CAF50', // Green for connected
+          backgroundColor: isMicrophoneEnabled ? '#ff6b35' : '#4CAF50', // Orange for talking, Green for listening
           opacity: 1,
         };
       case 'connecting':
@@ -118,14 +88,11 @@ const RadioChannel = ({
 
   // Get voice status text for display
   const getVoiceStatusText = () => {
-    if (isTalking) return '🎤 TALKING';
-    if (isListening) return '👂 LISTENING';
-
     if (!isVoiceConnected) return '';
 
     switch (voiceStatus) {
       case 'connected':
-        return '👂 Listening';
+        return isMicrophoneEnabled ? '🎤 Talking' : '👂 Listening';
       case 'connecting':
         return '🔄 Connecting...';
       case 'disconnected':
@@ -142,7 +109,7 @@ const RadioChannel = ({
       </Text>
 
       {/* Voice status indicator (shows instead of frequency when voice connected) */}
-      {isVoiceConnected || isListening || isTalking ? (
+      {isVoiceConnected ? (
         <Text style={[styles.voiceStatus, {color: darkMode ? '#fff' : '#000'}]}>
           {getVoiceStatusText()}
         </Text>
@@ -154,30 +121,8 @@ const RadioChannel = ({
         )
       )}
 
-      {/* Multi-channel listening indicator */}
-      {(isListening || isTalking) && (
-        <View style={styles.listeningIndicator}>
-          <Text
-            style={[
-              styles.listeningCount,
-              {color: darkMode ? '#fff' : '#000'},
-            ]}>
-            {listeningCount}/{maxListeningChannels}
-          </Text>
-          {isTalking && (
-            <Text
-              style={[
-                styles.talkingIndicator,
-                {color: darkMode ? '#fff' : '#000'},
-              ]}>
-              🎤 TALKING
-            </Text>
-          )}
-        </View>
-      )}
-
       {/* Conditionally show status */}
-      {showStatus && !isVoiceConnected && !isListening && !isTalking && (
+      {showStatus && !isVoiceConnected && (
         <Text style={[styles.status, {color: darkMode ? '#fff' : '#000'}]}>
           {isActive ? 'Active' : 'Not used'}
         </Text>
@@ -198,13 +143,13 @@ const RadioChannel = ({
       </View>
 
       {/* Voice connection border indicator */}
-      {(isVoiceConnected || isListening || isTalking) && (
+      {isVoiceConnected && (
         <View
           style={[
             styles.voiceConnectionBorder,
             {
-              borderColor: isTalking ? '#ff6b35' : '#4CAF50',
-              borderWidth: isListening || isTalking ? 2 : 1,
+              borderColor: isMicrophoneEnabled ? '#ff6b35' : '#4CAF50',
+              borderWidth: voiceStatus === 'connected' ? 2 : 1,
             },
           ]}
         />
@@ -245,21 +190,6 @@ const styles = StyleSheet.create({
     fontWeight: 'bold',
     marginVertical: 2,
   },
-  listeningIndicator: {
-    alignItems: 'center',
-    marginVertical: 2,
-  },
-  listeningCount: {
-    fontSize: 10,
-    fontWeight: 'bold',
-    textAlign: 'center',
-  },
-  talkingIndicator: {
-    fontSize: 8,
-    fontWeight: 'bold',
-    textAlign: 'center',
-    marginTop: 1,
-  },
   iconContainer: {
     flexDirection: 'row',
     justifyContent: 'space-between',
@@ -290,7 +220,7 @@ const styles = StyleSheet.create({
     right: 0,
     bottom: 0,
     borderRadius: 5,
-    borderWidth: 2,
+    pointerEvents: 'none', // Allow touches to pass through
   },
 });
 
