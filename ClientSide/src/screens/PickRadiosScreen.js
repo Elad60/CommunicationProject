@@ -20,6 +20,7 @@ const PickRadiosScreen = ({navigation}) => {
   const [selected, setSelected] = useState([]); // State for selected radio channels
   const [originalSelection, setOriginalSelection] = useState([]); // State for original selected channels to compare changes
   const [search, setSearch] = useState(''); // State for search input
+  const [hasChanges, setHasChanges] = useState(false); // State to track if user made changes
   const {darkMode, showFrequency, showStatus} = useSettings(); // Fetch dark mode and settings for frequency/status display
 
   useEffect(() => {
@@ -56,12 +57,23 @@ const PickRadiosScreen = ({navigation}) => {
     setFilteredChannels(filtered); // Set the filtered channels to state
   }, [search, allChannels]); // Re-filter channels when search term or allChannels changes
 
+  // Track changes in selection
+  useEffect(() => {
+    const hasSelectionChanges =
+      selected.length !== originalSelection.length ||
+      selected.some(id => !originalSelection.includes(id)) ||
+      originalSelection.some(id => !selected.includes(id));
+
+    setHasChanges(hasSelectionChanges);
+  }, [selected, originalSelection]);
+
   const toggleSelect = channelId => {
     // Toggle channel selection
-    setSelected(prev =>
-      prev.includes(channelId)
-        ? prev.filter(id => id !== channelId) // Remove from selection if already selected
-        : [...prev, channelId], // Add to selection if not selected
+    setSelected(
+      prev =>
+        prev.includes(channelId)
+          ? prev.filter(id => id !== channelId) // Remove from selection if already selected
+          : [...prev, channelId], // Add to selection if not selected
     );
   };
 
@@ -79,11 +91,19 @@ const PickRadiosScreen = ({navigation}) => {
         await radioChannelsApi.removeUserChannel(user.id, id); // Remove each unselected channel
       }
 
+      setOriginalSelection(selected); // Update original selection
+      setHasChanges(false); // Reset changes flag
       Alert.alert('Success', 'Channels saved to your list'); // Success alert
       navigation.goBack(); // Go back to the previous screen
     } catch (err) {
       Alert.alert('Error', 'Failed to save channels'); // Error handling
     }
+  };
+
+  const handleDiscard = () => {
+    // Discard changes and revert to original selection
+    setSelected(originalSelection);
+    setHasChanges(false);
   };
 
   const dynamicStyles = StyleSheet.create({
@@ -132,10 +152,83 @@ const PickRadiosScreen = ({navigation}) => {
     saveButtonText: {
       color: darkMode ? '#fff' : '#000',
     },
+    headerContainer: {
+      backgroundColor: darkMode ? '#1c1c1e' : '#fff',
+      borderBottomColor: darkMode ? '#444' : '#e0e0e0',
+    },
+    headerContent: {
+      backgroundColor: darkMode ? '#1c1c1e' : '#fff',
+    },
+    headerTitle: {
+      color: darkMode ? '#fff' : '#000',
+    },
+    actionButton: {
+      backgroundColor: darkMode ? '#2a2a2a' : '#f0f0f0',
+      borderColor: darkMode ? '#444' : '#ddd',
+    },
+    actionButtonText: {
+      color: darkMode ? '#fff' : '#000',
+    },
+    saveActionButton: {
+      backgroundColor: '#1DB954',
+    },
+    saveActionButtonText: {
+      color: '#fff',
+    },
+    discardActionButton: {
+      backgroundColor: darkMode ? '#444' : '#f0f0f0',
+    },
+    discardActionButtonText: {
+      color: darkMode ? '#ff6b6b' : '#ff4757',
+    },
   });
 
   return (
     <AppLayout navigation={navigation} title="Pick Radios">
+      {/* Action Header - Only show when there are changes */}
+      {hasChanges && (
+        <View style={[styles.actionHeader, dynamicStyles.headerContainer]}>
+          <View
+            style={[styles.actionHeaderContent, dynamicStyles.headerContent]}>
+            <Text style={[styles.actionHeaderTitle, dynamicStyles.headerTitle]}>
+              🎯 Channel Selection
+            </Text>
+            <View style={styles.actionButtons}>
+              <TouchableOpacity
+                style={[
+                  styles.actionButton,
+                  dynamicStyles.actionButton,
+                  dynamicStyles.discardActionButton,
+                ]}
+                onPress={handleDiscard}>
+                <Text
+                  style={[
+                    styles.actionButtonText,
+                    dynamicStyles.discardActionButtonText,
+                  ]}>
+                  ❌ Discard
+                </Text>
+              </TouchableOpacity>
+              <TouchableOpacity
+                style={[
+                  styles.actionButton,
+                  dynamicStyles.actionButton,
+                  dynamicStyles.saveActionButton,
+                ]}
+                onPress={handleSave}>
+                <Text
+                  style={[
+                    styles.actionButtonText,
+                    dynamicStyles.saveActionButtonText,
+                  ]}>
+                  ✅ Save Changes
+                </Text>
+              </TouchableOpacity>
+            </View>
+          </View>
+        </View>
+      )}
+
       <ScrollView
         contentContainerStyle={[styles.container, dynamicStyles.container]}>
         <View style={[styles.sectionCard, dynamicStyles.sectionCard]}>
@@ -200,16 +293,8 @@ const PickRadiosScreen = ({navigation}) => {
                   </Text>
                 </View>
               </TouchableOpacity>
-            );on
+            );
           })}
-
-          <TouchableOpacity
-            style={[styles.saveButton, dynamicStyles.saveButton]}
-            onPress={handleSave}>
-            <Text style={[styles.saveButtonText, dynamicStyles.saveButtonText]}>
-              💾 Save Selection
-            </Text>
-          </TouchableOpacity>
         </View>
       </ScrollView>
     </AppLayout>
@@ -287,6 +372,43 @@ const styles = StyleSheet.create({
   saveButtonText: {
     fontWeight: 'bold',
     fontSize: 16,
+  },
+  actionHeader: {
+    borderBottomWidth: 1,
+    paddingHorizontal: 20,
+    paddingVertical: 12,
+    shadowOffset: {
+      width: 0,
+      height: 2,
+    },
+    shadowOpacity: 0.1,
+    shadowRadius: 4,
+    elevation: 3,
+  },
+  actionHeaderContent: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+  },
+  actionHeaderTitle: {
+    fontSize: 16,
+    fontWeight: '600',
+  },
+  actionButtons: {
+    flexDirection: 'row',
+    gap: 10,
+  },
+  actionButton: {
+    paddingHorizontal: 16,
+    paddingVertical: 8,
+    borderRadius: 6,
+    borderWidth: 1,
+    minWidth: 100,
+    alignItems: 'center',
+  },
+  actionButtonText: {
+    fontSize: 14,
+    fontWeight: '600',
   },
 });
 
