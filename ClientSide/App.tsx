@@ -27,12 +27,15 @@ if (__DEV__) {
   });
 }
 
-// Component that handles auth flow
+// Component that handles auth flow - THIS MUST BE INSIDE AuthProvider
 const AppContent = () => {
   const {user, loading, login, register} = useAuth();
   const [isRegistering, setIsRegistering] = React.useState(false);
 
+  console.log('📱 AppContent: Rendering with user:', user, 'loading:', loading);
+
   if (loading) {
+    console.log('📱 AppContent: Showing loading screen');
     return (
       <View style={styles.loadingContainer}>
         <ActivityIndicator size="large" color="#0066cc" />
@@ -41,6 +44,7 @@ const AppContent = () => {
   }
 
   if (!user) {
+    console.log('📱 AppContent: No user, showing auth screens');
     return isRegistering ? (
       <RegisterScreen
         onRegister={async (
@@ -69,6 +73,7 @@ const AppContent = () => {
     );
   }
 
+  console.log('📱 AppContent: User logged in, showing AppNavigator');
   return (
     <View style={styles.container}>
       <AppNavigator />
@@ -78,8 +83,10 @@ const AppContent = () => {
 
 // Root app with all providers
 const App = () => {
-  console.log('Testing debug connection');
-  console.log('App is rendering!');
+  console.log('📱 App: Starting app render');
+  console.log('📱 App: Testing debug connection');
+  console.log('📱 App: App is rendering!');
+  
   return (
     <SafeAreaView style={styles.container}>
       <StatusBar barStyle="light-content" backgroundColor="#000" />

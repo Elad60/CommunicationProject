@@ -242,17 +242,38 @@ const privateCallApi = {
   // Get incoming call invitations for a user
   getIncomingCalls: async (userId) => {
     try {
+      console.log('🔍 API: Getting incoming calls for user:', userId);
       const response = await api.get(`/PrivateCalls/incoming/${userId}`);
+      
+      console.log('📋 API: Full response:', response);
+      console.log('📋 API: Response data:', response.data);
+      console.log('📋 API: Response status:', response.status);
+      
+      if (response.data && response.data.success) {
+        console.log('✅ API: Successfully retrieved incoming calls');
+        console.log('📞 API: Number of incoming calls:', response.data.count || 0);
+        if (response.data.IncomingCalls && response.data.IncomingCalls.length > 0) {
+          console.log('📞 API: First call details:', response.data.IncomingCalls[0]);
+        }
+      } else {
+        console.log('⚠️ API: No success in response data');
+      }
+      
       return response.data;
     } catch (error) {
-      console.error('Error fetching incoming calls:', error);
+      console.error('❌ API: Error fetching incoming calls:', error);
+      console.error('❌ API: Error details:', error.response?.data);
+      console.error('❌ API: Error status:', error.response?.status);
+      console.error('❌ API: Error message:', error.message);
+      
       if (error.response && error.response.data) {
         throw error.response.data;
       }
       throw {
         success: false,
-        incomingCalls: [],
+        IncomingCalls: [],
         count: 0,
+        error: error.message || 'Unknown error',
       };
     }
   },

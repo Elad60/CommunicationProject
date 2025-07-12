@@ -20,7 +20,19 @@ import GlobalCallListener from '../components/GlobalCallListener';
 const Stack = createStackNavigator();
 
 const AppNavigator = () => {
-  const {user, login, register} = useAuth();
+  console.log('🧭 AppNavigator: Starting render');
+  
+  // Add safety check for useAuth context
+  let authContext;
+  try {
+    authContext = useAuth();
+  } catch (error) {
+    console.error('❌ AppNavigator: useAuth error:', error);
+    return null; // Return null if context is not available
+  }
+  
+  const {user, login, register} = authContext;
+  console.log('🧭 AppNavigator: Got user from context:', user);
 
   return (
     <NavigationContainer>
@@ -55,7 +67,7 @@ const AppNavigator = () => {
         // App navigator when user is logged in
         <>
           <Stack.Navigator
-            initialRouteName="Main"
+            initialRouteName="Groups"
             screenOptions={{
               headerShown: false, // Hide the default header since we have our own in AppLayout
             }}>

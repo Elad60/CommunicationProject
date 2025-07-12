@@ -12,11 +12,16 @@ const useIncomingCallListener = (navigation) => {
 
   // Check for incoming calls - STABLE function
   const checkForIncomingCalls = useCallback(async () => {
-    if (!user?.id) return;
+    if (!user?.id) {
+      console.log('⚠️ No user ID - skipping incoming call check');
+      return;
+    }
     
     try {
-      console.log('🔍 Checking for incoming calls...');
+      console.log('🔍 Checking for incoming calls for user:', user.id);
       const response = await privateCallApi.getIncomingCalls(user.id);
+      
+      console.log('📋 API Response:', response);
       
       if (response.success && response.IncomingCalls && response.IncomingCalls.length > 0) {
         const latestCall = response.IncomingCalls[0];
@@ -39,17 +44,20 @@ const useIncomingCallListener = (navigation) => {
             clearInterval(intervalRef.current);
             intervalRef.current = null;
           }
+        } else {
+          console.log('📞 Same call as before, not navigating');
         }
       } else {
         console.log('📭 No incoming calls found');
         if (incomingCall) {
+          console.log('🔄 Clearing previous incoming call state');
           setIncomingCall(null);
         }
       }
     } catch (error) {
       console.error('❌ Error checking for incoming calls:', error);
     }
-  }, [user?.id, navigation]); // REMOVED incomingCall, isListening dependencies
+  }, [user?.id, navigation, incomingCall]); // ✅ FIXED: Added incomingCall back to dependencies
 
   // Start listening - STABLE function
   const startListening = useCallback(() => {
@@ -64,7 +72,7 @@ const useIncomingCallListener = (navigation) => {
       intervalRef.current = null;
     }
     
-    console.log('🔔 Starting to listen for incoming calls...');
+    console.log('🔔 Starting to listen for incoming calls for user:', user.id);
     setIsListening(true);
     
     // Check immediately
@@ -87,8 +95,6 @@ const useIncomingCallListener = (navigation) => {
     }
   }, []);
 
-  // REMOVED AppState useEffect - was creating duplicate polling
-
   // Clean up on unmount
   useEffect(() => {
     return () => {
@@ -106,6 +112,8 @@ const useIncomingCallListener = (navigation) => {
     try {
       if (user?.id) {
         startListening();
+      } else {
+        console.log('⚠️ Cannot resume listening - no user logged in');
       }
     } catch (error) {
       console.error('❌ Error in resumeListening:', error);
