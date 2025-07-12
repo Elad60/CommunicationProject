@@ -22,8 +22,11 @@ const GlobalCallListener = () => {
   const userIdRef = useRef(user?.id);
   
   console.log('🌐 GlobalCallListener: User from context:', user);
+  console.log('🌐 GlobalCallListener: User ID:', user?.id);
   
   const {isListening, pauseListening, resumeListening} = useIncomingCallListener(navigation);
+  
+  console.log('🌐 GlobalCallListener: isListening:', isListening);
 
   // Update user ref when user changes
   useEffect(() => {
@@ -85,19 +88,25 @@ const GlobalCallListener = () => {
 
   // Separate useEffect for initial startup to avoid timing issues
   useEffect(() => {
-    console.log('🌐 GlobalCallListener: User effect triggered, user:', user);
+    console.log('🌐 GlobalCallListener: User effect triggered');
+    console.log('🌐 GlobalCallListener: User object:', JSON.stringify(user, null, 2));
+    console.log('🌐 GlobalCallListener: User ID:', user?.id);
     
     if (user?.id) {
       console.log('🌐 GlobalCallListener: User logged in, starting polling for user:', user.id);
+      console.log('🌐 GlobalCallListener: About to call resumeListening...');
       try {
         resumeListening();
+        console.log('🌐 GlobalCallListener: resumeListening called successfully');
       } catch (error) {
         console.error('❌ GlobalCallListener initial setup error:', error);
       }
     } else {
       console.log('🌐 GlobalCallListener: No user logged in, stopping polling');
+      console.log('🌐 GlobalCallListener: About to call pauseListening...');
       try {
         pauseListening();
+        console.log('🌐 GlobalCallListener: pauseListening called successfully');
       } catch (error) {
         console.error('❌ GlobalCallListener pause error:', error);
       }

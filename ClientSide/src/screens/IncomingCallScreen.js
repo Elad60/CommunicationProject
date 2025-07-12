@@ -18,6 +18,16 @@ const IncomingCallScreen = ({route, navigation}) => {
   const {user} = useAuth();
   const {darkMode} = useSettings();
   
+  // ✅ FIX: Handle case sensitivity for server response
+  const callId = callInvitation.Id || callInvitation.id;
+  const callerName = callInvitation.CallerName || callInvitation.callerName;
+  const callerEmail = callInvitation.CallerEmail || callInvitation.callerEmail;
+  const callerRole = callInvitation.CallerRole || callInvitation.callerRole;
+  const callerId = callInvitation.CallerId || callInvitation.callerId;
+  
+  console.log('📞 IncomingCallScreen: Call invitation details:', JSON.stringify(callInvitation, null, 2));
+  console.log('📞 IncomingCallScreen: Extracted values:', {callId, callerName, callerEmail, callerRole, callerId});
+  
   // State management
   const [isResponding, setIsResponding] = useState(false);
   const [timeLeft, setTimeLeft] = useState(60); // 60 seconds to respond
@@ -65,7 +75,7 @@ const IncomingCallScreen = ({route, navigation}) => {
     console.log('⏰ Call invitation timed out');
     
     try {
-      await privateCallApi.rejectInvitation(callInvitation.Id, user.id);
+      await privateCallApi.rejectInvitation(callId, user.id);
       console.log('✅ Call automatically rejected due to timeout');
     } catch (error) {
       console.error('❌ Error auto-rejecting call:', error);
@@ -91,11 +101,11 @@ const IncomingCallScreen = ({route, navigation}) => {
   const acceptCall = async () => {
     if (isResponding) return;
     
-    console.log(`✅ Accepting call from ${callInvitation.CallerName}`);
+    console.log(`✅ Accepting call from ${callerName}`);
     setIsResponding(true);
     
     try {
-      const response = await privateCallApi.acceptInvitation(callInvitation.Id, user.id);
+      const response = await privateCallApi.acceptInvitation(callId, user.id);
       
       if (response.success) {
         console.log('✅ Call accepted successfully:', response);
@@ -109,12 +119,12 @@ const IncomingCallScreen = ({route, navigation}) => {
               name: 'PrivateCall',
               params: {
                 otherUser: {
-                  id: callInvitation.CallerId,
-                  username: callInvitation.CallerName,
-                  email: callInvitation.CallerEmail,
-                  role: callInvitation.CallerRole,
+                  id: callerId,
+                  username: callerName,
+                  email: callerEmail,
+                  role: callerRole,
                 },
-                invitationId: callInvitation.Id,
+                invitationId: callId,
                 channelName: response.channelName || 'default-channel',
                 isCallAccepted: true,
                 isCaller: false, // This user is the receiver
@@ -154,11 +164,11 @@ const IncomingCallScreen = ({route, navigation}) => {
   const rejectCall = async () => {
     if (isResponding) return;
     
-    console.log(`❌ Rejecting call from ${callInvitation.CallerName}`);
+    console.log(`❌ Rejecting call from ${callerName}`);
     setIsResponding(true);
     
     try {
-      const response = await privateCallApi.rejectInvitation(callInvitation.Id, user.id);
+      const response = await privateCallApi.rejectInvitation(callId, user.id);
       
       if (response.success) {
         console.log('✅ Call rejected successfully');
@@ -214,20 +224,20 @@ const IncomingCallScreen = ({route, navigation}) => {
           ]}
         >
           <Text style={styles.avatarText}>
-            {callInvitation.CallerName.charAt(0).toUpperCase()}
+            {callerName.charAt(0).toUpperCase()}
           </Text>
         </Animated.View>
         
         <Text style={[styles.callerName, {color: textColor}]}>
-          {callInvitation.CallerName}
+          {callerName}
         </Text>
         
         <Text style={[styles.callerDetails, {color: darkMode ? '#ccc' : '#666'}]}>
-          {callInvitation.CallerEmail}
+          {callerEmail}
         </Text>
         
         <Text style={[styles.callerRole, {color: darkMode ? '#91aad4' : '#004080'}]}>
-          {callInvitation.CallerRole}
+          {callerRole}
         </Text>
       </View>
 
@@ -240,22 +250,44 @@ const IncomingCallScreen = ({route, navigation}) => {
 
       {/* Action Buttons */}
       <View style={styles.actionsContainer}>
+        {/* Decline Button */}
         <TouchableOpacity
-          style={[styles.actionButton, styles.rejectButton]}
+          style={[
+            styles.actionButton, 
+            styles.rejectButton,
+            {
+              opacity: isResponding ? 0.6 : 1,
+              transform: isResponding ? [{scale: 0.95}, {rotate: '135deg'}] : [{rotate: '135deg'}]
+            }
+          ]}
           onPress={rejectCall}
           disabled={isResponding}
+          activeOpacity={0.8}
         >
-          <Text style={styles.rejectButtonText}>📞</Text>
-          <Text style={styles.buttonLabel}>Decline</Text>
+          <View style={styles.buttonContent}>
+            <Text style={[styles.rejectButtonIcon, {transform: [{rotate: '-135deg'}]}]}>📞</Text>
+            <Text style={[styles.rejectButtonLabel, {transform: [{rotate: '-135deg'}]}]}>Decline</Text>
+          </View>
         </TouchableOpacity>
 
+        {/* Accept Button */}
         <TouchableOpacity
-          style={[styles.actionButton, styles.acceptButton]}
+          style={[
+            styles.actionButton, 
+            styles.acceptButton,
+            {
+              opacity: isResponding ? 0.6 : 1,
+              transform: isResponding ? [{scale: 0.95}] : [{scale: 1}]
+            }
+          ]}
           onPress={acceptCall}
           disabled={isResponding}
+          activeOpacity={0.8}
         >
-          <Text style={styles.acceptButtonText}>📞</Text>
-          <Text style={styles.buttonLabel}>Accept</Text>
+          <View style={styles.buttonContent}>
+            <Text style={styles.acceptButtonIcon}>📞</Text>
+            <Text style={styles.acceptButtonLabel}>Accept</Text>
+          </View>
         </TouchableOpacity>
       </View>
 
@@ -341,40 +373,68 @@ const styles = StyleSheet.create({
     justifyContent: 'space-around',
     alignItems: 'center',
     marginBottom: 40,
+    paddingHorizontal: 40,
+    width: '100%',
+    marginTop: 20,
   },
   actionButton: {
-    width: 80,
-    height: 80,
-    borderRadius: 40,
+    width: 100,
+    height: 100,
+    borderRadius: 50,
     justifyContent: 'center',
     alignItems: 'center',
-    elevation: 5,
+    elevation: 8,
     shadowColor: '#000',
-    shadowOffset: {width: 0, height: 3},
-    shadowOpacity: 0.3,
-    shadowRadius: 5,
+    shadowOffset: {width: 0, height: 4},
+    shadowOpacity: 0.4,
+    shadowRadius: 8,
+    marginHorizontal: 20,
   },
   rejectButton: {
-    backgroundColor: '#ff4444',
-    transform: [{rotate: '135deg'}],
+    backgroundColor: '#ff3333',
+    borderWidth: 3,
+    borderColor: '#ff6666',
+    shadowColor: '#ff0000',
+    shadowOffset: {width: 0, height: 6},
+    shadowOpacity: 0.6,
+    shadowRadius: 12,
+    elevation: 12,
   },
   acceptButton: {
-    backgroundColor: '#4CAF50',
+    backgroundColor: '#00cc00',
+    borderWidth: 3,
+    borderColor: '#33ff33',
+    shadowColor: '#00aa00',
+    shadowOffset: {width: 0, height: 6},
+    shadowOpacity: 0.6,
+    shadowRadius: 12,
+    elevation: 12,
   },
-  rejectButtonText: {
-    fontSize: 24,
+  rejectButtonIcon: {
+    fontSize: 32,
     color: '#fff',
-    transform: [{rotate: '-135deg'}],
-  },
-  acceptButtonText: {
-    fontSize: 24,
-    color: '#fff',
-  },
-  buttonLabel: {
-    color: '#fff',
-    fontSize: 12,
     fontWeight: 'bold',
-    marginTop: 4,
+  },
+  acceptButtonIcon: {
+    fontSize: 32,
+    color: '#fff',
+    fontWeight: 'bold',
+  },
+  rejectButtonLabel: {
+    color: '#fff',
+    fontSize: 13,
+    fontWeight: 'bold',
+    marginTop: 6,
+  },
+  acceptButtonLabel: {
+    color: '#fff',
+    fontSize: 13,
+    fontWeight: 'bold',
+    marginTop: 6,
+  },
+  buttonContent: {
+    alignItems: 'center',
+    justifyContent: 'center',
   },
   loadingContainer: {
     alignItems: 'center',

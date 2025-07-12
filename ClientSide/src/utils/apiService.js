@@ -243,27 +243,29 @@ const privateCallApi = {
   getIncomingCalls: async (userId) => {
     try {
       console.log('🔍 API: Getting incoming calls for user:', userId);
+      console.log('🔍 API: Making request to:', `http://localhost:7220/api/PrivateCalls/incoming/${userId}`);
+      
       const response = await api.get(`/PrivateCalls/incoming/${userId}`);
       
-      console.log('📋 API: Full response:', response);
-      console.log('📋 API: Response data:', response.data);
       console.log('📋 API: Response status:', response.status);
+      console.log('📋 API: Response headers:', response.headers);
+      console.log('📋 API: Response data:', JSON.stringify(response.data, null, 2));
       
-      if (response.data && response.data.success) {
-        console.log('✅ API: Successfully retrieved incoming calls');
-        console.log('📞 API: Number of incoming calls:', response.data.count || 0);
-        if (response.data.IncomingCalls && response.data.IncomingCalls.length > 0) {
-          console.log('📞 API: First call details:', response.data.IncomingCalls[0]);
-        }
+      // Only log if there are actual calls or errors
+      const incomingCalls = response.data.IncomingCalls || response.data.incomingCalls; // ✅ FIX: Handle both cases
+      
+      if (response.data && incomingCalls && incomingCalls.length > 0) {
+        console.log('📞 API: Found incoming calls:', incomingCalls.length);
+        console.log('📞 API: First call details:', JSON.stringify(incomingCalls[0], null, 2));
       } else {
-        console.log('⚠️ API: No success in response data');
+        console.log('📭 API: No incoming calls in response');
       }
       
       return response.data;
     } catch (error) {
       console.error('❌ API: Error fetching incoming calls:', error);
-      console.error('❌ API: Error details:', error.response?.data);
       console.error('❌ API: Error status:', error.response?.status);
+      console.error('❌ API: Error response data:', error.response?.data);
       console.error('❌ API: Error message:', error.message);
       
       if (error.response && error.response.data) {
