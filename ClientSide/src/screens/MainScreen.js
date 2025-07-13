@@ -238,25 +238,8 @@ const MainScreen = ({navigation}) => {
           const agoraChannelName = `radio_channel_${channelId}`;
           const uid = channelUids[agoraChannelName];
           if (uid) {
-            const setTalkingResult = AgoraModule.SetTalkingChannel(
-              agoraChannelName,
-              uid,
-            );
-            if (setTalkingResult !== 0) {
-              console.error(
-                `❌ Failed to set talking channel: ${agoraChannelName}, error: ${setTalkingResult}`,
-              );
-            }
-            const unmuteResult = AgoraModule.MuteChannel(
-              agoraChannelName,
-              uid,
-              false,
-            );
-            if (unmuteResult !== 0) {
-              console.error(
-                `❌ Failed to unmute channel: ${agoraChannelName}, error: ${unmuteResult}`,
-              );
-            }
+            AgoraModule.SetTalkingChannel(agoraChannelName, uid);
+            AgoraModule.MuteChannel(agoraChannelName, uid, false);
             setIsMicrophoneEnabled(true);
           }
 
@@ -309,16 +292,7 @@ const MainScreen = ({navigation}) => {
         const previousAgoraChannelName = `radio_channel_${currentTalkingChannel}`;
         const uid = channelUids[previousAgoraChannelName];
         if (uid) {
-          const muteResult = AgoraModule.MuteChannel(
-            previousAgoraChannelName,
-            uid,
-            true,
-          );
-          if (muteResult !== 0) {
-            console.error(
-              `❌ Failed to mute previous talking channel: ${previousAgoraChannelName}, error: ${muteResult}`,
-            );
-          }
+          AgoraModule.MuteChannel(previousAgoraChannelName, uid, true);
         }
 
         // Update backend
@@ -364,25 +338,8 @@ const MainScreen = ({navigation}) => {
     const newAgoraChannelName = `radio_channel_${newTalkingChannelId}`;
     const uid = channelUids[newAgoraChannelName];
     if (uid) {
-      const setTalkingResult = AgoraModule.SetTalkingChannel(
-        newAgoraChannelName,
-        uid,
-      );
-      if (setTalkingResult !== 0) {
-        console.error(
-          `❌ Failed to set talking channel: ${newAgoraChannelName}, error: ${setTalkingResult}`,
-        );
-      }
-      const unmuteResult = AgoraModule.MuteChannel(
-        newAgoraChannelName,
-        uid,
-        false,
-      );
-      if (unmuteResult !== 0) {
-        console.error(
-          `❌ Failed to unmute channel: ${newAgoraChannelName}, error: ${unmuteResult}`,
-        );
-      }
+      AgoraModule.SetTalkingChannel(newAgoraChannelName, uid);
+      AgoraModule.MuteChannel(newAgoraChannelName, uid, false);
       setIsMicrophoneEnabled(true);
     }
   };
@@ -500,11 +457,7 @@ const MainScreen = ({navigation}) => {
 
       console.log(`🎤 ${enabled ? 'Enabling' : 'Disabling'} microphone...`);
 
-      const muteResult = AgoraModule.MuteLocalAudio(!enabled);
-      if (muteResult !== 0) {
-        console.error(`❌ Failed to toggle microphone, error: ${muteResult}`);
-        return false;
-      }
+      AgoraModule.MuteLocalAudio(!enabled);
 
       setIsMicrophoneEnabled(enabled);
 
@@ -555,15 +508,7 @@ const MainScreen = ({navigation}) => {
           const agoraChannelName = `radio_channel_${channelId}`;
           const uid = channelUids[agoraChannelName];
           if (uid) {
-            const leaveResult = AgoraModule.LeaveChannelEx(
-              agoraChannelName,
-              uid,
-            );
-            if (leaveResult !== 0) {
-              console.error(
-                `❌ Failed to leave channel: ${agoraChannelName}, error: ${leaveResult}`,
-              );
-            }
+            AgoraModule.LeaveChannelEx(agoraChannelName, uid);
           }
         });
         AgoraModule.ReleaseEngine();
