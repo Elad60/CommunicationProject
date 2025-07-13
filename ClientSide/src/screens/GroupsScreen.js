@@ -15,6 +15,7 @@ import {groupUsersApi} from '../utils/apiService';
 import {useSettings} from '../context/SettingsContext';
 import {useDebouncedDimensions} from '../utils/useDebouncedDimensions';
 import {useVoice} from '../context/VoiceContext';
+import {radioChannelsApi} from '../utils/apiService';
 
 const GroupsScreen = ({navigation}) => {
   // Destructuring user and changeGroup from AuthContext
@@ -38,11 +39,24 @@ const GroupsScreen = ({navigation}) => {
   // Debounced dimensions for responsive UI
   const {height, width} = useDebouncedDimensions(300);
 
-  const {leaveVoiceChannel} = useVoice();
+  const { leaveVoiceChannel, activeVoiceChannel } = useVoice();
 
   useEffect(() => {
+    // Disconnect voice
     leaveVoiceChannel();
-    // Only run on mount
+
+    // Update only the active channel to Idle on the server
+    const updateSelectedChannelToIdle = async () => {
+      if (user?.id && activeVoiceChannel) {
+        try {
+          await radioChannelsApi.updateChannelState(user.id, activeVoiceChannel, 'Idle');
+        } catch (err) {
+          console.error('Failed to update selected channel to Idle:', err);
+        }
+      }
+    };
+
+    updateSelectedChannelToIdle();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 

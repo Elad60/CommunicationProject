@@ -12,6 +12,7 @@ import AppLayout from '../components/AppLayout';
 import {radioChannelsApi} from '../utils/apiService';
 import {useAuth} from '../context/AuthContext';
 import {useSettings} from '../context/SettingsContext';
+import {useVoice} from '../context/VoiceContext';
 
 const PickRadiosScreen = ({navigation}) => {
   const {user} = useAuth(); // Fetch user info from authentication context
@@ -22,6 +23,7 @@ const PickRadiosScreen = ({navigation}) => {
   const [search, setSearch] = useState(''); // State for search input
   const [hasChanges, setHasChanges] = useState(false); // State to track if user made changes
   const {darkMode, showFrequency, showStatus} = useSettings(); // Fetch dark mode and settings for frequency/status display
+  const {activeVoiceChannel, leaveVoiceChannel} = useVoice();
 
   useEffect(() => {
     // Function to load all radio channels and user's selected channels
@@ -88,6 +90,10 @@ const PickRadiosScreen = ({navigation}) => {
       }
 
       for (let id of toRemove) {
+        // If the channel being removed is currently active, disconnect voice first
+        if (activeVoiceChannel === id) {
+          await leaveVoiceChannel();
+        }
         await radioChannelsApi.removeUserChannel(user.id, id); // Remove each unselected channel
       }
 
