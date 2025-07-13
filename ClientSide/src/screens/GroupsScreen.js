@@ -13,36 +13,47 @@ import AppLayout from '../components/AppLayout';
 import {useAuth} from '../context/AuthContext';
 import {groupUsersApi} from '../utils/apiService';
 import {useSettings} from '../context/SettingsContext';
-import { useDebouncedDimensions } from '../utils/useDebouncedDimensions';
+import {useDebouncedDimensions} from '../utils/useDebouncedDimensions';
+import {useVoice} from '../context/VoiceContext';
 
 const GroupsScreen = ({navigation}) => {
   // Destructuring user and changeGroup from AuthContext
   const {user, changeGroup} = useAuth();
-  
+
   // States for managing group users, user states, loading status, and errors
   const [groupUsers, setGroupUsers] = useState([]);
   const [userStates, setUserStates] = useState({});
   const [loading, setLoading] = useState(true);
   const [, setError] = useState(null);
-  
+
   // Array for group letter options
   const letters = ['A', 'B', 'C', 'D', 'E', 'F'];
-  
+
   // Fetching dark mode setting from SettingsContext
   const {darkMode} = useSettings();
-  
+
   // Setting text color based on dark mode
   const textColor = darkMode ? '#fff' : '#000';
-  
+
   // Debounced dimensions for responsive UI
-  const { height, width } = useDebouncedDimensions(300);
+  const {height, width} = useDebouncedDimensions(300);
+
+  const {leaveVoiceChannel} = useVoice();
+
+  useEffect(() => {
+    leaveVoiceChannel();
+    // Only run on mount
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   // Function to fetch users for the current group
   const fetchGroupUsers = async () => {
     try {
       setLoading(true);
       const groupName = user?.group;
-      if (!groupName) {throw new Error('Group not found');}
+      if (!groupName) {
+        throw new Error('Group not found');
+      }
 
       // API call to get users by group
       const users = await groupUsersApi.getUsersByGroup(groupName);
@@ -158,7 +169,7 @@ const GroupsScreen = ({navigation}) => {
   // Calculate the card size dynamically based on screen size
   const CardSize = Math.max(
     130,
-    Math.sqrt((width * 0.7 * height * 0.7) / (groupUsers.length + 4))
+    Math.sqrt((width * 0.7 * height * 0.7) / (groupUsers.length + 4)),
   );
 
   // Main screen layout
