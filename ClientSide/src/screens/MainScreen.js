@@ -8,14 +8,21 @@ import {
   Text,
   NativeModules,
   Alert,
+  NativeEventEmitter,
 } from 'react-native';
 import RadioChannel from '../components/RadioChannel';
 import AppLayout from '../components/AppLayout';
+import ChannelParticipantsModal from '../components/ChannelParticipantsModal';
 import {useAuth} from '../context/AuthContext';
 import {radioChannelsApi} from '../utils/apiService';
 import {useSettings} from '../context/SettingsContext';
 
 const {AgoraModule} = NativeModules;
+
+// Add this if not already present:
+if (!AgoraModule.removeListeners) {
+  AgoraModule.removeListeners = () => {};
+}
 
 const MainScreen = ({navigation}) => {
   console.log('MainScreen rendered');
@@ -25,6 +32,7 @@ const MainScreen = ({navigation}) => {
   const [error, setError] = useState(null);
 
   // Voice Communication State Management
+  const [activeVoiceChannel, setActiveVoiceChannel] = useState(null); // Which channel is currently connected to voice
   const [voiceStatus, setVoiceStatus] = useState('disconnected'); // 'disconnected', 'connecting', 'connected'
   const [isMicrophoneEnabled, setIsMicrophoneEnabled] = useState(false); // Is microphone active
   const [isAgoraInitialized, setIsAgoraInitialized] = useState(false); // Is Agora engine ready
@@ -33,28 +41,14 @@ const MainScreen = ({navigation}) => {
   const [pendingMuteTimeout, setPendingMuteTimeout] = useState(null);
   const [pendingUnmuteTimeout, setPendingUnmuteTimeout] = useState(null);
 
-  // Add per-channel UID tracking
-  const [channelUids, setChannelUids] = useState({}); // { [agoraChannelName]: uid }
+  // Modal state
+  const [isParticipantsModalVisible, setIsParticipantsModalVisible] =
+    useState(false);
+  const [selectedChannelForModal, setSelectedChannelForModal] = useState(null);
+  const [participantsForModal, setParticipantsForModal] = useState([]);
 
   const {user} = useAuth();
-  const {
-    showFrequency,
-    showStatus,
-    maxSimultaneousChannels,
-    currentListeningChannels,
-    currentTalkingChannel,
-    addListeningChannel,
-    removeListeningChannel,
-    setTalkingChannel,
-    clearTalkingChannel,
-    switchTalkingChannel,
-    getListeningCount,
-    canAddMoreChannels,
-    isChannelListening,
-    isChannelTalking,
-    getListeningChannels,
-    clearAllChannels,
-  } = useSettings();
+  const {showFrequency, showStatus} = useSettings();
 
   // Fetch radio channels for the authenticated user
   const fetchRadioChannels = async () => {
@@ -91,29 +85,12 @@ const MainScreen = ({navigation}) => {
 
     setupVoiceEngine();
 
-    // Cleanup function - leave all voice channels when component unmounts
+    // Cleanup function - leave voice channel when component unmounts
     return () => {
       console.log('🧹 MainScreen unmounting - cleaning up voice...');
       try {
         if (AgoraModule) {
-          // Leave all connected channels
-          const listeningChannels = getListeningChannels();
-          listeningChannels.forEach(channelId => {
-            const agoraChannelName = `radio_channel_${channelId}`;
-            const uid = channelUids[agoraChannelName];
-            if (uid) {
-              const leaveResult = AgoraModule.LeaveChannelEx(
-                agoraChannelName,
-                uid,
-              );
-              if (leaveResult !== 0) {
-                console.error(
-                  `❌ Failed to leave channel: ${agoraChannelName}, error: ${leaveResult}`,
-                );
-              }
-            }
-          });
-          AgoraModule.ReleaseEngine();
+          AgoraModule.LeaveChannel();
         }
       } catch (error) {
         console.error('❌ Error during component unmount cleanup:', error);
@@ -126,7 +103,7 @@ const MainScreen = ({navigation}) => {
     setSelectedChannel(id); // Set selected channel by id
   };
 
-  // Multi-channel state handler with Voice Integration
+  // Unified channel state handler with Voice Integration
   const handleChannelStateChange = async (channelId, direction = 'forward') => {
     const current = radioChannels.find(c => c.id === channelId);
     const newState =
@@ -134,121 +111,65 @@ const MainScreen = ({navigation}) => {
         ? getNextState(current.channelState)
         : getPreviousState(current.channelState);
 
+    // Update UI state
+    const updatedChannels =
+      newState === 'ListenOnly' || newState === 'ListenAndTalk'
+        ? radioChannels.map(c =>
+            c.id === channelId
+              ? {...c, channelState: newState}
+              : c.channelState !== 'Idle'
+              ? {...c, channelState: 'Idle'}
+              : c,
+          )
+        : radioChannels.map(c =>
+            c.id === channelId ? {...c, channelState: newState} : c,
+          );
+
+    setRadioChannels(updatedChannels);
+
     try {
       clearPendingAudioTimeouts();
 
-      // Handle multi-channel logic
+      // Handle voice operations
       switch (newState) {
         case 'Idle':
-          // Remove from listening channels
-          removeListeningChannel(channelId);
-
-          // If this was the talking channel, clear talking state
-          if (currentTalkingChannel === channelId) {
-            clearTalkingChannel();
-          }
-
-          // Leave voice channel using multi-channel method
-          leaveVoiceChannel(channelId);
-
-          // Update UI state
-          setRadioChannels(prev =>
-            prev.map(c =>
-              c.id === channelId ? {...c, channelState: 'Idle'} : c,
-            ),
-          );
+          await leaveVoiceChannel();
           break;
-
         case 'ListenOnly':
-          // Check if we can add more channels
-          if (!canAddMoreChannels() && !isChannelListening(channelId)) {
-            // Check if max is already at 10
-            if (maxSimultaneousChannels >= 10) {
-              Alert.alert(
-                'Maximum Channels Reached',
-                'You have reached the maximum limit of 10 channels. You cannot listen to more channels.',
-                [{text: 'OK'}],
-              );
-            } else {
-              Alert.alert(
-                'Channel Limit Reached',
-                `You can only listen to ${maxSimultaneousChannels} channels at once. Would you like to increase the limit in settings?`,
-                [
-                  {text: 'Cancel', style: 'cancel'},
-                  {
-                    text: 'Go to Settings',
-                    onPress: () => navigation.navigate('Settings'),
-                  },
-                ],
-              );
+          if (activeVoiceChannel === channelId) {
+            AgoraModule.MuteLocalAudio(true);
+            setIsMicrophoneEnabled(false);
+          } else {
+            // Immediately set microphone state based on channel state
+            setIsMicrophoneEnabled(false);
+            const joinSuccess = await joinVoiceChannel(channelId, current.name);
+            if (joinSuccess) {
+              const muteTimeout = setTimeout(() => {
+                AgoraModule.MuteLocalAudio(true);
+                setIsMicrophoneEnabled(false);
+                setPendingMuteTimeout(null);
+              }, 1500);
+              setPendingMuteTimeout(muteTimeout);
             }
-            return;
           }
-
-          // Add to listening channels
-          addListeningChannel(channelId);
-
-          // Join voice channel for this specific channel
-          joinVoiceChannel(channelId, current.name);
-
-          // Update UI state - ONLY this channel, don't affect others
-          setRadioChannels(prev =>
-            prev.map(c =>
-              c.id === channelId ? {...c, channelState: 'ListenOnly'} : c,
-            ),
-          );
           break;
-
         case 'ListenAndTalk':
-          // Check if channel is in listening list
-          if (!isChannelListening(channelId)) {
-            Alert.alert(
-              'Channel Not Listening',
-              'You must be listening to a channel before you can talk on it.',
-              [{text: 'OK'}],
-            );
-            return;
-          }
-
-          // Check if already talking on another channel
-          if (currentTalkingChannel && currentTalkingChannel !== channelId) {
-            Alert.alert(
-              'Switch Talking Channel',
-              'You can only talk on one channel at a time. Switch to this channel?',
-              [
-                {text: 'Cancel', style: 'cancel'},
-                {
-                  text: 'Switch',
-                  onPress: () => switchTalkingChannelHandler(channelId),
-                },
-              ],
-            );
-            return;
-          }
-
-          // Set as talking channel
-          setTalkingChannel(channelId);
-
-          // Join voice channel if not already connected
-          if (!isChannelListening(channelId)) {
-            joinVoiceChannel(channelId, current.name);
-          }
-
-          // Set as talking channel and unmute
-          const agoraChannelName = `radio_channel_${channelId}`;
-          const uid = channelUids[agoraChannelName];
-          if (uid) {
-            AgoraModule.SetTalkingChannel(agoraChannelName, uid);
-            AgoraModule.MuteChannel(agoraChannelName, uid, false);
+          if (activeVoiceChannel === channelId) {
+            AgoraModule.MuteLocalAudio(false);
             setIsMicrophoneEnabled(true);
+          } else {
+            // Immediately set microphone state based on channel state
+            setIsMicrophoneEnabled(true);
+            const joinSuccess = await joinVoiceChannel(channelId, current.name);
+            if (joinSuccess) {
+              const unmuteTimeout = setTimeout(() => {
+                AgoraModule.MuteLocalAudio(false);
+                setIsMicrophoneEnabled(true);
+                setPendingUnmuteTimeout(null);
+              }, 1000);
+              setPendingUnmuteTimeout(unmuteTimeout);
+            }
           }
-
-          // Update UI state
-          setRadioChannels(prev =>
-            prev.map(c =>
-              c.id === channelId ? {...c, channelState: 'ListenAndTalk'} : c,
-            ),
-          );
           break;
       }
 
@@ -257,8 +178,22 @@ const MainScreen = ({navigation}) => {
       if (!userId) throw new Error('User ID not found');
 
       await radioChannelsApi.updateChannelState(userId, channelId, newState);
+
+      // Set other channels to Idle if needed
+      if (newState === 'ListenOnly' || newState === 'ListenAndTalk') {
+        const channelsToSetIdle = radioChannels.filter(
+          c => c.id !== channelId && c.channelState !== 'Idle',
+        );
+
+        await Promise.all(
+          channelsToSetIdle.map(channel =>
+            radioChannelsApi.updateChannelState(userId, channel.id, 'Idle'),
+          ),
+        );
+      }
     } catch (error) {
       console.error('❌ Error updating channel state:', error);
+      setRadioChannels(radioChannels);
       Alert.alert(
         'Connection Error',
         `Failed to ${
@@ -268,87 +203,32 @@ const MainScreen = ({navigation}) => {
     }
   };
 
-  // Helper function to switch talking channel
-  const switchTalkingChannelHandler = async newTalkingChannelId => {
-    const currentChannel = radioChannels.find(
-      c => c.id === newTalkingChannelId,
-    );
-
-    // Mute previous talking channel (set back to ListenOnly)
-    if (currentTalkingChannel) {
-      const currentTalkingChannelData = radioChannels.find(
-        c => c.id === currentTalkingChannel,
-      );
-      if (currentTalkingChannelData) {
-        setRadioChannels(prev =>
-          prev.map(c =>
-            c.id === currentTalkingChannel
-              ? {...c, channelState: 'ListenOnly'}
-              : c,
-          ),
-        );
-
-        // Mute the previous talking channel
-        const previousAgoraChannelName = `radio_channel_${currentTalkingChannel}`;
-        const uid = channelUids[previousAgoraChannelName];
-        if (uid) {
-          AgoraModule.MuteChannel(previousAgoraChannelName, uid, true);
-        }
-
-        // Update backend
-        const userId = user?.id;
-        if (userId) {
-          await radioChannelsApi.updateChannelState(
-            userId,
-            currentTalkingChannel,
-            'ListenOnly',
-          );
-        }
-      }
-    }
-
-    // Set new talking channel
-    setTalkingChannel(newTalkingChannelId);
-
-    // Update UI for new talking channel
-    setRadioChannels(prev =>
-      prev.map(c =>
-        c.id === newTalkingChannelId
-          ? {...c, channelState: 'ListenAndTalk'}
-          : c,
-      ),
-    );
-
-    // Update backend
-    const userId = user?.id;
-    if (userId) {
-      await radioChannelsApi.updateChannelState(
-        userId,
-        newTalkingChannelId,
-        'ListenAndTalk',
-      );
-    }
-
-    // Join voice channel if needed
-    if (!isChannelListening(newTalkingChannelId)) {
-      joinVoiceChannel(newTalkingChannelId, currentChannel.name);
-    }
-
-    // Set as talking channel and unmute
-    const newAgoraChannelName = `radio_channel_${newTalkingChannelId}`;
-    const uid = channelUids[newAgoraChannelName];
-    if (uid) {
-      AgoraModule.SetTalkingChannel(newAgoraChannelName, uid);
-      AgoraModule.MuteChannel(newAgoraChannelName, uid, false);
-      setIsMicrophoneEnabled(true);
-    }
-  };
-
   // Wrapper functions for backwards compatibility
   const handleToggleChannelState = channelId =>
     handleChannelStateChange(channelId, 'forward');
   const handleReverseChannelState = channelId =>
     handleChannelStateChange(channelId, 'reverse');
+
+  // Remove lastTapTime state
+  // Remove handleChannelPress and double-tap logic
+  const handleChannelLongPress = async channel => {
+    try {
+      const participants = await radioChannelsApi.getChannelParticipants(
+        channel.id,
+      );
+      setParticipantsForModal(participants);
+    } catch (err) {
+      setParticipantsForModal([]);
+    }
+    setSelectedChannelForModal(channel);
+    setIsParticipantsModalVisible(true);
+  };
+
+  // Close participants modal
+  const closeParticipantsModal = () => {
+    setIsParticipantsModalVisible(false);
+    setSelectedChannelForModal(null);
+  };
 
   // Helper function to get the next state of a channel
   const getNextState = state => {
@@ -417,38 +297,63 @@ const MainScreen = ({navigation}) => {
 
   // Join a voice channel for a specific radio channel
   const joinVoiceChannel = async (channelId, channelName) => {
-    const agoraChannelName = `radio_channel_${channelId}`;
-    // Generate a unique UID for this channel if not already present
-    let uid = channelUids[agoraChannelName];
-    if (!uid) {
-      uid = Math.floor(Math.random() * 1000000) + 1;
-      setChannelUids(prev => ({...prev, [agoraChannelName]: uid}));
+    try {
+      if (!isAgoraInitialized) {
+        const initialized = await initializeAgoraEngine();
+        if (!initialized) {
+          throw new Error('Failed to initialize Agora engine');
+        }
+      }
+
+      setVoiceStatus('connecting');
+
+      // Leave current channel if connected to another
+      if (activeVoiceChannel && activeVoiceChannel !== channelId) {
+        AgoraModule.LeaveChannel();
+      }
+
+      const agoraChannelName = `radio_channel_${channelId}`;
+      AgoraModule.JoinChannel(agoraChannelName);
+
+      setActiveVoiceChannel(channelId);
+      setVoiceStatus('connected');
+      return true;
+    } catch (error) {
+      console.error('❌ Failed to join voice channel:', error);
+      setVoiceStatus('disconnected');
+      setActiveVoiceChannel(null);
+      return false;
     }
-    AgoraModule.JoinChannelEx(agoraChannelName, uid);
-    setVoiceStatus('connected');
-    return true;
   };
 
-  // Leave a specific voice channel using multi-channel support
-  const leaveVoiceChannel = async channelId => {
-    const agoraChannelName = `radio_channel_${channelId}`;
-    const uid = channelUids[agoraChannelName];
-    if (uid) {
-      AgoraModule.LeaveChannelEx(agoraChannelName, uid);
-      setChannelUids(prev => {
-        const copy = {...prev};
-        delete copy[agoraChannelName];
-        return copy;
-      });
+  // Leave current voice channel
+  const leaveVoiceChannel = async () => {
+    try {
+      if (!activeVoiceChannel) return true;
+
+      clearPendingAudioTimeouts();
+      setVoiceStatus('connecting');
+
+      AgoraModule.LeaveChannel();
+
+      setActiveVoiceChannel(null);
+      setVoiceStatus('disconnected');
+      setIsMicrophoneEnabled(false);
+      return true;
+    } catch (error) {
+      console.error('❌ Failed to leave voice channel:', error);
+      clearPendingAudioTimeouts();
+      setActiveVoiceChannel(null);
+      setVoiceStatus('disconnected');
+      setIsMicrophoneEnabled(false);
+      return false;
     }
-    setVoiceStatus('connected');
-    return true;
   };
 
   // Toggle microphone on/off (SIMPLIFIED VERSION)
   const toggleMicrophone = async enabled => {
     try {
-      if (!isChannelTalking(currentTalkingChannel)) {
+      if (!activeVoiceChannel) {
         console.log(
           '⚠️ Cannot toggle microphone - not connected to voice channel',
         );
@@ -458,7 +363,6 @@ const MainScreen = ({navigation}) => {
       console.log(`🎤 ${enabled ? 'Enabling' : 'Disabling'} microphone...`);
 
       AgoraModule.MuteLocalAudio(!enabled);
-
       setIsMicrophoneEnabled(enabled);
 
       console.log(
@@ -475,26 +379,46 @@ const MainScreen = ({navigation}) => {
 
   // Handle voice connection errors gracefully
   const handleVoiceError = (error, operation) => {
-    console.error(`❌ Voice ${operation} error:`, error);
+    console.error(`❌ Voice ${operation} failed:`, error);
+
+    // Reset voice states on error
+    setVoiceStatus('disconnected');
+    setActiveVoiceChannel(null);
+    setIsMicrophoneEnabled(false);
+
+    // Show user-friendly error message
+    const errorMessages = {
+      join: 'Failed to join voice channel. Please check your connection and try again.',
+      leave: 'Error leaving voice channel. Connection has been reset.',
+      microphone: 'Failed to toggle microphone. Please try again.',
+      initialize: 'Failed to initialize voice system. Please restart the app.',
+    };
+
     Alert.alert(
       'Voice Connection Error',
-      `Failed to ${operation}. Please try again.`,
-      [{text: 'OK'}],
+      errorMessages[operation] || 'An unknown voice error occurred.',
     );
   };
 
-  // Cleanup voice connection
+  // Cleanup function for component unmount or app backgrounding
   const cleanupVoiceConnection = async () => {
     try {
       clearPendingAudioTimeouts();
+
+      if (activeVoiceChannel) {
+        await leaveVoiceChannel();
+      }
+
       setVoiceStatus('disconnected');
+      setActiveVoiceChannel(null);
       setIsMicrophoneEnabled(false);
+      setIsAgoraInitialized(false);
     } catch (error) {
       console.error('❌ Error during voice cleanup:', error);
     }
   };
 
-  // Emergency voice reset function
+  // Emergency reset function for when things go wrong
   const emergencyVoiceReset = async () => {
     try {
       Alert.alert('Voice Reset', 'Resetting voice connection...', [
@@ -502,20 +426,11 @@ const MainScreen = ({navigation}) => {
       ]);
 
       if (AgoraModule) {
-        // Leave all connected channels
-        const listeningChannels = getListeningChannels();
-        listeningChannels.forEach(channelId => {
-          const agoraChannelName = `radio_channel_${channelId}`;
-          const uid = channelUids[agoraChannelName];
-          if (uid) {
-            AgoraModule.LeaveChannelEx(agoraChannelName, uid);
-          }
-        });
+        AgoraModule.LeaveChannel();
         AgoraModule.ReleaseEngine();
       }
 
       await cleanupVoiceConnection();
-      clearAllChannels();
 
       setTimeout(async () => {
         await initializeAgoraEngine();
@@ -565,42 +480,43 @@ const MainScreen = ({navigation}) => {
         <ScrollView style={styles.scrollView}>
           <View style={styles.mainGrid}>
             {radioChannels.map(channel => (
-              <TouchableOpacity
-                key={channel.id}
-                onPress={() => {
-                  handleChannelSelect(channel.id);
-                  handleToggleChannelState(channel.id);
-                }}
-                onLongPress={() => {
-                  // Long press for reverse state cycle
-                  handleChannelSelect(channel.id);
-                  handleReverseChannelState(channel.id);
-                }}>
-                <RadioChannel
-                  name={channel.name}
-                  frequency={channel.frequency}
-                  isActive={channel.status === 'Active'}
-                  mode={channel.mode}
-                  isSelected={selectedChannel === channel.id}
-                  channelState={channel.channelState}
-                  showFrequency={showFrequency}
-                  showStatus={showStatus}
-                  numberOfChannels={radioChannels.length}
-                  // Voice connection props
-                  isVoiceConnected={isChannelListening(channel.id)}
-                  voiceStatus={
-                    isChannelListening(channel.id)
-                      ? voiceStatus
-                      : 'disconnected'
-                  }
-                  isMicrophoneEnabled={isChannelTalking(channel.id)}
-                  // Multi-channel props
-                  isListening={isChannelListening(channel.id)}
-                  isTalking={isChannelTalking(channel.id)}
-                  listeningCount={getListeningCount()}
-                  maxListeningChannels={maxSimultaneousChannels}
-                />
-              </TouchableOpacity>
+              <View key={channel.id}>
+                <TouchableOpacity
+                  onPress={e => {
+                    if (e && e.nativeEvent && e.nativeEvent.shiftKey) {
+                      handleReverseChannelState(channel.id);
+                    } else {
+                      handleChannelSelect(channel.id);
+                      handleToggleChannelState(channel.id);
+                    }
+                  }}
+                  onLongPress={() => handleChannelLongPress(channel)}
+                  style={{flex: 1}}>
+                  <RadioChannel
+                    name={channel.name}
+                    frequency={channel.frequency}
+                    isActive={channel.status === 'Active'}
+                    mode={channel.mode}
+                    isSelected={selectedChannel === channel.id}
+                    channelState={channel.channelState}
+                    showFrequency={showFrequency}
+                    showStatus={showStatus}
+                    numberOfChannels={radioChannels.length}
+                    // Voice connection props
+                    isVoiceConnected={activeVoiceChannel === channel.id}
+                    voiceStatus={
+                      activeVoiceChannel === channel.id
+                        ? voiceStatus
+                        : 'disconnected'
+                    }
+                    isMicrophoneEnabled={
+                      activeVoiceChannel === channel.id
+                        ? channel.channelState === 'ListenAndTalk'
+                        : false
+                    }
+                  />
+                </TouchableOpacity>
+              </View>
             ))}
           </View>
         </ScrollView>
@@ -616,6 +532,14 @@ const MainScreen = ({navigation}) => {
           <Text style={styles.testButtonText}>🚨 Reset</Text>
         </TouchableOpacity>
       </View>
+
+      {/* Channel Participants Modal */}
+      <ChannelParticipantsModal
+        visible={isParticipantsModalVisible}
+        onClose={closeParticipantsModal}
+        channelName={selectedChannelForModal?.name || ''}
+        participants={participantsForModal}
+      />
     </AppLayout>
   );
 };

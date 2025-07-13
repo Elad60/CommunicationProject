@@ -45,6 +45,18 @@ namespace winrt::FinalProject::implementation
                          std::string("\n  🎉 You should now be able to hear each other!") +
                          std::string("\n  🎤 Both devices can now communicate!");
         OutputDebugStringA(("AgoraEventHandler::onUserJoined - " + msg + "\n").c_str());
+        // Bridge to JS
+        if (m_reactContext) {
+            m_reactContext.EmitJSEvent(
+                L"RCTDeviceEventEmitter",
+                L"onUserJoined",
+                winrt::Microsoft::ReactNative::JSValueArray{
+                    winrt::Microsoft::ReactNative::JSValueObject{
+                        {"uid", static_cast<int>(uid)}
+                    }
+                }
+            );
+        }
     }
 
     void AgoraEventHandler::onUserOffline(uid_t uid, USER_OFFLINE_REASON_TYPE reason)
@@ -56,6 +68,18 @@ namespace winrt::FinalProject::implementation
                          std::string("\n  📝 Reason: ") + reasonStr +
                          std::string("\n  ⚠️ Voice communication ended with this user");
         OutputDebugStringA(("AgoraEventHandler::onUserOffline - " + msg + "\n").c_str());
+        // Bridge to JS
+        if (m_reactContext) {
+            m_reactContext.EmitJSEvent(
+                L"RCTDeviceEventEmitter",
+                L"onUserOffline",
+                winrt::Microsoft::ReactNative::JSValueArray{
+                    winrt::Microsoft::ReactNative::JSValueObject{
+                        {"uid", static_cast<int>(uid)}
+                    }
+                }
+            );
+        }
     }
 
     void AgoraEventHandler::onError(int err, const char* msg)
@@ -77,15 +101,7 @@ namespace winrt::FinalProject::implementation
             // Clean up existing engine
             if (m_rtcEngine) {
                 OutputDebugStringA("🧹 Cleaning up existing engine\n");
-                // Leave all active channels
-                for (const auto& connection : m_activeConnections) {
-                    m_rtcEngine->leaveChannelEx(connection.second);
-                }
-                m_activeConnections.clear();
-                m_connectionStates.clear();
-                m_channelMuteStates.clear();
-                m_talkingChannel.clear();
-                
+                m_rtcEngine->leaveChannel();
                 m_rtcEngine->release();
                 m_rtcEngine = nullptr;
                 OutputDebugStringA("✅ Existing engine cleaned\n");
@@ -105,7 +121,7 @@ namespace winrt::FinalProject::implementation
 
             // Create engine
             OutputDebugStringA("🔧 Creating RTC engine...\n");
-            m_rtcEngine = static_cast<IRtcEngineEx*>(createAgoraRtcEngine());
+            m_rtcEngine = createAgoraRtcEngine();
             if (!m_rtcEngine) {
                 OutputDebugStringA("❌ Failed to create RTC engine\n");
                 return;
@@ -203,7 +219,7 @@ namespace winrt::FinalProject::implementation
             } else {
                 OutputDebugStringA(("❌ Failed to start audio device loopback test, error: " + std::to_string(result) + "\n").c_str());
             }
-            // No release() needed
+
         } catch (const std::exception& e) {
             OutputDebugStringA(("❌ Exception in StartEchoTest: " + std::string(e.what()) + "\n").c_str());
         } catch (...) {
@@ -256,7 +272,13 @@ namespace winrt::FinalProject::implementation
                 StopEchoTest();
             }
 
-            // For backward compatibility, use the legacy single-channel approach
+            // Leave current channel if in one
+            if (!m_currentChannel.empty()) {
+                OutputDebugStringA("⚠️ Already in channel, leaving current channel first\n");
+                m_rtcEngine->leaveChannel();
+                m_currentChannel.clear();
+            }
+
             OutputDebugStringA("🔧 CONFIGURING CHANNEL OPTIONS FOR VOICE COMMUNICATION...\n");
             ChannelMediaOptions options;
             options.publishMicrophoneTrack = true;          // 🎤 PUBLISH YOUR VOICE (app can mute later)
@@ -290,6 +312,7 @@ namespace winrt::FinalProject::implementation
             OutputDebugStringA(("🔍 joinChannel() result: " + std::to_string(result) + "\n").c_str());
             
             if (result == 0) {
+                m_currentChannel = channelName;
                 m_isLocalAudioMuted = false;  // Always start unmuted, app will mute if needed
                 OutputDebugStringA(("🎉 SUCCESS! Initiated join to channel: " + channelName + "\n").c_str());
                 OutputDebugStringA("🔓 Microphone starts UNMUTED (app will control mute for ListenOnly)\n");
@@ -324,9 +347,10 @@ namespace winrt::FinalProject::implementation
     void AgoraManager::LeaveChannel()
     {
         try {
-            if (!m_rtcEngine) return;
+            if (!m_rtcEngine || m_currentChannel.empty()) return;
             
             m_rtcEngine->leaveChannel();
+            m_currentChannel.clear();
             m_isLocalAudioMuted = false;  // Reset mute state when leaving channel
             OutputDebugStringA("✅ Left channel\n");
             OutputDebugStringA("🔄 Mute state reset to UNMUTED\n");
@@ -499,15 +523,10 @@ namespace winrt::FinalProject::implementation
     {
         try {
             if (m_rtcEngine) {
-                // Leave all active channels
-                for (const auto& connection : m_activeConnections) {
-                    m_rtcEngine->leaveChannelEx(connection.second);
+                if (!m_currentChannel.empty()) {
+                    m_rtcEngine->leaveChannel();
+                    m_currentChannel.clear();
                 }
-                m_activeConnections.clear();
-                m_connectionStates.clear();
-                m_channelMuteStates.clear();
-                m_talkingChannel.clear();
-                
                 m_rtcEngine->release();
                 m_rtcEngine = nullptr;
             }
@@ -537,13 +556,10 @@ namespace winrt::FinalProject::implementation
             status += "❌ Engine Status: NOT INITIALIZED\n";
         }
 
-        if (!m_activeConnections.empty()) {
-            status += "🔗 Connected Channels: " + std::to_string(m_activeConnections.size()) + "\n";
-            for (const auto& connection : m_activeConnections) {
-                status += "  - " + connection.first + "\n";
-            }
+        if (!m_currentChannel.empty()) {
+            status += "🔗 Current Channel: " + m_currentChannel + "\n";
         } else {
-            status += "⭕ Connected Channels: NONE\n";
+            status += "⭕ Current Channel: NONE\n";
         }
 
         if (m_isEchoTestRunning) {
@@ -559,159 +575,5 @@ namespace winrt::FinalProject::implementation
         }
 
         return status;
-    }
-
-    // ==================== MULTI-CHANNEL METHODS ====================
-
-    void AgoraManager::JoinChannelEx(const std::string& channelName, int uid)
-    {
-        try {
-            OutputDebugStringA(("[Multi] JoinChannelEx - Channel: " + channelName + ", UID: " + std::to_string(uid) + "\n").c_str());
-            if (!m_isInitialized || !m_rtcEngine) {
-                OutputDebugStringA("❌ Engine not initialized\n");
-                return;
-            }
-            agora::rtc::RtcConnection connection;
-            connection.channelId = channelName.c_str();
-            connection.localUid = uid;
-            agora::rtc::ChannelMediaOptions options;
-            options.publishMicrophoneTrack = true;
-            options.autoSubscribeAudio = true;
-            options.autoSubscribeVideo = false;
-            options.enableAudioRecordingOrPlayout = true;
-            options.clientRoleType = agora::rtc::CLIENT_ROLE_BROADCASTER;
-            auto engineEx = static_cast<agora::rtc::IRtcEngineEx*>(m_rtcEngine);
-            int result = engineEx->joinChannelEx(nullptr, connection, options, m_eventHandler.get());
-            OutputDebugStringA(("[Multi] joinChannelEx result: " + std::to_string(result) + "\n").c_str());
-        } catch (...) {
-            OutputDebugStringA("❌ Exception in JoinChannelEx\n");
-        }
-    }
-
-    void AgoraManager::LeaveChannelEx(const std::string& channelName, int uid)
-    {
-        try {
-            OutputDebugStringA(("[Multi] LeaveChannelEx - Channel: " + channelName + ", UID: " + std::to_string(uid) + "\n").c_str());
-            if (!m_isInitialized || !m_rtcEngine) {
-                OutputDebugStringA("❌ Engine not initialized\n");
-                return;
-            }
-            agora::rtc::RtcConnection connection;
-            connection.channelId = channelName.c_str();
-            connection.localUid = uid;
-            auto engineEx = static_cast<agora::rtc::IRtcEngineEx*>(m_rtcEngine);
-            int result = engineEx->leaveChannelEx(connection);
-            OutputDebugStringA(("[Multi] leaveChannelEx result: " + std::to_string(result) + "\n").c_str());
-        } catch (...) {
-            OutputDebugStringA("❌ Exception in LeaveChannelEx\n");
-        }
-    }
-
-    void AgoraManager::MuteChannel(const std::string& channelName, bool mute)
-    {
-        try {
-            OutputDebugStringA(("🎤 AgoraManager::MuteChannel - " + std::string(mute ? "MUTING" : "UNMUTING") + " channel: " + channelName + "\n").c_str());
-            
-            if (!m_isInitialized || !m_rtcEngine) {
-                OutputDebugStringA("❌ Engine not initialized\n");
-                return;
-            }
-
-            // Check if connected to this channel
-            auto connectionIt = m_activeConnections.find(channelName);
-            if (connectionIt == m_activeConnections.end()) {
-                OutputDebugStringA(("⚠️ Not connected to channel: " + channelName + "\n").c_str());
-                return;
-            }
-
-            // Update mute state
-            m_channelMuteStates[channelName] = mute;
-            
-            // If this is the talking channel, update global mute state
-            if (m_talkingChannel == channelName) {
-                m_isLocalAudioMuted = mute;
-            }
-            
-            OutputDebugStringA(("✅ Channel " + channelName + " " + std::string(mute ? "MUTED" : "UNMUTED") + "\n").c_str());
-
-        } catch (const std::exception& e) {
-            OutputDebugStringA(("❌ Exception in MuteChannel: " + std::string(e.what()) + "\n").c_str());
-        } catch (...) {
-            OutputDebugStringA("❌ Unknown exception in MuteChannel\n");
-        }
-    }
-
-    void AgoraManager::SetTalkingChannel(const std::string& channelName)
-    {
-        try {
-            OutputDebugStringA(("🎤 AgoraManager::SetTalkingChannel - Setting talking channel to: " + channelName + "\n").c_str());
-            
-            if (!m_isInitialized || !m_rtcEngine) {
-                OutputDebugStringA("❌ Engine not initialized\n");
-                return;
-            }
-
-            // Check if connected to this channel
-            if (m_connectionStates.find(channelName) == m_connectionStates.end() || !m_connectionStates[channelName]) {
-                OutputDebugStringA(("⚠️ Not connected to channel: " + channelName + "\n").c_str());
-                return;
-            }
-
-            // Mute previous talking channel
-            if (!m_talkingChannel.empty() && m_talkingChannel != channelName) {
-                MuteChannel(m_talkingChannel, true);
-            }
-
-            // Set new talking channel
-            m_talkingChannel = channelName;
-            
-            // Unmute the new talking channel
-            MuteChannel(channelName, false);
-            
-            OutputDebugStringA(("✅ Talking channel set to: " + channelName + "\n").c_str());
-
-        } catch (const std::exception& e) {
-            OutputDebugStringA(("❌ Exception in SetTalkingChannel: " + std::string(e.what()) + "\n").c_str());
-        } catch (...) {
-            OutputDebugStringA("❌ Unknown exception in SetTalkingChannel\n");
-        }
-    }
-
-    bool AgoraManager::IsChannelConnected(const std::string& channelName)
-    {
-        try {
-            auto it = m_connectionStates.find(channelName);
-            bool connected = (it != m_connectionStates.end() && it->second);
-            OutputDebugStringA(("🔍 IsChannelConnected - Channel " + channelName + ": " + std::string(connected ? "CONNECTED" : "DISCONNECTED") + "\n").c_str());
-            return connected;
-        } catch (...) {
-            OutputDebugStringA("❌ Exception in IsChannelConnected\n");
-            return false;
-        }
-    }
-
-    bool AgoraManager::IsChannelMuted(const std::string& channelName)
-    {
-        try {
-            auto it = m_channelMuteStates.find(channelName);
-            bool muted = (it != m_channelMuteStates.end() && it->second);
-            OutputDebugStringA(("🔍 IsChannelMuted - Channel " + channelName + ": " + std::string(muted ? "MUTED" : "UNMUTED") + "\n").c_str());
-            return muted;
-        } catch (...) {
-            OutputDebugStringA("❌ Exception in IsChannelMuted\n");
-            return false;
-        }
-    }
-
-    std::vector<std::string> AgoraManager::GetConnectedChannels()
-    {
-        std::vector<std::string> connectedChannels;
-        for (const auto& pair : m_connectionStates) {
-            if (pair.second) {
-                connectedChannels.push_back(pair.first);
-            }
-        }
-        OutputDebugStringA(("📊 GetConnectedChannels - Found " + std::to_string(connectedChannels.size()) + " connected channels\n").c_str());
-        return connectedChannels;
     }
 }
