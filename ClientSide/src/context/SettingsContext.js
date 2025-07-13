@@ -30,6 +30,11 @@ export const SettingsProvider = ({children}) => {
   const [currentListeningChannels, setCurrentListeningChannels] = useState([]);
   const [currentTalkingChannel, setCurrentTalkingChannel] = useState(null);
 
+  // Simple setter for maxSimultaneousChannels - no automatic channel removal
+  const setMaxSimultaneousChannelsSmart = newMax => {
+    setMaxSimultaneousChannels(newMax);
+  };
+
   // Multi-channel management methods
   const addListeningChannel = channelId => {
     setCurrentListeningChannels(prev => {
@@ -118,7 +123,7 @@ export const SettingsProvider = ({children}) => {
         setDarkMode,
         // Multi-channel settings
         maxSimultaneousChannels,
-        setMaxSimultaneousChannels,
+        setMaxSimultaneousChannels: setMaxSimultaneousChannelsSmart,
         currentListeningChannels,
         currentTalkingChannel,
         addListeningChannel,

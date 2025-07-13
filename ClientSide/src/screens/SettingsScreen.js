@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, {useState} from 'react';
 import {
   View,
   Text,
@@ -7,12 +7,14 @@ import {
   TouchableOpacity,
   ScrollView,
   Linking,
+  Animated,
+  Alert,
 } from 'react-native';
-import CustomSlider from '../components/CustomSlider'; 
+import CustomSlider from '../components/CustomSlider';
 import AppLayout from '../components/AppLayout';
-import { useSettings } from '../context/SettingsContext';
+import {useSettings} from '../context/SettingsContext';
 
-const SettingsScreen = ({ navigation }) => {
+const SettingsScreen = ({navigation}) => {
   // Destructure settings values and setters from the context
   const {
     showFrequency,
@@ -29,10 +31,14 @@ const SettingsScreen = ({ navigation }) => {
     setDarkMode,
     maxSimultaneousChannels,
     setMaxSimultaneousChannels,
+    getListeningCount,
   } = useSettings();
 
+  // Animation values for the channel picker
+  const [scaleAnim] = useState(new Animated.Value(1));
+
   // Toggle setting value for switches
-  const toggleSetting = (key) => {
+  const toggleSetting = key => {
     setSettings({
       ...settings,
       [key]: !settings[key],
@@ -42,15 +48,70 @@ const SettingsScreen = ({ navigation }) => {
   // Set text and button colors based on dark mode
   const textColor = darkMode ? '#fff' : '#000';
   const buttonColor = darkMode ? '#0066cc' : '#91aad4';
+  const selectedButtonColor = darkMode ? '#00ff88' : '#4CAF50';
+
+  // Handle channel number selection with animation
+  const handleChannelSelection = number => {
+    // Animate the button press
+    Animated.sequence([
+      Animated.timing(scaleAnim, {
+        toValue: 0.9,
+        duration: 100,
+        useNativeDriver: true,
+      }),
+      Animated.timing(scaleAnim, {
+        toValue: 1,
+        duration: 100,
+        useNativeDriver: true,
+      }),
+    ]).start();
+
+    // Check if we're reducing the limit and have active connections
+    const currentListeningCount = getListeningCount();
+    if (number < maxSimultaneousChannels && currentListeningCount > number) {
+      Alert.alert(
+        'Cannot Reduce Channel Limit',
+        `You currently have ${currentListeningCount} active channels. Please disconnect from some channels before reducing the limit to ${number}.`,
+        [{text: 'OK'}],
+      );
+    } else {
+      setMaxSimultaneousChannels(number);
+    }
+  };
+
+  // Render channel number button
+  const renderChannelButton = number => {
+    const isSelected = maxSimultaneousChannels === number;
+    const backgroundColor = isSelected ? selectedButtonColor : buttonColor;
+
+    return (
+      <TouchableOpacity
+        key={number}
+        style={[
+          styles.channelButton,
+          {backgroundColor},
+          isSelected && styles.selectedChannelButton,
+        ]}
+        onPress={() => handleChannelSelection(number)}>
+        <Text
+          style={[
+            styles.channelButtonText,
+            {color: isSelected ? '#000' : textColor},
+          ]}>
+          {number}
+        </Text>
+      </TouchableOpacity>
+    );
+  };
 
   // Render setting item with label, switch, and handler for toggling
   const renderSettingItem = (label, key, value, onToggle) => (
     <View style={styles.settingItem}>
-      <Text style={[styles.settingLabel, { color: textColor }]}>{label}</Text>
+      <Text style={[styles.settingLabel, {color: textColor}]}>{label}</Text>
       <Switch
         trackColor={{
-            false: darkMode ? '#444' : '#767577', 
-            true: buttonColor, 
+          false: darkMode ? '#444' : '#767577',
+          true: buttonColor,
         }}
         thumbColor={darkMode ? '#fff' : '#000'}
         onValueChange={onToggle}
@@ -61,21 +122,44 @@ const SettingsScreen = ({ navigation }) => {
 
   return (
     <AppLayout navigation={navigation} title="Settings">
-      <View style={{ flex: 1 }}>
+      <View style={{flex: 1}}>
         <ScrollView style={styles.container}>
           {/* Display Settings Section */}
           <View style={styles.section}>
-            <Text style={[styles.sectionTitle, { color: textColor }]}>Display Settings</Text>
-            {renderSettingItem('Show Frequency', 'showFrequency', showFrequency, () => setShowFrequency(!showFrequency))}
-            {renderSettingItem('Show Status', 'showStatus', showStatus, () => setShowStatus(!showStatus))}
+            <Text style={[styles.sectionTitle, {color: textColor}]}>
+              Display Settings
+            </Text>
+            {renderSettingItem(
+              'Show Frequency',
+              'showFrequency',
+              showFrequency,
+              () => setShowFrequency(!showFrequency),
+            )}
+            {renderSettingItem('Show Status', 'showStatus', showStatus, () =>
+              setShowStatus(!showStatus),
+            )}
           </View>
 
           {/* Radio Settings Section */}
           <View style={styles.section}>
-            <Text style={[styles.sectionTitle, { color: textColor }]}>Radio Settings</Text>
-            {renderSettingItem('Nav Bar Adjustment ↔️', 'ToolBarAdjustment', toolBarAdjustment, () => setToolBarAdjustment(!toolBarAdjustment))}
-            {renderSettingItem('Control Bar Adjustment ↕️', 'controlBarAdjustment', controlBarAdjustment, () => setControlBarAdjustment(!controlBarAdjustment))}
-            {renderSettingItem('Dark Mode 🌗', 'darkMode', darkMode, () => setDarkMode(!darkMode))}
+            <Text style={[styles.sectionTitle, {color: textColor}]}>
+              Radio Settings
+            </Text>
+            {renderSettingItem(
+              'Nav Bar Adjustment ↔️',
+              'ToolBarAdjustment',
+              toolBarAdjustment,
+              () => setToolBarAdjustment(!toolBarAdjustment),
+            )}
+            {renderSettingItem(
+              'Control Bar Adjustment ↕️',
+              'controlBarAdjustment',
+              controlBarAdjustment,
+              () => setControlBarAdjustment(!controlBarAdjustment),
+            )}
+            {renderSettingItem('Dark Mode 🌗', 'darkMode', darkMode, () =>
+              setDarkMode(!darkMode),
+            )}
             <CustomSlider
               value={brightness}
               onValueChange={setBrightness}
@@ -86,53 +170,81 @@ const SettingsScreen = ({ navigation }) => {
 
           {/* Voice Settings Section */}
           <View style={styles.section}>
-            <Text style={[styles.sectionTitle, { color: textColor }]}>Voice Settings</Text>
-            <CustomSlider
-              value={maxSimultaneousChannels}
-              onValueChange={setMaxSimultaneousChannels}
-              label="Max Simultaneous Channels 🎧"
-              darkMode={darkMode}
-              minimumValue={1}
-              maximumValue={10}
-              step={1}
-            />
-            <View style={styles.settingItem}>
-              <Text style={[styles.settingLabel, { color: textColor }]}>
-                Current Limit: {maxSimultaneousChannels}/10 channels
+            <Text style={[styles.sectionTitle, {color: textColor}]}>
+              Voice Settings
+            </Text>
+
+            {/* Channel Number Picker */}
+            <View style={styles.channelPickerContainer}>
+              <Text style={[styles.channelPickerLabel, {color: textColor}]}>
+                Max Simultaneous Channels 🎧
               </Text>
+              <Text style={[styles.channelPickerSubtitle, {color: textColor}]}>
+                Select how many channels you can listen to at once
+              </Text>
+
+              <View style={styles.channelButtonsContainer}>
+                {[1, 2, 3, 4, 5, 6, 7, 8, 9, 10].map(renderChannelButton)}
+              </View>
+
+              <View style={styles.channelInfo}>
+                <Text style={[styles.channelInfoText, {color: textColor}]}>
+                  Current Limit: {maxSimultaneousChannels}/10 channels
+                </Text>
+                <Text style={[styles.channelInfoSubtext, {color: textColor}]}>
+                  {maxSimultaneousChannels === 1
+                    ? 'Single channel mode'
+                    : maxSimultaneousChannels <= 3
+                    ? 'Multi-channel mode'
+                    : maxSimultaneousChannels <= 5
+                    ? 'Advanced multi-channel mode'
+                    : 'Professional multi-channel mode'}
+                </Text>
+              </View>
             </View>
           </View>
 
           {/* System Section */}
           <View style={styles.section}>
-            <Text style={[styles.sectionTitle, { color: textColor }]}>System</Text>
+            <Text style={[styles.sectionTitle, {color: textColor}]}>
+              System
+            </Text>
             {/* Button to reset all settings */}
             <TouchableOpacity
-              style={[styles.button, { backgroundColor: buttonColor }]}
+              style={[styles.button, {backgroundColor: buttonColor}]}
               onPress={() => {
                 setToolBarAdjustment(true);
                 setControlBarAdjustment(true);
                 setDarkMode(true);
                 setBrightness(1);
-              }}
-            >
-              <Text style={[styles.buttonText, { color: textColor }]}>Reset All Settings</Text>
+                setMaxSimultaneousChannels(5);
+              }}>
+              <Text style={[styles.buttonText, {color: textColor}]}>
+                Reset All Settings
+              </Text>
             </TouchableOpacity>
 
             {/* Button to check for updates */}
             <TouchableOpacity
-              style={[styles.button, { backgroundColor: buttonColor }]}
-              onPress={() => Linking.openURL('https://github.com/Elad60/CommunicationProject')}
-            >
-              <Text style={[styles.buttonText, { color: textColor }]}>Check for Updates</Text>
+              style={[styles.button, {backgroundColor: buttonColor}]}
+              onPress={() =>
+                Linking.openURL(
+                  'https://github.com/Elad60/CommunicationProject',
+                )
+              }>
+              <Text style={[styles.buttonText, {color: textColor}]}>
+                Check for Updates
+              </Text>
             </TouchableOpacity>
           </View>
 
           {/* Version Info Section */}
           <View style={styles.versionInfo}>
-            <Text style={[styles.versionText, { color: textColor }]}>Communication System v1.0.0</Text>
+            <Text style={[styles.versionText, {color: textColor}]}>
+              Communication System v1.0.0
+            </Text>
           </View>
-        </ScrollView>    
+        </ScrollView>
       </View>
     </AppLayout>
   );
@@ -184,6 +296,64 @@ const styles = StyleSheet.create({
   },
   versionText: {
     fontSize: 14,
+  },
+  // New styles for channel picker
+  channelPickerContainer: {
+    marginVertical: 15,
+  },
+  channelPickerLabel: {
+    fontSize: 16,
+    fontWeight: 'bold',
+    marginBottom: 5,
+  },
+  channelPickerSubtitle: {
+    fontSize: 12,
+    marginBottom: 15,
+    opacity: 0.7,
+  },
+  channelButtonsContainer: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    justifyContent: 'space-between',
+    marginBottom: 15,
+  },
+  channelButton: {
+    width: 45,
+    height: 45,
+    borderRadius: 22.5,
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginHorizontal: 1,
+    marginVertical: 1,
+    elevation: 3,
+    shadowColor: '#000',
+    shadowOffset: {width: 0, height: 2},
+    shadowOpacity: 0.25,
+    shadowRadius: 3.84,
+  },
+  selectedChannelButton: {
+    elevation: 8,
+    shadowOpacity: 0.44,
+    shadowRadius: 10.32,
+    transform: [{scale: 1.1}],
+  },
+  channelButtonText: {
+    fontSize: 16,
+    fontWeight: 'bold',
+  },
+  channelInfo: {
+    alignItems: 'center',
+    marginTop: 10,
+  },
+  channelInfoText: {
+    fontSize: 14,
+    fontWeight: 'bold',
+    marginBottom: 5,
+  },
+  channelInfoSubtext: {
+    fontSize: 12,
+    opacity: 0.7,
+    textAlign: 'center',
   },
 });
 
