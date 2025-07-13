@@ -1,5 +1,5 @@
 // src/navigation/AppNavigator.js
-import React from 'react';
+import React, {useEffect} from 'react';
 import {NavigationContainer} from '@react-navigation/native';
 import {createStackNavigator} from '@react-navigation/stack';
 import MainScreen from '../screens/MainScreen';
@@ -10,6 +10,7 @@ import AnnouncementsScreen from '../screens/AnnouncementsScreen';
 import LoginScreen from '../screens/LoginScreen';
 import RegisterScreen from '../screens/RegisterScreen';
 import {useAuth} from '../context/AuthContext';
+import {useVoice} from '../context/VoiceContext';
 import UserManagementScreen from '../screens/UserManagementScreen';
 import PickRadiosScreen from '../screens/PickRadiosScreen';
 
@@ -17,9 +18,31 @@ const Stack = createStackNavigator();
 
 const AppNavigator = () => {
   const {user, login, register} = useAuth();
+  const { initializeVoice, VOICE_ENABLED_SCREENS } = useVoice();
+
+  // Initialize voice when app starts
+  useEffect(() => {
+    console.log('🎬 AppNavigator - initializing voice system...');
+    initializeVoice();
+  }, []);
+
+  // Handle navigation state changes for voice management
+  const handleNavigationStateChange = (state) => {
+    if (state && state.routes && state.routes.length > 0) {
+      const currentRoute = state.routes[state.index];
+      const screenName = currentRoute.name;
+      const isVoiceEnabled = VOICE_ENABLED_SCREENS[screenName];
+      
+      console.log(`🎬 Navigation to: ${screenName}, Voice enabled: ${isVoiceEnabled}`);
+      
+      if (!isVoiceEnabled) {
+        console.log(`⚠️ Voice disabled for screen: ${screenName}`);
+      }
+    }
+  };
 
   return (
-    <NavigationContainer>
+    <NavigationContainer onStateChange={handleNavigationStateChange}>
       {!user ? (
         // Auth navigator when user is not logged in
         <Stack.Navigator
@@ -59,7 +82,10 @@ const AppNavigator = () => {
           <Stack.Screen name="ChannelConfig" component={ChannelConfigScreen} />
           <Stack.Screen name="Groups" component={GroupsScreen} />
           <Stack.Screen name="Announcements" component={AnnouncementsScreen} />
-          <Stack.Screen name="UserManagement" component={UserManagementScreen}/>
+          <Stack.Screen
+            name="UserManagement"
+            component={UserManagementScreen}
+          />
           <Stack.Screen name="PickRadios" component={PickRadiosScreen} />
         </Stack.Navigator>
       )}

@@ -13,6 +13,7 @@ import {
 import CustomSlider from '../components/CustomSlider';
 import AppLayout from '../components/AppLayout';
 import {useSettings} from '../context/SettingsContext';
+import {useVoice} from '../context/VoiceContext';
 
 const SettingsScreen = ({navigation}) => {
   // Destructure settings values and setters from the context
@@ -33,6 +34,15 @@ const SettingsScreen = ({navigation}) => {
     setMaxSimultaneousChannels,
     getListeningCount,
   } = useSettings();
+
+  // Voice context for global voice status
+  const {
+    isVoiceInitialized,
+    activeChannels,
+    currentTalkingChannel,
+    voiceStatus,
+    getActiveChannelsCount,
+  } = useVoice();
 
   // Animation values for the channel picker
   const [scaleAnim] = useState(new Animated.Value(1));
@@ -174,6 +184,30 @@ const SettingsScreen = ({navigation}) => {
               Voice Settings
             </Text>
 
+            {/* Voice Status */}
+            <View style={styles.voiceStatusContainer}>
+              <Text style={[styles.voiceStatusLabel, {color: textColor}]}>
+                Voice System Status 🎤
+              </Text>
+              <View style={styles.voiceStatusInfo}>
+                <Text style={[styles.voiceStatusText, {color: textColor}]}>
+                  Status:{' '}
+                  {isVoiceInitialized ? '✅ Initialized' : '❌ Not Initialized'}
+                </Text>
+                <Text style={[styles.voiceStatusText, {color: textColor}]}>
+                  Connection: {voiceStatus}
+                </Text>
+                <Text style={[styles.voiceStatusText, {color: textColor}]}>
+                  Active Channels: {getActiveChannelsCount()}
+                </Text>
+                {currentTalkingChannel && (
+                  <Text style={[styles.voiceStatusText, {color: textColor}]}>
+                    Talking on: Channel {currentTalkingChannel}
+                  </Text>
+                )}
+              </View>
+            </View>
+
             {/* Channel Number Picker */}
             <View style={styles.channelPickerContainer}>
               <Text style={[styles.channelPickerLabel, {color: textColor}]}>
@@ -191,7 +225,7 @@ const SettingsScreen = ({navigation}) => {
                 <Text style={[styles.channelInfoText, {color: textColor}]}>
                   Current Limit: {maxSimultaneousChannels}/10 channels
                 </Text>
-                <Text style={[styles.channelInfoSubtext, {color: textColor}]}>
+                <Text style={[styles.voiceStatusSubtext, {color: textColor}]}>
                   {maxSimultaneousChannels === 1
                     ? 'Single channel mode'
                     : maxSimultaneousChannels <= 3
@@ -351,6 +385,32 @@ const styles = StyleSheet.create({
     marginBottom: 5,
   },
   channelInfoSubtext: {
+    fontSize: 12,
+    opacity: 0.7,
+    textAlign: 'center',
+  },
+  // Voice status styles
+  voiceStatusContainer: {
+    marginVertical: 15,
+    padding: 15,
+    borderRadius: 8,
+    backgroundColor: 'rgba(0, 102, 204, 0.1)',
+    borderWidth: 1,
+    borderColor: 'rgba(0, 102, 204, 0.3)',
+  },
+  voiceStatusLabel: {
+    fontSize: 16,
+    fontWeight: 'bold',
+    marginBottom: 10,
+  },
+  voiceStatusInfo: {
+    gap: 5,
+  },
+  voiceStatusText: {
+    fontSize: 14,
+    marginBottom: 2,
+  },
+  voiceStatusSubtext: {
     fontSize: 12,
     opacity: 0.7,
     textAlign: 'center',
