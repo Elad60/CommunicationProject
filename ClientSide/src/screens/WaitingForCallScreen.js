@@ -108,9 +108,26 @@ const WaitingForCallScreen = ({route, navigation}) => {
     
     // Stop all polling first to prevent multiple calls
     stopPollingForResponse();
-    setStatus('No Answer');
+    setStatus('Call Timed Out');
     
-    // Don't try to cancel - just show timeout message
+    // Cancel the call on server (same as manual cancel)
+    if (invitationId) {
+      try {
+        console.log('📤 Cancelling timed-out call on server...');
+        const response = await privateCallApi.cancelInvitation(invitationId, user.id);
+        
+        if (response.success) {
+          console.log('✅ Server confirmed timeout cancellation');
+        } else {
+          console.log('⚠️ Server could not cancel timed-out call (probably already changed status)');
+        }
+      } catch (error) {
+        console.log('⚠️ Server timeout cancel failed (probably already changed status):', error.message);
+        // This is OK - the call might already be accepted/expired/etc
+      }
+    }
+    
+    // Show timeout message and navigate back
     Alert.alert(
       'No Answer',
       `${otherUser.username} didn't respond to your call within 60 seconds.`,

@@ -61,11 +61,14 @@ const GlobalCallListener = () => {
           currentScreenRef.current = currentScreenName;
           
           if (userIdRef.current) {
-            if (currentScreenName === 'PrivateCall') {
-              console.log('🛑 GlobalCallListener: Entering PrivateCall - PAUSING incoming call polling');
+            // Pause polling for all call-related screens where user should focus on current call
+            const callScreens = ['PrivateCall', 'WaitingForCall', 'IncomingCall'];
+            
+            if (callScreens.includes(currentScreenName)) {
+              console.log(`🛑 GlobalCallListener: Entering ${currentScreenName} - PAUSING incoming call polling`);
               pauseListening();
             } else {
-              console.log('✅ GlobalCallListener: Not in PrivateCall - RESUMING incoming call polling');
+              console.log(`✅ GlobalCallListener: In ${currentScreenName} - RESUMING incoming call polling`);
               resumeListening();
             }
           } else {
