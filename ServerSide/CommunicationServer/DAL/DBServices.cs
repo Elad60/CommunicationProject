@@ -753,5 +753,46 @@ namespace CommunicationServer.DAL
             }
             return count;
         }
+
+        public List<User> GetChannelParticipants(int channelId)
+        {
+            SqlConnection con = null;
+            List<User> participants = new List<User>();
+            try
+            {
+                con = Connect("myProjDB");
+                var parameters = new Dictionary<string, object>
+                {
+                    { "@ChannelId", channelId }
+                };
+                SqlCommand cmd = CreateCommandWithStoredProcedure("sp_GetChannelParticipants", con, parameters);
+                SqlDataReader reader = cmd.ExecuteReader();
+                while (reader.Read())
+                {
+                    User user = new User
+                    {
+                        Id = Convert.ToInt32(reader["Id"]),
+                        Username = reader["Username"].ToString(),
+                        Email = reader["Email"].ToString(),
+                        Role = reader["Role"].ToString(),
+                        CreatedAt = Convert.ToDateTime(reader["CreatedAt"]),
+                        IsBlocked = Convert.ToBoolean(reader["IsBlocked"]),
+                        Group = Convert.ToChar(reader["Group"]),
+                        IsActive = Convert.ToBoolean(reader["IsActive"])
+                    };
+                    participants.Add(user);
+                }
+                reader.Close();
+            }
+            catch (Exception ex)
+            {
+                throw new Exception("Error retrieving channel participants: " + ex.Message);
+            }
+            finally
+            {
+                con?.Close();
+            }
+            return participants;
+        }
     }
 }

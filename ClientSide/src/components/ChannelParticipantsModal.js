@@ -7,40 +7,31 @@ import {
   ScrollView,
   Dimensions,
 } from 'react-native';
-// Removed Fluent UI imports that are not used
-// import {FluentProvider, Button, Text as FluentText, Card, Badge} from '@fluentui/react-native';
-// import {useTheme} from '@fluentui/react-native';
+import {useSettings} from '../context/SettingsContext';
 
 const {width, height} = Dimensions.get('window');
 
-const ChannelParticipantsModal = ({
-  visible,
-  onClose,
-  channelName,
-  participants = [],
-}) => {
-  if (!visible) return null;
-
-  const styles = StyleSheet.create({
+const getStyles = darkMode =>
+  StyleSheet.create({
     overlay: {
       position: 'absolute',
       top: 0,
       left: 0,
       right: 0,
       bottom: 0,
-      backgroundColor: 'rgba(0, 0, 0, 0.7)',
+      backgroundColor: darkMode ? 'rgba(0,0,0,0.7)' : 'rgba(0,0,0,0.2)',
       justifyContent: 'center',
       alignItems: 'center',
       zIndex: 9999,
     },
     modalContent: {
-      backgroundColor: '#1a1a1a',
+      backgroundColor: darkMode ? '#1a1a1a' : '#fff',
       borderRadius: 16,
       padding: 24,
       width: width * 0.9,
       maxHeight: height * 0.8,
       borderWidth: 1,
-      borderColor: '#333',
+      borderColor: darkMode ? '#333' : '#ccc',
     },
     header: {
       flexDirection: 'row',
@@ -49,19 +40,19 @@ const ChannelParticipantsModal = ({
       marginBottom: 20,
       paddingBottom: 16,
       borderBottomWidth: 1,
-      borderBottomColor: '#333',
+      borderBottomColor: darkMode ? '#333' : '#eee',
     },
     headerTitle: {
       fontSize: 24,
       fontWeight: 'bold',
-      color: '#ffffff',
+      color: darkMode ? '#fff' : '#222',
     },
     closeButton: {
       padding: 8,
     },
     closeButtonText: {
       fontSize: 24,
-      color: '#888',
+      color: darkMode ? '#888' : '#aaa',
     },
     channelInfo: {
       marginBottom: 20,
@@ -69,12 +60,12 @@ const ChannelParticipantsModal = ({
     channelName: {
       fontSize: 20,
       fontWeight: '600',
-      color: '#ffffff',
+      color: darkMode ? '#fff' : '#222',
       marginBottom: 8,
     },
     participantCount: {
       fontSize: 16,
-      color: '#888',
+      color: darkMode ? '#aaa' : '#666',
     },
     participantsList: {
       maxHeight: height * 0.5,
@@ -86,10 +77,10 @@ const ChannelParticipantsModal = ({
       paddingVertical: 12,
       paddingHorizontal: 16,
       marginVertical: 4,
-      backgroundColor: '#2a2a2a',
+      backgroundColor: darkMode ? '#2a2a2a' : '#f5f5f5',
       borderRadius: 8,
       borderWidth: 1,
-      borderColor: '#333',
+      borderColor: darkMode ? '#333' : '#ddd',
     },
     participantInfo: {
       flex: 1,
@@ -97,22 +88,22 @@ const ChannelParticipantsModal = ({
     participantName: {
       fontSize: 16,
       fontWeight: '500',
-      color: '#ffffff',
+      color: darkMode ? '#fff' : '#222',
       marginBottom: 4,
     },
     participantRole: {
       fontSize: 14,
-      color: '#888',
+      color: darkMode ? '#aaa' : '#666',
     },
     roleBadge: {
       paddingHorizontal: 8,
       paddingVertical: 4,
       borderRadius: 12,
-      backgroundColor: '#4a4a4a',
+      backgroundColor: darkMode ? '#4a4a4a' : '#e0e0e0',
     },
     roleBadgeText: {
       fontSize: 12,
-      color: '#ffffff',
+      color: darkMode ? '#fff' : '#333',
       fontWeight: '500',
     },
     emptyState: {
@@ -121,19 +112,30 @@ const ChannelParticipantsModal = ({
     },
     emptyStateText: {
       fontSize: 16,
-      color: '#888',
+      color: darkMode ? '#888' : '#aaa',
       textAlign: 'center',
     },
   });
 
+const ChannelParticipantsModal = ({
+  visible,
+  onClose,
+  channelName,
+  participants = [],
+}) => {
+  const {darkMode} = useSettings();
+  const styles = getStyles(darkMode);
+
+  if (!visible) return null;
+
   const getRoleBadgeColor = role => {
     switch (role) {
       case 'host':
-        return '#4CAF50';
+        return darkMode ? '#4CAF50' : '#388e3c';
       case 'participant':
-        return '#2196F3';
+        return darkMode ? '#2196F3' : '#1976d2';
       default:
-        return '#4a4a4a';
+        return darkMode ? '#4a4a4a' : '#e0e0e0';
     }
   };
 

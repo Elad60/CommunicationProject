@@ -119,5 +119,21 @@ namespace CommunicationServer.Controllers
                 return StatusCode(500, new { success = false, message = ex.Message });
             }
         }
+
+        // 📌 Get all participants (users listening) in a specific radio channel
+        [HttpGet("{channelId}/participants")]
+        public IActionResult GetChannelParticipants(int channelId)
+        {
+            try
+            {
+                DBServices dbs = new DBServices();
+                var participants = dbs.GetChannelParticipants(channelId);
+                return Ok(participants);
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(500, $"Error retrieving channel participants: {ex.Message}");
+            }
+        }
     }
 }

@@ -45,8 +45,7 @@ const MainScreen = ({navigation}) => {
   const [isParticipantsModalVisible, setIsParticipantsModalVisible] =
     useState(false);
   const [selectedChannelForModal, setSelectedChannelForModal] = useState(null);
-  const [lastTapTime, setLastTapTime] = useState({});
-  const [connectedUsers, setConnectedUsers] = useState([]);
+  const [participantsForModal, setParticipantsForModal] = useState([]);
 
   const {user} = useAuth();
   const {showFrequency, showStatus} = useSettings();
@@ -98,20 +97,6 @@ const MainScreen = ({navigation}) => {
       }
     };
   }, []); // Run once on mount
-
-  useEffect(() => {
-    const emitter = new NativeEventEmitter(AgoraModule);
-    const joinSub = emitter.addListener('onUserJoined', event => {
-      setConnectedUsers(prev => [...new Set([...prev, event.uid])]);
-    });
-    const leaveSub = emitter.addListener('onUserOffline', event => {
-      setConnectedUsers(prev => prev.filter(uid => uid !== event.uid));
-    });
-    return () => {
-      joinSub.remove();
-      leaveSub.remove();
-    };
-  }, []);
 
   // Handle selection of a radio channel
   const handleChannelSelect = id => {
@@ -224,23 +209,19 @@ const MainScreen = ({navigation}) => {
   const handleReverseChannelState = channelId =>
     handleChannelStateChange(channelId, 'reverse');
 
-  // Double tap handler for opening participants modal
-  const handleChannelPress = channel => {
-    const now = Date.now();
-    const lastTap = lastTapTime[channel.id] || 0;
-    const DOUBLE_TAP_DELAY = 300; // 300ms for double tap
-
-    if (now - lastTap < DOUBLE_TAP_DELAY) {
-      // Double tap detected - open participants modal
-      setSelectedChannelForModal(channel);
-      setIsParticipantsModalVisible(true);
-      setLastTapTime({}); // Reset tap times
-    } else {
-      // Single tap - normal channel state change
-      handleChannelSelect(channel.id);
-      handleToggleChannelState(channel.id);
-      setLastTapTime({...lastTapTime, [channel.id]: now});
+  // Remove lastTapTime state
+  // Remove handleChannelPress and double-tap logic
+  const handleChannelLongPress = async channel => {
+    try {
+      const participants = await radioChannelsApi.getChannelParticipants(
+        channel.id,
+      );
+      setParticipantsForModal(participants);
+    } catch (err) {
+      setParticipantsForModal([]);
     }
+    setSelectedChannelForModal(channel);
+    setIsParticipantsModalVisible(true);
   };
 
   // Close participants modal
@@ -499,38 +480,43 @@ const MainScreen = ({navigation}) => {
         <ScrollView style={styles.scrollView}>
           <View style={styles.mainGrid}>
             {radioChannels.map(channel => (
-              <TouchableOpacity
-                key={channel.id}
-                onPress={() => handleChannelPress(channel)}
-                onLongPress={() => {
-                  // Long press for reverse state cycle
-                  handleChannelSelect(channel.id);
-                  handleReverseChannelState(channel.id);
-                }}>
-                <RadioChannel
-                  name={channel.name}
-                  frequency={channel.frequency}
-                  isActive={channel.status === 'Active'}
-                  mode={channel.mode}
-                  isSelected={selectedChannel === channel.id}
-                  channelState={channel.channelState}
-                  showFrequency={showFrequency}
-                  showStatus={showStatus}
-                  numberOfChannels={radioChannels.length}
-                  // Voice connection props
-                  isVoiceConnected={activeVoiceChannel === channel.id}
-                  voiceStatus={
-                    activeVoiceChannel === channel.id
-                      ? voiceStatus
-                      : 'disconnected'
-                  }
-                  isMicrophoneEnabled={
-                    activeVoiceChannel === channel.id
-                      ? channel.channelState === 'ListenAndTalk'
-                      : false
-                  }
-                />
-              </TouchableOpacity>
+              <View key={channel.id}>
+                <TouchableOpacity
+                  onPress={e => {
+                    if (e && e.nativeEvent && e.nativeEvent.shiftKey) {
+                      handleReverseChannelState(channel.id);
+                    } else {
+                      handleChannelSelect(channel.id);
+                      handleToggleChannelState(channel.id);
+                    }
+                  }}
+                  onLongPress={() => handleChannelLongPress(channel)}
+                  style={{flex: 1}}>
+                  <RadioChannel
+                    name={channel.name}
+                    frequency={channel.frequency}
+                    isActive={channel.status === 'Active'}
+                    mode={channel.mode}
+                    isSelected={selectedChannel === channel.id}
+                    channelState={channel.channelState}
+                    showFrequency={showFrequency}
+                    showStatus={showStatus}
+                    numberOfChannels={radioChannels.length}
+                    // Voice connection props
+                    isVoiceConnected={activeVoiceChannel === channel.id}
+                    voiceStatus={
+                      activeVoiceChannel === channel.id
+                        ? voiceStatus
+                        : 'disconnected'
+                    }
+                    isMicrophoneEnabled={
+                      activeVoiceChannel === channel.id
+                        ? channel.channelState === 'ListenAndTalk'
+                        : false
+                    }
+                  />
+                </TouchableOpacity>
+              </View>
             ))}
           </View>
         </ScrollView>
@@ -552,10 +538,7 @@ const MainScreen = ({navigation}) => {
         visible={isParticipantsModalVisible}
         onClose={closeParticipantsModal}
         channelName={selectedChannelForModal?.name || ''}
-        participants={connectedUsers.map(uid => ({
-          username: `User ${uid}`,
-          role: 'participant',
-        }))}
+        participants={participantsForModal}
       />
     </AppLayout>
   );

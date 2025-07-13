@@ -1,7 +1,8 @@
 import axios from 'axios';
 
 const api = axios.create({
-  baseURL: 'https://proj.ruppin.ac.il/cgroup90/test2/tar1/api',
+  baseURL: 'http://localhost:7220/api',
+  //baseURL: 'https://proj.ruppin.ac.il/cgroup90/test2/tar1/api',
   timeout: 5000,
 });
 
@@ -44,6 +45,11 @@ const radioChannelsApi = {
     await api.delete(
       `/radiochannels/user/${userId}/remove-channel/${channelId}`,
     );
+  },
+
+  getChannelParticipants: async channelId => {
+    const response = await api.get(`/radiochannels/${channelId}/participants`);
+    return response.data;
   },
 };
 
