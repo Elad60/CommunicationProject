@@ -15,7 +15,6 @@ import {useAuth} from '../context/AuthContext';
 import {radioChannelsApi} from '../utils/apiService';
 import {useSettings} from '../context/SettingsContext';
 import {useVoice} from '../context/VoiceContext';
-import {useFocusEffect} from '@react-navigation/native';
 
 const MainScreen = ({navigation}) => {
   console.log('MainScreen rendered');
@@ -71,19 +70,6 @@ const MainScreen = ({navigation}) => {
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [user]);
-
-  useFocusEffect(
-    React.useCallback(() => {
-      // When MainScreen is focused, reset all channels to Idle
-      setRadioChannels(prevChannels =>
-        prevChannels.map(channel => ({
-          ...channel,
-          channelState: 'Idle',
-        })),
-      );
-      setSelectedChannel(null);
-    }, []),
-  );
 
   // Handle selection of a radio channel
   const handleChannelSelect = id => {
