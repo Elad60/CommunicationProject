@@ -126,7 +126,7 @@ export const VoiceProvider = ({children}) => {
 
       console.log(`🎤 Setting talking channel: ${agoraChannelName}`);
       AgoraModule.SetTalkingChannel(agoraChannelName, uid);
-      AgoraModule.MuteChannel(agoraChannelName, uid, false); // Ensure unmuted for talking
+      AgoraModule.MuteChannel(agoraChannelName, uid, false);
 
       setCurrentTalkingChannel(channelId);
       setIsMicrophoneEnabled(true);
@@ -154,13 +154,6 @@ export const VoiceProvider = ({children}) => {
         `🎤 ${muted ? 'Muting' : 'Unmuting'} channel: ${agoraChannelName}`,
       );
       AgoraModule.MuteChannel(agoraChannelName, uid, muted);
-
-      // If muting and this was the talking channel, clear talking state
-      if (muted && currentTalkingChannel === channelId) {
-        setCurrentTalkingChannel(null);
-        setIsMicrophoneEnabled(false);
-        console.log(`🎤 Cleared talking state for muted channel: ${channelId}`);
-      }
 
       console.log(
         `✅ Successfully ${

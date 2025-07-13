@@ -123,27 +123,13 @@ const MainScreen = ({navigation}) => {
       // Handle multi-channel logic
       switch (newState) {
         case 'Idle':
-          // If this was the talking channel, clear talking state first
+          // Remove from listening channels
+          removeListeningChannel(channelId);
+
+          // If this was the talking channel, clear talking state
           if (currentTalkingChannel === channelId) {
             clearTalkingChannel();
           }
-
-          // Mute the channel before leaving (to ensure no audio leakage)
-          await muteChannel(channelId, true);
-
-          console.log(
-            `🎤 Channel ${channelId} muted before leaving (Idle state)`,
-          );
-
-          // Ensure microphone is disabled for Idle
-          setIsMicrophoneEnabled(false);
-
-          console.log(
-            `🎤 Microphone disabled for channel ${channelId} (Idle state) - No audio transmission - Channel muted - Safe to leave - No one can hear you - Completely disconnected`,
-          );
-
-          // Remove from listening channels
-          removeListeningChannel(channelId);
 
           // Leave voice channel using global voice context
           const channelUid = getChannelUid(channelId);
@@ -192,23 +178,6 @@ const MainScreen = ({navigation}) => {
           const newChannelUid = Math.floor(Math.random() * 1000000) + 1;
           await joinChannel(channelId, newChannelUid);
 
-          // Mute the channel for ListenOnly mode
-          await muteChannel(channelId, true);
-
-          // Ensure we're not talking on this channel
-          if (currentTalkingChannel === channelId) {
-            clearTalkingChannel();
-          }
-
-          console.log(`🎤 Channel ${channelId} muted for ListenOnly mode`);
-
-          // Ensure microphone is disabled for ListenOnly
-          setIsMicrophoneEnabled(false);
-
-          console.log(
-            `🎤 Microphone disabled for channel ${channelId} (ListenOnly state) - Listening only - Channel muted - Safe to listen - You can hear others but they can't hear you`,
-          );
-
           // Update UI state - ONLY this channel, don't affect others
           setRadioChannels(prev =>
             prev.map(c =>
@@ -256,21 +225,6 @@ const MainScreen = ({navigation}) => {
           // Set as talking channel using global voice context
           await setGlobalTalkingChannel(channelId);
 
-          // Ensure the channel is unmuted for talking
-          await muteChannel(channelId, false);
-
-          // Double-check that we're not muted
-          console.log(
-            `🎤 Channel ${channelId} is now set for talking (unmuted)`,
-          );
-
-          // Ensure microphone is enabled for talking
-          setIsMicrophoneEnabled(true);
-
-          console.log(
-            `🎤 Microphone enabled for channel ${channelId} (ListenAndTalk state) - Full duplex - Channel unmuted - Ready to talk - You can hear others and they can hear you`,
-          );
-
           // Update UI state
           setRadioChannels(prev =>
             prev.map(c =>
@@ -316,8 +270,12 @@ const MainScreen = ({navigation}) => {
           ),
         );
 
-        // Mute the previous talking channel using global voice context
-        await muteChannel(currentTalkingChannel, true);
+        // Mute the previous talking channel
+        const previousAgoraChannelName = `radio_channel_${currentTalkingChannel}`;
+        const uid = channelUids[previousAgoraChannelName];
+        if (uid) {
+          AgoraModule.MuteChannel(previousAgoraChannelName, uid, true);
+        }
 
         // Update backend
         const userId = user?.id;
@@ -359,8 +317,14 @@ const MainScreen = ({navigation}) => {
       await joinChannel(newTalkingChannelId, newChannelUid);
     }
 
-    // Set as talking channel and unmute using global voice context
-    await setGlobalTalkingChannel(newTalkingChannelId);
+    // Set as talking channel and unmute
+    const newAgoraChannelName = `radio_channel_${newTalkingChannelId}`;
+    const uid = channelUids[newAgoraChannelName];
+    if (uid) {
+      AgoraModule.SetTalkingChannel(newAgoraChannelName, uid);
+      AgoraModule.MuteChannel(newAgoraChannelName, uid, false);
+      setIsMicrophoneEnabled(true);
+    }
   };
 
   // Wrapper functions for backwards compatibility
