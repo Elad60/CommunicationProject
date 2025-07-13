@@ -8,14 +8,21 @@ import {
   Text,
   NativeModules,
   Alert,
+  NativeEventEmitter,
 } from 'react-native';
 import RadioChannel from '../components/RadioChannel';
 import AppLayout from '../components/AppLayout';
+import ChannelParticipantsModal from '../components/ChannelParticipantsModal';
 import {useAuth} from '../context/AuthContext';
 import {radioChannelsApi} from '../utils/apiService';
 import {useSettings} from '../context/SettingsContext';
 
 const {AgoraModule} = NativeModules;
+
+// Add this if not already present:
+if (!AgoraModule.removeListeners) {
+  AgoraModule.removeListeners = () => {};
+}
 
 const MainScreen = ({navigation}) => {
   console.log('MainScreen rendered');
@@ -33,6 +40,13 @@ const MainScreen = ({navigation}) => {
   // Race condition prevention
   const [pendingMuteTimeout, setPendingMuteTimeout] = useState(null);
   const [pendingUnmuteTimeout, setPendingUnmuteTimeout] = useState(null);
+
+  // Modal state
+  const [isParticipantsModalVisible, setIsParticipantsModalVisible] =
+    useState(false);
+  const [selectedChannelForModal, setSelectedChannelForModal] = useState(null);
+  const [lastTapTime, setLastTapTime] = useState({});
+  const [connectedUsers, setConnectedUsers] = useState([]);
 
   const {user} = useAuth();
   const {showFrequency, showStatus} = useSettings();
@@ -84,6 +98,20 @@ const MainScreen = ({navigation}) => {
       }
     };
   }, []); // Run once on mount
+
+  useEffect(() => {
+    const emitter = new NativeEventEmitter(AgoraModule);
+    const joinSub = emitter.addListener('onUserJoined', event => {
+      setConnectedUsers(prev => [...new Set([...prev, event.uid])]);
+    });
+    const leaveSub = emitter.addListener('onUserOffline', event => {
+      setConnectedUsers(prev => prev.filter(uid => uid !== event.uid));
+    });
+    return () => {
+      joinSub.remove();
+      leaveSub.remove();
+    };
+  }, []);
 
   // Handle selection of a radio channel
   const handleChannelSelect = id => {
@@ -195,6 +223,31 @@ const MainScreen = ({navigation}) => {
     handleChannelStateChange(channelId, 'forward');
   const handleReverseChannelState = channelId =>
     handleChannelStateChange(channelId, 'reverse');
+
+  // Double tap handler for opening participants modal
+  const handleChannelPress = channel => {
+    const now = Date.now();
+    const lastTap = lastTapTime[channel.id] || 0;
+    const DOUBLE_TAP_DELAY = 300; // 300ms for double tap
+
+    if (now - lastTap < DOUBLE_TAP_DELAY) {
+      // Double tap detected - open participants modal
+      setSelectedChannelForModal(channel);
+      setIsParticipantsModalVisible(true);
+      setLastTapTime({}); // Reset tap times
+    } else {
+      // Single tap - normal channel state change
+      handleChannelSelect(channel.id);
+      handleToggleChannelState(channel.id);
+      setLastTapTime({...lastTapTime, [channel.id]: now});
+    }
+  };
+
+  // Close participants modal
+  const closeParticipantsModal = () => {
+    setIsParticipantsModalVisible(false);
+    setSelectedChannelForModal(null);
+  };
 
   // Helper function to get the next state of a channel
   const getNextState = state => {
@@ -448,10 +501,7 @@ const MainScreen = ({navigation}) => {
             {radioChannels.map(channel => (
               <TouchableOpacity
                 key={channel.id}
-                onPress={() => {
-                  handleChannelSelect(channel.id);
-                  handleToggleChannelState(channel.id);
-                }}
+                onPress={() => handleChannelPress(channel)}
                 onLongPress={() => {
                   // Long press for reverse state cycle
                   handleChannelSelect(channel.id);
@@ -496,6 +546,17 @@ const MainScreen = ({navigation}) => {
           <Text style={styles.testButtonText}>🚨 Reset</Text>
         </TouchableOpacity>
       </View>
+
+      {/* Channel Participants Modal */}
+      <ChannelParticipantsModal
+        visible={isParticipantsModalVisible}
+        onClose={closeParticipantsModal}
+        channelName={selectedChannelForModal?.name || ''}
+        participants={connectedUsers.map(uid => ({
+          username: `User ${uid}`,
+          role: 'participant',
+        }))}
+      />
     </AppLayout>
   );
 };

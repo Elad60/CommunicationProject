@@ -22,12 +22,19 @@ namespace winrt::FinalProject::implementation
         AgoraEventHandler() = default;
         virtual ~AgoraEventHandler() = default;
 
+        // Add ReactContext setter
+        void SetReactContext(winrt::Microsoft::ReactNative::ReactContext const& context) {
+            m_reactContext = context;
+        }
+
         // Override key event methods
         void onJoinChannelSuccess(const char* channel, uid_t uid, int elapsed) override;
         void onLeaveChannel(const RtcStats& stats) override;
         void onUserJoined(uid_t uid, int elapsed) override;
         void onUserOffline(uid_t uid, USER_OFFLINE_REASON_TYPE reason) override;
         void onError(int err, const char* msg) override;
+    private:
+        winrt::Microsoft::ReactNative::ReactContext m_reactContext{ nullptr };
     };
 
     // Global singleton class for Agora management
@@ -81,6 +88,12 @@ namespace winrt::FinalProject::implementation
         // Debug and status methods
         bool IsLocalAudioMuted();
 
+        void SetReactContext(winrt::Microsoft::ReactNative::ReactContext const& context) {
+            if (m_eventHandler) {
+                m_eventHandler->SetReactContext(context);
+            }
+        }
+
         ~AgoraManager() {
             ReleaseEngine();
         }
@@ -93,6 +106,7 @@ namespace winrt::FinalProject::implementation
         void Initialize(winrt::Microsoft::ReactNative::ReactContext const& reactContext) noexcept
         {
             m_reactContext = reactContext;
+            AgoraManager::GetInstance()->SetReactContext(reactContext);
         }
 
         REACT_METHOD(InitializeAgoraEngine)

@@ -45,6 +45,18 @@ namespace winrt::FinalProject::implementation
                          std::string("\n  🎉 You should now be able to hear each other!") +
                          std::string("\n  🎤 Both devices can now communicate!");
         OutputDebugStringA(("AgoraEventHandler::onUserJoined - " + msg + "\n").c_str());
+        // Bridge to JS
+        if (m_reactContext) {
+            m_reactContext.EmitJSEvent(
+                L"RCTDeviceEventEmitter",
+                L"onUserJoined",
+                winrt::Microsoft::ReactNative::JSValueArray{
+                    winrt::Microsoft::ReactNative::JSValueObject{
+                        {"uid", static_cast<int>(uid)}
+                    }
+                }
+            );
+        }
     }
 
     void AgoraEventHandler::onUserOffline(uid_t uid, USER_OFFLINE_REASON_TYPE reason)
@@ -56,6 +68,18 @@ namespace winrt::FinalProject::implementation
                          std::string("\n  📝 Reason: ") + reasonStr +
                          std::string("\n  ⚠️ Voice communication ended with this user");
         OutputDebugStringA(("AgoraEventHandler::onUserOffline - " + msg + "\n").c_str());
+        // Bridge to JS
+        if (m_reactContext) {
+            m_reactContext.EmitJSEvent(
+                L"RCTDeviceEventEmitter",
+                L"onUserOffline",
+                winrt::Microsoft::ReactNative::JSValueArray{
+                    winrt::Microsoft::ReactNative::JSValueObject{
+                        {"uid", static_cast<int>(uid)}
+                    }
+                }
+            );
+        }
     }
 
     void AgoraEventHandler::onError(int err, const char* msg)
