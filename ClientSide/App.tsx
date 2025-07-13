@@ -14,7 +14,6 @@ import RegisterScreen from './src/screens/RegisterScreen';
 import {AuthProvider, useAuth} from './src/context/AuthContext';
 import {SettingsProvider} from './src/context/SettingsContext';
 import {AnnouncementsProvider} from './src/context/AnnouncementsContext';
-import {VoiceProvider} from './src/context/VoiceContext';
 import {name as appName} from './app.json';
 
 // Enable remote debugging
@@ -87,9 +86,7 @@ const App = () => {
       <AuthProvider>
         <SettingsProvider>
           <AnnouncementsProvider>
-            <VoiceProvider>
-              <AppContent />
-            </VoiceProvider>
+            <AppContent />
           </AnnouncementsProvider>
         </SettingsProvider>
       </AuthProvider>
