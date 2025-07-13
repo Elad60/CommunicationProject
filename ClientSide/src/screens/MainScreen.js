@@ -6,9 +6,7 @@ import {
   TouchableOpacity,
   ActivityIndicator,
   Text,
-  NativeModules,
   Alert,
-  NativeEventEmitter,
 } from 'react-native';
 import RadioChannel from '../components/RadioChannel';
 import AppLayout from '../components/AppLayout';
@@ -16,13 +14,8 @@ import ChannelParticipantsModal from '../components/ChannelParticipantsModal';
 import {useAuth} from '../context/AuthContext';
 import {radioChannelsApi} from '../utils/apiService';
 import {useSettings} from '../context/SettingsContext';
-
-const {AgoraModule} = NativeModules;
-
-// Add this if not already present:
-if (!AgoraModule.removeListeners) {
-  AgoraModule.removeListeners = () => {};
-}
+import {useVoice} from '../context/VoiceContext';
+import {useFocusEffect} from '@react-navigation/native';
 
 const MainScreen = ({navigation}) => {
   console.log('MainScreen rendered');
@@ -31,15 +24,18 @@ const MainScreen = ({navigation}) => {
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState(null);
 
-  // Voice Communication State Management
-  const [activeVoiceChannel, setActiveVoiceChannel] = useState(null); // Which channel is currently connected to voice
-  const [voiceStatus, setVoiceStatus] = useState('disconnected'); // 'disconnected', 'connecting', 'connected'
-  const [isMicrophoneEnabled, setIsMicrophoneEnabled] = useState(false); // Is microphone active
-  const [isAgoraInitialized, setIsAgoraInitialized] = useState(false); // Is Agora engine ready
-
-  // Race condition prevention
-  const [pendingMuteTimeout, setPendingMuteTimeout] = useState(null);
-  const [pendingUnmuteTimeout, setPendingUnmuteTimeout] = useState(null);
+  // Get voice context
+  const {
+    activeVoiceChannel,
+    voiceStatus,
+    isMicrophoneEnabled,
+    joinVoiceChannel,
+    leaveVoiceChannel,
+    clearPendingAudioTimeouts,
+    setPendingMuteTimeout,
+    setPendingUnmuteTimeout,
+    emergencyVoiceReset,
+  } = useVoice();
 
   // Modal state
   const [isParticipantsModalVisible, setIsParticipantsModalVisible] =
@@ -76,27 +72,18 @@ const MainScreen = ({navigation}) => {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [user]);
 
-  // Initialize Agora engine when component mounts
-  useEffect(() => {
-    const setupVoiceEngine = async () => {
-      console.log('🎬 MainScreen loaded - initializing voice engine...');
-      await initializeAgoraEngine();
-    };
-
-    setupVoiceEngine();
-
-    // Cleanup function - leave voice channel when component unmounts
-    return () => {
-      console.log('🧹 MainScreen unmounting - cleaning up voice...');
-      try {
-        if (AgoraModule) {
-          AgoraModule.LeaveChannel();
-        }
-      } catch (error) {
-        console.error('❌ Error during component unmount cleanup:', error);
-      }
-    };
-  }, []); // Run once on mount
+  useFocusEffect(
+    React.useCallback(() => {
+      // When MainScreen is focused, reset all channels to Idle
+      setRadioChannels(prevChannels =>
+        prevChannels.map(channel => ({
+          ...channel,
+          channelState: 'Idle',
+        })),
+      );
+      setSelectedChannel(null);
+    }, []),
+  );
 
   // Handle selection of a radio channel
   const handleChannelSelect = id => {
@@ -137,16 +124,14 @@ const MainScreen = ({navigation}) => {
           break;
         case 'ListenOnly':
           if (activeVoiceChannel === channelId) {
-            AgoraModule.MuteLocalAudio(true);
-            setIsMicrophoneEnabled(false);
+            // Channel is already connected, just mute
+            // The VoiceContext handles the actual muting
           } else {
-            // Immediately set microphone state based on channel state
-            setIsMicrophoneEnabled(false);
+            // Join the channel and set to muted state
             const joinSuccess = await joinVoiceChannel(channelId, current.name);
             if (joinSuccess) {
               const muteTimeout = setTimeout(() => {
-                AgoraModule.MuteLocalAudio(true);
-                setIsMicrophoneEnabled(false);
+                // The VoiceContext will handle the actual muting
                 setPendingMuteTimeout(null);
               }, 1500);
               setPendingMuteTimeout(muteTimeout);
@@ -155,16 +140,14 @@ const MainScreen = ({navigation}) => {
           break;
         case 'ListenAndTalk':
           if (activeVoiceChannel === channelId) {
-            AgoraModule.MuteLocalAudio(false);
-            setIsMicrophoneEnabled(true);
+            // Channel is already connected, just unmute
+            // The VoiceContext handles the actual unmuting
           } else {
-            // Immediately set microphone state based on channel state
-            setIsMicrophoneEnabled(true);
+            // Join the channel and set to unmuted state
             const joinSuccess = await joinVoiceChannel(channelId, current.name);
             if (joinSuccess) {
               const unmuteTimeout = setTimeout(() => {
-                AgoraModule.MuteLocalAudio(false);
-                setIsMicrophoneEnabled(true);
+                // The VoiceContext will handle the actual unmuting
                 setPendingUnmuteTimeout(null);
               }, 1000);
               setPendingUnmuteTimeout(unmuteTimeout);
@@ -263,188 +246,6 @@ const MainScreen = ({navigation}) => {
     navigation.navigate('PickRadios');
   };
 
-  // ==================== VOICE INTEGRATION HELPER FUNCTIONS ====================
-
-  // Clear any pending audio state timeouts to prevent race conditions
-  const clearPendingAudioTimeouts = () => {
-    if (pendingMuteTimeout) {
-      clearTimeout(pendingMuteTimeout);
-      setPendingMuteTimeout(null);
-    }
-    if (pendingUnmuteTimeout) {
-      clearTimeout(pendingUnmuteTimeout);
-      setPendingUnmuteTimeout(null);
-    }
-  };
-
-  // Initialize Agora engine (call once when app starts)
-  const initializeAgoraEngine = async () => {
-    try {
-      if (!AgoraModule) {
-        console.error('❌ AgoraModule not available');
-        return false;
-      }
-
-      AgoraModule.InitializeAgoraEngine('e5631d55e8a24b08b067bb73f8797fe3');
-      setIsAgoraInitialized(true);
-      return true;
-    } catch (error) {
-      console.error('❌ Failed to initialize Agora engine:', error);
-      setIsAgoraInitialized(false);
-      return false;
-    }
-  };
-
-  // Join a voice channel for a specific radio channel
-  const joinVoiceChannel = async (channelId, channelName) => {
-    try {
-      if (!isAgoraInitialized) {
-        const initialized = await initializeAgoraEngine();
-        if (!initialized) {
-          throw new Error('Failed to initialize Agora engine');
-        }
-      }
-
-      setVoiceStatus('connecting');
-
-      // Leave current channel if connected to another
-      if (activeVoiceChannel && activeVoiceChannel !== channelId) {
-        AgoraModule.LeaveChannel();
-      }
-
-      const agoraChannelName = `radio_channel_${channelId}`;
-      AgoraModule.JoinChannel(agoraChannelName);
-
-      setActiveVoiceChannel(channelId);
-      setVoiceStatus('connected');
-      return true;
-    } catch (error) {
-      console.error('❌ Failed to join voice channel:', error);
-      setVoiceStatus('disconnected');
-      setActiveVoiceChannel(null);
-      return false;
-    }
-  };
-
-  // Leave current voice channel
-  const leaveVoiceChannel = async () => {
-    try {
-      if (!activeVoiceChannel) return true;
-
-      clearPendingAudioTimeouts();
-      setVoiceStatus('connecting');
-
-      AgoraModule.LeaveChannel();
-
-      setActiveVoiceChannel(null);
-      setVoiceStatus('disconnected');
-      setIsMicrophoneEnabled(false);
-      return true;
-    } catch (error) {
-      console.error('❌ Failed to leave voice channel:', error);
-      clearPendingAudioTimeouts();
-      setActiveVoiceChannel(null);
-      setVoiceStatus('disconnected');
-      setIsMicrophoneEnabled(false);
-      return false;
-    }
-  };
-
-  // Toggle microphone on/off (SIMPLIFIED VERSION)
-  const toggleMicrophone = async enabled => {
-    try {
-      if (!activeVoiceChannel) {
-        console.log(
-          '⚠️ Cannot toggle microphone - not connected to voice channel',
-        );
-        return false;
-      }
-
-      console.log(`🎤 ${enabled ? 'Enabling' : 'Disabling'} microphone...`);
-
-      AgoraModule.MuteLocalAudio(!enabled);
-      setIsMicrophoneEnabled(enabled);
-
-      console.log(
-        `✅ Microphone ${enabled ? 'enabled (unmuted)' : 'disabled (muted)'}`,
-      );
-      return true;
-    } catch (error) {
-      console.error('❌ Failed to toggle microphone:', error);
-      return false;
-    }
-  };
-
-  // ==================== ERROR HANDLING & CLEANUP FUNCTIONS ====================
-
-  // Handle voice connection errors gracefully
-  const handleVoiceError = (error, operation) => {
-    console.error(`❌ Voice ${operation} failed:`, error);
-
-    // Reset voice states on error
-    setVoiceStatus('disconnected');
-    setActiveVoiceChannel(null);
-    setIsMicrophoneEnabled(false);
-
-    // Show user-friendly error message
-    const errorMessages = {
-      join: 'Failed to join voice channel. Please check your connection and try again.',
-      leave: 'Error leaving voice channel. Connection has been reset.',
-      microphone: 'Failed to toggle microphone. Please try again.',
-      initialize: 'Failed to initialize voice system. Please restart the app.',
-    };
-
-    Alert.alert(
-      'Voice Connection Error',
-      errorMessages[operation] || 'An unknown voice error occurred.',
-    );
-  };
-
-  // Cleanup function for component unmount or app backgrounding
-  const cleanupVoiceConnection = async () => {
-    try {
-      clearPendingAudioTimeouts();
-
-      if (activeVoiceChannel) {
-        await leaveVoiceChannel();
-      }
-
-      setVoiceStatus('disconnected');
-      setActiveVoiceChannel(null);
-      setIsMicrophoneEnabled(false);
-      setIsAgoraInitialized(false);
-    } catch (error) {
-      console.error('❌ Error during voice cleanup:', error);
-    }
-  };
-
-  // Emergency reset function for when things go wrong
-  const emergencyVoiceReset = async () => {
-    try {
-      Alert.alert('Voice Reset', 'Resetting voice connection...', [
-        {text: 'OK'},
-      ]);
-
-      if (AgoraModule) {
-        AgoraModule.LeaveChannel();
-        AgoraModule.ReleaseEngine();
-      }
-
-      await cleanupVoiceConnection();
-
-      setTimeout(async () => {
-        await initializeAgoraEngine();
-        Alert.alert(
-          'Voice Reset',
-          'Voice system has been reset. You can now try connecting again.',
-        );
-      }, 1000);
-    } catch (error) {
-      console.error('❌ Emergency reset failed:', error);
-      Alert.alert('Reset Failed', 'Please restart the application.');
-    }
-  };
-
   // Show loading indicator while data is being fetched
   if (isLoading) {
     return (
@@ -531,6 +332,8 @@ const MainScreen = ({navigation}) => {
           onPress={emergencyVoiceReset}>
           <Text style={styles.testButtonText}>🚨 Reset</Text>
         </TouchableOpacity>
+
+        {/* Voice Status Indicator */}
       </View>
 
       {/* Channel Participants Modal */}
