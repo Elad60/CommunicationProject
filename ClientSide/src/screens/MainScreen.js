@@ -33,6 +33,9 @@ const MainScreen = ({navigation}) => {
   const [pendingMuteTimeout, setPendingMuteTimeout] = useState(null);
   const [pendingUnmuteTimeout, setPendingUnmuteTimeout] = useState(null);
 
+  // Add per-channel UID tracking
+  const [channelUids, setChannelUids] = useState({}); // { [agoraChannelName]: uid }
+
   const {user} = useAuth();
   const {
     showFrequency,
@@ -97,7 +100,18 @@ const MainScreen = ({navigation}) => {
           const listeningChannels = getListeningChannels();
           listeningChannels.forEach(channelId => {
             const agoraChannelName = `radio_channel_${channelId}`;
-            AgoraModule.LeaveChannelEx(agoraChannelName);
+            const uid = channelUids[agoraChannelName];
+            if (uid) {
+              const leaveResult = AgoraModule.LeaveChannelEx(
+                agoraChannelName,
+                uid,
+              );
+              if (leaveResult !== 0) {
+                console.error(
+                  `❌ Failed to leave channel: ${agoraChannelName}, error: ${leaveResult}`,
+                );
+              }
+            }
           });
           AgoraModule.ReleaseEngine();
         }
@@ -132,11 +146,10 @@ const MainScreen = ({navigation}) => {
           // If this was the talking channel, clear talking state
           if (currentTalkingChannel === channelId) {
             clearTalkingChannel();
-            setIsMicrophoneEnabled(false);
           }
 
           // Leave voice channel using multi-channel method
-          await leaveVoiceChannel(channelId);
+          leaveVoiceChannel(channelId);
 
           // Update UI state
           setRadioChannels(prev =>
@@ -176,12 +189,7 @@ const MainScreen = ({navigation}) => {
           addListeningChannel(channelId);
 
           // Join voice channel for this specific channel
-          const joinSuccess = await joinVoiceChannel(channelId, current.name);
-          if (joinSuccess) {
-            // Mute microphone for listening only using multi-channel method
-            const agoraChannelName = `radio_channel_${channelId}`;
-            AgoraModule.MuteChannel(agoraChannelName, true);
-          }
+          joinVoiceChannel(channelId, current.name);
 
           // Update UI state - ONLY this channel, don't affect others
           setRadioChannels(prev =>
@@ -223,19 +231,32 @@ const MainScreen = ({navigation}) => {
 
           // Join voice channel if not already connected
           if (!isChannelListening(channelId)) {
-            const joinSuccess = await joinVoiceChannel(channelId, current.name);
-            if (joinSuccess) {
-              // Set as talking channel using multi-channel method
-              const agoraChannelName = `radio_channel_${channelId}`;
-              AgoraModule.SetTalkingChannel(agoraChannelName);
-              AgoraModule.MuteChannel(agoraChannelName, false); // Unmute for talking
-              setIsMicrophoneEnabled(true);
+            joinVoiceChannel(channelId, current.name);
+          }
+
+          // Set as talking channel and unmute
+          const agoraChannelName = `radio_channel_${channelId}`;
+          const uid = channelUids[agoraChannelName];
+          if (uid) {
+            const setTalkingResult = AgoraModule.SetTalkingChannel(
+              agoraChannelName,
+              uid,
+            );
+            if (setTalkingResult !== 0) {
+              console.error(
+                `❌ Failed to set talking channel: ${agoraChannelName}, error: ${setTalkingResult}`,
+              );
             }
-          } else {
-            // Already connected, just set as talking channel
-            const agoraChannelName = `radio_channel_${channelId}`;
-            AgoraModule.SetTalkingChannel(agoraChannelName);
-            AgoraModule.MuteChannel(agoraChannelName, false); // Unmute for talking
+            const unmuteResult = AgoraModule.MuteChannel(
+              agoraChannelName,
+              uid,
+              false,
+            );
+            if (unmuteResult !== 0) {
+              console.error(
+                `❌ Failed to unmute channel: ${agoraChannelName}, error: ${unmuteResult}`,
+              );
+            }
             setIsMicrophoneEnabled(true);
           }
 
@@ -286,7 +307,19 @@ const MainScreen = ({navigation}) => {
 
         // Mute the previous talking channel
         const previousAgoraChannelName = `radio_channel_${currentTalkingChannel}`;
-        AgoraModule.MuteChannel(previousAgoraChannelName, true);
+        const uid = channelUids[previousAgoraChannelName];
+        if (uid) {
+          const muteResult = AgoraModule.MuteChannel(
+            previousAgoraChannelName,
+            uid,
+            true,
+          );
+          if (muteResult !== 0) {
+            console.error(
+              `❌ Failed to mute previous talking channel: ${previousAgoraChannelName}, error: ${muteResult}`,
+            );
+          }
+        }
 
         // Update backend
         const userId = user?.id;
@@ -324,14 +357,34 @@ const MainScreen = ({navigation}) => {
 
     // Join voice channel if needed
     if (!isChannelListening(newTalkingChannelId)) {
-      await joinVoiceChannel(newTalkingChannelId, currentChannel.name);
+      joinVoiceChannel(newTalkingChannelId, currentChannel.name);
     }
 
     // Set as talking channel and unmute
     const newAgoraChannelName = `radio_channel_${newTalkingChannelId}`;
-    AgoraModule.SetTalkingChannel(newAgoraChannelName);
-    AgoraModule.MuteChannel(newAgoraChannelName, false);
-    setIsMicrophoneEnabled(true);
+    const uid = channelUids[newAgoraChannelName];
+    if (uid) {
+      const setTalkingResult = AgoraModule.SetTalkingChannel(
+        newAgoraChannelName,
+        uid,
+      );
+      if (setTalkingResult !== 0) {
+        console.error(
+          `❌ Failed to set talking channel: ${newAgoraChannelName}, error: ${setTalkingResult}`,
+        );
+      }
+      const unmuteResult = AgoraModule.MuteChannel(
+        newAgoraChannelName,
+        uid,
+        false,
+      );
+      if (unmuteResult !== 0) {
+        console.error(
+          `❌ Failed to unmute channel: ${newAgoraChannelName}, error: ${unmuteResult}`,
+        );
+      }
+      setIsMicrophoneEnabled(true);
+    }
   };
 
   // Wrapper functions for backwards compatibility
@@ -407,48 +460,32 @@ const MainScreen = ({navigation}) => {
 
   // Join a voice channel for a specific radio channel
   const joinVoiceChannel = async (channelId, channelName) => {
-    try {
-      if (!isAgoraInitialized) {
-        const initialized = await initializeAgoraEngine();
-        if (!initialized) {
-          throw new Error('Failed to initialize Agora engine');
-        }
-      }
-
-      setVoiceStatus('connecting');
-
-      const agoraChannelName = `radio_channel_${channelId}`;
-
-      // Use the new multi-channel method
-      AgoraModule.JoinChannelEx(agoraChannelName);
-
-      setVoiceStatus('connected');
-      return true;
-    } catch (error) {
-      console.error('❌ Failed to join voice channel:', error);
-      setVoiceStatus('disconnected');
-      return false;
+    const agoraChannelName = `radio_channel_${channelId}`;
+    // Generate a unique UID for this channel if not already present
+    let uid = channelUids[agoraChannelName];
+    if (!uid) {
+      uid = Math.floor(Math.random() * 1000000) + 1;
+      setChannelUids(prev => ({...prev, [agoraChannelName]: uid}));
     }
+    AgoraModule.JoinChannelEx(agoraChannelName, uid);
+    setVoiceStatus('connected');
+    return true;
   };
 
   // Leave a specific voice channel using multi-channel support
   const leaveVoiceChannel = async channelId => {
-    try {
-      if (!channelId) return true;
-
-      clearPendingAudioTimeouts();
-      setVoiceStatus('connecting');
-
-      const agoraChannelName = `radio_channel_${channelId}`;
-      AgoraModule.LeaveChannelEx(agoraChannelName);
-
-      setVoiceStatus('connected'); // Still connected to other channels
-      return true;
-    } catch (error) {
-      console.error('❌ Failed to leave voice channel:', error);
-      clearPendingAudioTimeouts();
-      return false;
+    const agoraChannelName = `radio_channel_${channelId}`;
+    const uid = channelUids[agoraChannelName];
+    if (uid) {
+      AgoraModule.LeaveChannelEx(agoraChannelName, uid);
+      setChannelUids(prev => {
+        const copy = {...prev};
+        delete copy[agoraChannelName];
+        return copy;
+      });
     }
+    setVoiceStatus('connected');
+    return true;
   };
 
   // Toggle microphone on/off (SIMPLIFIED VERSION)
@@ -463,7 +500,12 @@ const MainScreen = ({navigation}) => {
 
       console.log(`🎤 ${enabled ? 'Enabling' : 'Disabling'} microphone...`);
 
-      AgoraModule.MuteLocalAudio(!enabled);
+      const muteResult = AgoraModule.MuteLocalAudio(!enabled);
+      if (muteResult !== 0) {
+        console.error(`❌ Failed to toggle microphone, error: ${muteResult}`);
+        return false;
+      }
+
       setIsMicrophoneEnabled(enabled);
 
       console.log(
@@ -488,7 +530,7 @@ const MainScreen = ({navigation}) => {
     );
   };
 
-  // Cleanup function for component unmount or app backgrounding
+  // Cleanup voice connection
   const cleanupVoiceConnection = async () => {
     try {
       clearPendingAudioTimeouts();
@@ -499,7 +541,7 @@ const MainScreen = ({navigation}) => {
     }
   };
 
-  // Emergency reset function for when things go wrong
+  // Emergency voice reset function
   const emergencyVoiceReset = async () => {
     try {
       Alert.alert('Voice Reset', 'Resetting voice connection...', [
@@ -511,7 +553,18 @@ const MainScreen = ({navigation}) => {
         const listeningChannels = getListeningChannels();
         listeningChannels.forEach(channelId => {
           const agoraChannelName = `radio_channel_${channelId}`;
-          AgoraModule.LeaveChannelEx(agoraChannelName);
+          const uid = channelUids[agoraChannelName];
+          if (uid) {
+            const leaveResult = AgoraModule.LeaveChannelEx(
+              agoraChannelName,
+              uid,
+            );
+            if (leaveResult !== 0) {
+              console.error(
+                `❌ Failed to leave channel: ${agoraChannelName}, error: ${leaveResult}`,
+              );
+            }
+          }
         });
         AgoraModule.ReleaseEngine();
       }

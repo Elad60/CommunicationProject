@@ -75,8 +75,8 @@ namespace winrt::FinalProject::implementation
         std::string GetStatus();
         
         // Multi-channel methods
-        void JoinChannelEx(const std::string& channelName);
-        void LeaveChannelEx(const std::string& channelName);
+        void JoinChannelEx(const std::string& channelName, int uid);
+        void LeaveChannelEx(const std::string& channelName, int uid);
         void MuteChannel(const std::string& channelName, bool mute);
         void SetTalkingChannel(const std::string& channelName);
         bool IsChannelConnected(const std::string& channelName);
@@ -142,15 +142,15 @@ namespace winrt::FinalProject::implementation
 
         // Multi-channel React Native methods
         REACT_METHOD(JoinChannelEx)
-        void JoinChannelEx(std::string channelName) noexcept
+        void JoinChannelEx(std::string channelName, int uid) noexcept
         {
-            AgoraManager::GetInstance()->JoinChannelEx(channelName);
+            AgoraManager::GetInstance()->JoinChannelEx(channelName, uid);
         }
 
         REACT_METHOD(LeaveChannelEx)
-        void LeaveChannelEx(std::string channelName) noexcept
+        void LeaveChannelEx(std::string channelName, int uid) noexcept
         {
-            AgoraManager::GetInstance()->LeaveChannelEx(channelName);
+            AgoraManager::GetInstance()->LeaveChannelEx(channelName, uid);
         }
 
         REACT_METHOD(MuteChannel)

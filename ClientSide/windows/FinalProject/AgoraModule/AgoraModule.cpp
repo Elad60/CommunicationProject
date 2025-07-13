@@ -563,104 +563,47 @@ namespace winrt::FinalProject::implementation
 
     // ==================== MULTI-CHANNEL METHODS ====================
 
-    void AgoraManager::JoinChannelEx(const std::string& channelName)
+    void AgoraManager::JoinChannelEx(const std::string& channelName, int uid)
     {
         try {
-            OutputDebugStringA(("🚀 AgoraManager::JoinChannelEx - Joining channel: " + channelName + "\n").c_str());
-            
+            OutputDebugStringA(("[Multi] JoinChannelEx - Channel: " + channelName + ", UID: " + std::to_string(uid) + "\n").c_str());
             if (!m_isInitialized || !m_rtcEngine) {
                 OutputDebugStringA("❌ Engine not initialized\n");
                 return;
             }
-
-            // Check if already connected to this channel
-            if (m_connectionStates.find(channelName) != m_connectionStates.end() && m_connectionStates[channelName]) {
-                OutputDebugStringA(("⚠️ Already connected to channel: " + channelName + "\n").c_str());
-                return;
-            }
-
-            // Create unique UID for this channel connection
-            static int uidCounter = 1000;
-            uid_t uid = uidCounter++;
-
-            // Create RtcConnection
-            RtcConnection connection;
+            agora::rtc::RtcConnection connection;
             connection.channelId = channelName.c_str();
             connection.localUid = uid;
-
-            // Configure channel media options
-            ChannelMediaOptions options;
-            options.publishMicrophoneTrack = true;          // Can publish audio
-            options.autoSubscribeAudio = true;             // Auto-subscribe to remote audio
-            options.autoSubscribeVideo = false;            // No video
-            options.enableAudioRecordingOrPlayout = true;  // Enable audio
-            options.clientRoleType = CLIENT_ROLE_BROADCASTER; // Can talk
-
-            OutputDebugStringA(("🔧 Joining channel with UID: " + std::to_string(uid) + "\n").c_str());
-            
-            // Join the channel using joinChannelEx
-            int result = m_rtcEngine->joinChannelEx(nullptr, connection, options, m_eventHandler.get());
-            
-            if (result == 0) {
-                // Store connection info
-                m_activeConnections[channelName] = connection;
-                m_connectionStates[channelName] = true;
-                m_channelMuteStates[channelName] = false; // Start unmuted
-                
-                OutputDebugStringA(("✅ Successfully joined channel: " + channelName + "\n").c_str());
-                OutputDebugStringA(("📊 Active connections: " + std::to_string(m_activeConnections.size()) + "\n").c_str());
-            } else {
-                OutputDebugStringA(("❌ Failed to join channel: " + channelName + ", error: " + std::to_string(result) + "\n").c_str());
-            }
-
-        } catch (const std::exception& e) {
-            OutputDebugStringA(("❌ Exception in JoinChannelEx: " + std::string(e.what()) + "\n").c_str());
+            agora::rtc::ChannelMediaOptions options;
+            options.publishMicrophoneTrack = true;
+            options.autoSubscribeAudio = true;
+            options.autoSubscribeVideo = false;
+            options.enableAudioRecordingOrPlayout = true;
+            options.clientRoleType = agora::rtc::CLIENT_ROLE_BROADCASTER;
+            auto engineEx = static_cast<agora::rtc::IRtcEngineEx*>(m_rtcEngine);
+            int result = engineEx->joinChannelEx(nullptr, connection, options, m_eventHandler.get());
+            OutputDebugStringA(("[Multi] joinChannelEx result: " + std::to_string(result) + "\n").c_str());
         } catch (...) {
-            OutputDebugStringA("❌ Unknown exception in JoinChannelEx\n");
+            OutputDebugStringA("❌ Exception in JoinChannelEx\n");
         }
     }
 
-    void AgoraManager::LeaveChannelEx(const std::string& channelName)
+    void AgoraManager::LeaveChannelEx(const std::string& channelName, int uid)
     {
         try {
-            OutputDebugStringA(("👋 AgoraManager::LeaveChannelEx - Leaving channel: " + channelName + "\n").c_str());
-            
+            OutputDebugStringA(("[Multi] LeaveChannelEx - Channel: " + channelName + ", UID: " + std::to_string(uid) + "\n").c_str());
             if (!m_isInitialized || !m_rtcEngine) {
                 OutputDebugStringA("❌ Engine not initialized\n");
                 return;
             }
-
-            // Check if connected to this channel
-            auto connectionIt = m_activeConnections.find(channelName);
-            if (connectionIt == m_activeConnections.end()) {
-                OutputDebugStringA(("⚠️ Not connected to channel: " + channelName + "\n").c_str());
-                return;
-            }
-
-            // Leave the channel
-            int result = m_rtcEngine->leaveChannelEx(connectionIt->second);
-            
-            if (result == 0) {
-                // Remove from tracking
-                m_activeConnections.erase(channelName);
-                m_connectionStates.erase(channelName);
-                m_channelMuteStates.erase(channelName);
-                
-                // If this was the talking channel, clear talking state
-                if (m_talkingChannel == channelName) {
-                    m_talkingChannel.clear();
-                }
-                
-                OutputDebugStringA(("✅ Successfully left channel: " + channelName + "\n").c_str());
-                OutputDebugStringA(("📊 Active connections: " + std::to_string(m_activeConnections.size()) + "\n").c_str());
-            } else {
-                OutputDebugStringA(("❌ Failed to leave channel: " + channelName + ", error: " + std::to_string(result) + "\n").c_str());
-            }
-
-        } catch (const std::exception& e) {
-            OutputDebugStringA(("❌ Exception in LeaveChannelEx: " + std::string(e.what()) + "\n").c_str());
+            agora::rtc::RtcConnection connection;
+            connection.channelId = channelName.c_str();
+            connection.localUid = uid;
+            auto engineEx = static_cast<agora::rtc::IRtcEngineEx*>(m_rtcEngine);
+            int result = engineEx->leaveChannelEx(connection);
+            OutputDebugStringA(("[Multi] leaveChannelEx result: " + std::to_string(result) + "\n").c_str());
         } catch (...) {
-            OutputDebugStringA("❌ Unknown exception in LeaveChannelEx\n");
+            OutputDebugStringA("❌ Exception in LeaveChannelEx\n");
         }
     }
 
