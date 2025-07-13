@@ -8,10 +8,13 @@ import {
   BackHandler,
   Alert,
   Animated,
+  NativeModules,
 } from 'react-native';
 import {useAuth} from '../context/AuthContext';
 import {useSettings} from '../context/SettingsContext';
 import {privateCallApi} from '../utils/apiService';
+
+const {AgoraModule} = NativeModules; // 🎯 NEW: Import AgoraModule
 
 const WaitingForCallScreen = ({route, navigation}) => {
   const {otherUser, invitationId, channelName} = route.params;
@@ -194,6 +197,32 @@ const WaitingForCallScreen = ({route, navigation}) => {
             console.log('🛑 STOPPING ALL POLLING - Call accepted');
             stopPollingForResponse();
             
+            // 🎯 SAME LOGIC AS MAINSCREEN: Connect to Agora
+            const agoraChannelName = `private_call_${invitationId}`;
+            console.log('🎤 Connecting to Agora channel:', agoraChannelName);
+            
+            try {
+              // Same initialization as MainScreen
+              if (!AgoraModule) {
+                throw new Error('AgoraModule not available');
+              }
+              
+              // Initialize Agora engine (same as MainScreen)
+              AgoraModule.InitializeAgoraEngine('e5631d55e8a24b08b067bb73f8797fe3');
+              
+              // Join the Agora channel (same as MainScreen)
+              AgoraModule.JoinChannel(agoraChannelName);
+              
+              console.log('✅ Successfully connected to Agora channel:', agoraChannelName);
+            } catch (agoraError) {
+              console.error('❌ Failed to connect to Agora:', agoraError);
+              Alert.alert(
+                'Voice Connection Failed',
+                'Call accepted but voice connection failed. You can still communicate via text.',
+                [{text: 'OK'}]
+              );
+            }
+            
             // Navigate to private call screen
             navigation.reset({
               index: 1,
@@ -205,6 +234,7 @@ const WaitingForCallScreen = ({route, navigation}) => {
                     otherUser,
                     invitationId,
                     channelName: response.channelName || channelName,
+                    agoraChannelName: agoraChannelName, // 🎯 Pass the calculated channel name
                     isCallAccepted: true,
                     isCaller: true, // This user is the caller
                     currentUserId: user.id, // Add current user ID for server monitoring

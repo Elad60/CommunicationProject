@@ -8,10 +8,13 @@ import {
   Image,
   SafeAreaView,
   Animated,
+  NativeModules,
 } from 'react-native';
 import {useAuth} from '../context/AuthContext';
 import {useSettings} from '../context/SettingsContext';
 import {privateCallApi} from '../utils/apiService';
+
+const {AgoraModule} = NativeModules; // 🎯 NEW: Import AgoraModule
 
 const IncomingCallScreen = ({route, navigation}) => {
   const {callInvitation} = route.params;
@@ -271,6 +274,32 @@ const IncomingCallScreen = ({route, navigation}) => {
       if (response.success) {
         console.log('✅ Call accepted successfully:', response);
         
+        // 🎯 SAME LOGIC AS MAINSCREEN: Connect to Agora
+        const agoraChannelName = `private_call_${callId}`;
+        console.log('🎤 Connecting to Agora channel:', agoraChannelName);
+        
+        try {
+          // Same initialization as MainScreen
+          if (!AgoraModule) {
+            throw new Error('AgoraModule not available');
+          }
+          
+          // Initialize Agora engine (same as MainScreen)
+          AgoraModule.InitializeAgoraEngine('e5631d55e8a24b08b067bb73f8797fe3');
+          
+          // Join the Agora channel (same as MainScreen)
+          AgoraModule.JoinChannel(agoraChannelName);
+          
+          console.log('✅ Successfully connected to Agora channel:', agoraChannelName);
+        } catch (agoraError) {
+          console.error('❌ Failed to connect to Agora:', agoraError);
+          Alert.alert(
+            'Voice Connection Failed',
+            'Call accepted but voice connection failed. You can still communicate via text.',
+            [{text: 'OK'}]
+          );
+        }
+        
         // Navigate to private call screen
         navigation.reset({
           index: 1,
@@ -287,6 +316,7 @@ const IncomingCallScreen = ({route, navigation}) => {
                 },
                 invitationId: callId,
                 channelName: response.channelName || 'default-channel',
+                agoraChannelName: agoraChannelName, // 🎯 Pass the calculated channel name
                 isCallAccepted: true,
                 isCaller: false, // This user is the receiver
                 currentUserId: user.id, // Add current user ID for server monitoring

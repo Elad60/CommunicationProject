@@ -7,16 +7,20 @@ import {
   Alert,
   SafeAreaView,
   BackHandler,
+  NativeModules,
 } from 'react-native';
 import {useSettings} from '../context/SettingsContext';
 import {privateCallApi} from '../utils/apiService';
 
+const {AgoraModule} = NativeModules; // 🎯 NEW: Import AgoraModule
+
 const PrivateCallScreen = ({route, navigation}) => {
-  const {otherUser, invitationId, currentUserId, channelName, isCaller, isCallAccepted} = route.params;
+  const {otherUser, invitationId, currentUserId, channelName, agoraChannelName, isCaller, isCallAccepted} = route.params; // 🎯 NEW: Extract agoraChannelName
   const {darkMode} = useSettings();
   const [callDuration, setCallDuration] = useState(0);
   const [isEnding, setIsEnding] = useState(false);
   const [isCallActive, setIsCallActive] = useState(true);
+  const [isAgoraConnected, setIsAgoraConnected] = useState(false); // 🎯 NEW: Track Agora connection
   const intervalRef = useRef(null);
   const statusCheckRef = useRef(null);
   
@@ -24,15 +28,93 @@ const PrivateCallScreen = ({route, navigation}) => {
     otherUser: otherUser?.username,
     invitationId,
     currentUserId,
+    agoraChannelName, // 🎯 NEW: Log Agora channel name
   });
 
-  // Component lifecycle logging
+  // 🎯 SAME LOGIC AS MAINSCREEN: Agora connection management
+  useEffect(() => {
+    if (agoraChannelName) {
+      console.log('🎤 Setting up Agora connection (same as MainScreen)...');
+      connectToAgora();
+    } else {
+      console.log('⚠️ No Agora channel name provided - voice disabled');
+    }
+
+    return () => {
+      console.log('🧹 Cleaning up Agora connection (FORCE CLEANUP)...');
+      // 🔧 FIX: Force cleanup multiple times to ensure disconnect
+      disconnectFromAgora();
+      setTimeout(() => {
+        disconnectFromAgora(); // Second attempt
+      }, 100);
+    };
+  }, [agoraChannelName]);
+
+  // Component lifecycle logging with cleanup
   useEffect(() => {
     console.log('🎬 PrivateCallScreen MOUNTED');
     return () => {
-      console.log('🏁 PrivateCallScreen UNMOUNTED - cleaning up all resources');
+      console.log('🏁 PrivateCallScreen UNMOUNTED - FORCE cleaning up all resources');
+      // 🔧 FIX: Final force disconnect on unmount
+      if (AgoraModule) {
+        try {
+          AgoraModule.LeaveChannel(); // Force final disconnect
+          console.log('✅ Final Agora disconnect on unmount');
+        } catch (error) {
+          console.error('❌ Error in final disconnect:', error);
+        }
+      }
     };
   }, []);
+
+  // Connect to Agora voice channel (SAME AS MAINSCREEN joinVoiceChannel)
+  const connectToAgora = async () => {
+    try {
+      if (!AgoraModule) {
+        throw new Error('AgoraModule not available');
+      }
+
+      console.log('🎤 Connecting to Agora channel (MainScreen style):', agoraChannelName);
+      
+      // Same initialization as MainScreen
+      AgoraModule.InitializeAgoraEngine('e5631d55e8a24b08b067bb73f8797fe3');
+      
+      // Join the Agora channel (same as MainScreen joinVoiceChannel)
+      if (!isAgoraConnected) {
+        AgoraModule.JoinChannel(agoraChannelName);
+        setIsAgoraConnected(true);
+        console.log('✅ Successfully connected to Agora channel (MainScreen style):', agoraChannelName);
+      }
+    } catch (error) {
+      console.error('❌ Failed to connect to Agora:', error);
+      Alert.alert(
+        'Voice Connection Failed',
+        'Voice connection failed. You can still communicate via text.',
+        [{text: 'OK'}]
+      );
+    }
+  };
+
+  // Disconnect from Agora voice channel (IMPROVED VERSION - MORE RELIABLE)
+  const disconnectFromAgora = () => {
+    try {
+      console.log('🎤 Disconnecting from Agora channel (FORCE DISCONNECT)...');
+      
+      // 🔧 FIX: Always try to disconnect, don't rely on state
+      if (AgoraModule) {
+        AgoraModule.LeaveChannel(); // Force disconnect regardless of state
+        console.log('✅ Successfully disconnected from Agora (FORCED)');
+      }
+      
+      // Update state after successful disconnect
+      setIsAgoraConnected(false);
+      
+    } catch (error) {
+      console.error('❌ Error disconnecting from Agora:', error);
+      // Even if error, update state to prevent stuck connections
+      setIsAgoraConnected(false);
+    }
+  };
 
   // Start call duration timer
   useEffect(() => {
@@ -81,6 +163,15 @@ const PrivateCallScreen = ({route, navigation}) => {
           if (response.status === 'cancelled' || response.status === 'ended') {
             console.log('❌ Call ended by other user');
             
+            // 🔧 FIX: FORCE disconnect from Agora IMMEDIATELY (multiple attempts)
+            console.log('🎤 Other user ended call - FORCE disconnecting from Agora...');
+            disconnectFromAgora(); // First attempt
+            
+            // Wait and try again to ensure disconnect
+            setTimeout(() => {
+              disconnectFromAgora(); // Second attempt
+            }, 100);
+            
             // Stop monitoring IMMEDIATELY
             isMonitoring = false;
             setIsCallActive(false);
@@ -96,6 +187,11 @@ const PrivateCallScreen = ({route, navigation}) => {
               clearInterval(statusCheckRef.current);
               statusCheckRef.current = null;
             }
+            
+            // Final disconnect attempt before showing alert
+            setTimeout(() => {
+              disconnectFromAgora(); // Final attempt
+            }, 200);
             
             // Show notification and navigate back
             Alert.alert(
@@ -160,13 +256,26 @@ const PrivateCallScreen = ({route, navigation}) => {
     return `${mins.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`;
   };
 
-  // Handle call end
+  // Handle call end (IMPROVED WITH PROTECTION AGAINST MULTIPLE CALLS)
   const handleEndCall = async () => {
-    if (isEnding) return;
+    // 🔧 FIX: Protection against multiple calls
+    if (isEnding) {
+      console.log('⚠️ Call already ending, skipping...');
+      return;
+    }
     
     console.log('🔴 Ending call...');
     setIsEnding(true);
     setIsCallActive(false);
+    
+    // 🔧 FIX: Force disconnect from Agora MULTIPLE TIMES to ensure it works
+    console.log('🎤 FORCE disconnecting from Agora before ending call...');
+    disconnectFromAgora(); // First attempt
+    
+    // Wait a bit and try again to make sure
+    setTimeout(() => {
+      disconnectFromAgora(); // Second attempt after small delay
+    }, 100);
     
     // Stop all timers IMMEDIATELY
     console.log('🛑 Stopping all timers...');
@@ -193,18 +302,67 @@ const PrivateCallScreen = ({route, navigation}) => {
       console.error('❌ Error ending call:', error);
     }
     
+    // 🔧 FIX: One more disconnect attempt before leaving
+    disconnectFromAgora(); // Final attempt
+    
     // Always navigate back, even if API call fails
     console.log('📞 User ended call - returning to Groups (GlobalCallListener will resume polling)');
     navigation.reset({index:0, routes:[{name:'Groups'}]});
   };
 
-  // Simulate call features (for testing)
-  const handleTestFeature = (feature) => {
-    console.log(`🧪 Testing feature: ${feature}`);
+  // Check Agora connection status (REPLACE TEST FEATURES)
+  const checkAgoraStatus = () => {
+    console.log('🔍 Checking Agora status...');
+    
+    let statusMessage = '🎤 AGORA CONNECTION STATUS:\n\n';
+    
+    // Check AgoraModule availability
+    if (!AgoraModule) {
+      statusMessage += '❌ AgoraModule: NOT AVAILABLE\n';
+      statusMessage += '🚨 Critical: Agora SDK not loaded\n\n';
+    } else {
+      statusMessage += '✅ AgoraModule: AVAILABLE\n';
+    }
+    
+    // Check connection status
+    if (isAgoraConnected) {
+      statusMessage += '✅ Connection Status: CONNECTED\n';
+      statusMessage += `🔗 Channel Name: ${agoraChannelName}\n`;
+      statusMessage += '🔊 Voice: ACTIVE\n';
+    } else {
+      statusMessage += '❌ Connection Status: DISCONNECTED\n';
+      statusMessage += '🔇 Voice: INACTIVE\n';
+    }
+    
+    // Check channel info
+    if (agoraChannelName) {
+      statusMessage += `\n📺 Expected Channel: ${agoraChannelName}\n`;
+    } else {
+      statusMessage += '\n⚠️ No channel name provided\n';
+    }
+    
+    // Instructions
+    statusMessage += '\n🛠️ TROUBLESHOOTING:\n';
+    statusMessage += '• If disconnected: Try reconnecting\n';
+    statusMessage += '• If no sound: Check other device\n';
+    statusMessage += '• If issues persist: Restart call\n';
+    
     Alert.alert(
-      'Feature Test',
-      `Testing ${feature} feature\n\nThis is a DATA-ONLY simulation.\nNo actual audio processing.`,
-      [{text: 'OK'}]
+      '🎤 Agora Status Check',
+      statusMessage,
+      [
+        {
+          text: '🔄 Reconnect',
+          onPress: () => {
+            console.log('🔄 User requested Agora reconnection');
+            disconnectFromAgora();
+            setTimeout(() => {
+              connectToAgora();
+            }, 500);
+          }
+        },
+        {text: '✅ OK'}
+      ]
     );
   };
 
@@ -254,48 +412,25 @@ const PrivateCallScreen = ({route, navigation}) => {
           🆔 Invitation: {invitationId}
         </Text>
         <Text style={[styles.infoText, {color: darkMode ? '#ccc' : '#666'}]}>
-          🧪 Mode: DATA-ONLY Testing
+          🎤 Agora Channel: {agoraChannelName || 'Not set'}
         </Text>
-        <Text style={[styles.infoText, {color: darkMode ? '#ccc' : '#666'}]}>
-          🔊 Audio: Simulated (No Agora)
+        <Text style={[styles.infoText, {color: isAgoraConnected ? '#4CAF50' : '#f44336'}]}>
+          🔊 Voice Status: {isAgoraConnected ? 'Connected' : 'Disconnected'}
         </Text>
       </View>
 
-      {/* Test Controls */}
+      {/* Agora Controls */}
       <View style={styles.controlsContainer}>
-        <Text style={[styles.controlsTitle, {color: textColor}]}>Test Controls</Text>
+        <Text style={[styles.controlsTitle, {color: textColor}]}>Voice Connection</Text>
         
-        <View style={styles.controlsRow}>
-          <TouchableOpacity
-            style={[styles.controlButton, {backgroundColor: '#2196F3'}]}
-            onPress={() => handleTestFeature('Mute')}
-          >
-            <Text style={styles.controlButtonText}>🎤 Mute Test</Text>
-          </TouchableOpacity>
-          
-          <TouchableOpacity
-            style={[styles.controlButton, {backgroundColor: '#FF9800'}]}
-            onPress={() => handleTestFeature('Speaker')}
-          >
-            <Text style={styles.controlButtonText}>🔊 Speaker Test</Text>
-          </TouchableOpacity>
-        </View>
-
-        <View style={styles.controlsRow}>
-          <TouchableOpacity
-            style={[styles.controlButton, {backgroundColor: '#9C27B0'}]}
-            onPress={() => handleTestFeature('Quality Check')}
-          >
-            <Text style={styles.controlButtonText}>📊 Quality Test</Text>
-          </TouchableOpacity>
-          
-          <TouchableOpacity
-            style={[styles.controlButton, {backgroundColor: '#607D8B'}]}
-            onPress={() => handleTestFeature('Network Info')}
-          >
-            <Text style={styles.controlButtonText}>🌐 Network Test</Text>
-          </TouchableOpacity>
-        </View>
+        <TouchableOpacity
+          style={[styles.agoraStatusButton, {backgroundColor: isAgoraConnected ? '#4CAF50' : '#f44336'}]}
+          onPress={checkAgoraStatus}
+        >
+          <Text style={styles.controlButtonText}>
+            {isAgoraConnected ? '🔊 Check Agora Status' : '❌ Agora Disconnected - Tap to Check'}
+          </Text>
+        </TouchableOpacity>
       </View>
 
       {/* End Call Button */}
@@ -309,13 +444,13 @@ const PrivateCallScreen = ({route, navigation}) => {
       {/* Instructions */}
       <View style={styles.instructionsContainer}>
         <Text style={[styles.instructionsText, {color: darkMode ? '#ccc' : '#666'}]}>
-          🧪 This is a DATA-ONLY testing environment
+          🎤 Real Agora voice communication
         </Text>
         <Text style={[styles.instructionsText, {color: darkMode ? '#ccc' : '#666'}]}>
-          📊 All audio features are simulated
+          🔊 Tap status button to check connection
         </Text>
         <Text style={[styles.instructionsText, {color: darkMode ? '#ccc' : '#666'}]}>
-          🔄 Test buttons verify UI and data flow
+          🔄 Use reconnect if audio issues occur
         </Text>
       </View>
     </SafeAreaView>
@@ -408,20 +543,26 @@ const styles = StyleSheet.create({
   },
   controlsRow: {
     flexDirection: 'row',
-    justifyContent: 'space-around',
+    justifyContent: 'space-between',
     marginBottom: 10,
   },
   controlButton: {
-    padding: 12,
+    flex: 1,
+    padding: 15,
+    borderRadius: 8,
+    marginHorizontal: 5,
+    alignItems: 'center',
+  },
+  agoraStatusButton: {
+    padding: 15,
     borderRadius: 8,
     alignItems: 'center',
-    elevation: 2,
-    minWidth: 120,
+    marginBottom: 10,
   },
   controlButtonText: {
     color: '#fff',
-    fontSize: 14,
     fontWeight: 'bold',
+    fontSize: 14,
   },
   endCallButton: {
     padding: 18,
