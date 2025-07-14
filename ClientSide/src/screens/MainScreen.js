@@ -6,21 +6,23 @@ import {
   TouchableOpacity,
   ActivityIndicator,
   Text,
-  NativeModules,
   Alert,
+  Image,
+  Pressable,
+  Modal,
+  TextInput,
+  Button,
 } from 'react-native';
+import {NativeModules} from 'react-native';
 import RadioChannel from '../components/RadioChannel';
 import AppLayout from '../components/AppLayout';
+import ChannelParticipantsModal from '../components/ChannelParticipantsModal';
 import {useAuth} from '../context/AuthContext';
 import {radioChannelsApi} from '../utils/apiService';
 import {useSettings} from '../context/SettingsContext';
+import {useVoice} from '../context/VoiceContext';
 
-const {AgoraModule, TestModule} = NativeModules;
-
-// Log available modules
-console.log('Available Native Modules:', Object.keys(NativeModules));
-console.log('AgoraModule:', AgoraModule);
-console.log('TestModule:', TestModule);
+const {AgoraModule} = NativeModules;
 
 const MainScreen = ({navigation}) => {
   console.log('MainScreen rendered');
@@ -28,10 +30,63 @@ const MainScreen = ({navigation}) => {
   const [radioChannels, setRadioChannels] = useState([]);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState(null);
-  const [moduleStatus, setModuleStatus] = useState('Not tested yet');
+
+  // Get voice context
+  const {
+    activeVoiceChannel,
+    voiceStatus,
+    isMicrophoneEnabled,
+    joinVoiceChannel,
+    leaveVoiceChannel,
+    clearPendingAudioTimeouts,
+    setPendingMuteTimeout,
+    setPendingUnmuteTimeout,
+    emergencyVoiceReset,
+    setIsMicrophoneEnabled,
+  } = useVoice();
+
+  // Modal state
+  const [isParticipantsModalVisible, setIsParticipantsModalVisible] =
+    useState(false);
+  const [selectedChannelForModal, setSelectedChannelForModal] = useState(null);
+  const [participantsForModal, setParticipantsForModal] = useState([]);
 
   const {user} = useAuth();
-  const {showFrequency, showStatus} = useSettings();
+  const {showFrequency, showStatus, darkMode} = useSettings();
+
+  // Hover state for Reset Voice button
+  const [resetHovering, setResetHovering] = useState(false);
+
+  // Colors for Reset Voice button (same as LogoutButton)
+  const resetColors = {
+    background: darkMode ? '#2a2a2a' : '#f8f9fa',
+    backgroundHover: darkMode ? '#3a3a3a' : '#e9ecef',
+    border: darkMode ? '#404040' : '#dee2e6',
+    borderHover: darkMode ? '#555555' : '#adb5bd',
+    text: darkMode ? '#e9ecef' : '#495057',
+    textHover: darkMode ? '#ffffff' : '#212529',
+    icon: darkMode ? '#dc3545' : '#dc3545',
+    iconHover: darkMode ? '#c82333' : '#c82333',
+  };
+
+  // Hover state for Add (+) button
+  const [addHovering, setAddHovering] = useState(false);
+
+  // Colors for Add (+) button (same logic as LogoutButton, but green for icon/text)
+  const addColors = {
+    background: darkMode ? '#2a2a2a' : '#f8f9fa',
+    backgroundHover: darkMode ? '#3a3a3a' : '#e9ecef',
+    border: darkMode ? '#404040' : '#dee2e6',
+    borderHover: darkMode ? '#555555' : '#adb5bd',
+    text: darkMode ? '#1DB954' : '#1DB954',
+    textHover: darkMode ? '#1ed760' : '#1ed760',
+  };
+
+  const [roomParticipants, setRoomParticipants] = useState({}); // roomId -> hasParticipants
+  const [pinModalVisible, setPinModalVisible] = useState(false);
+  const [pinInput, setPinInput] = useState('');
+  const [pendingJoinChannel, setPendingJoinChannel] = useState(null); // channel object
+  const [pinError, setPinError] = useState('');
 
   // Fetch radio channels for the authenticated user
   const fetchRadioChannels = async () => {
@@ -59,28 +114,163 @@ const MainScreen = ({navigation}) => {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [user]);
 
+  // Poll participants only once on page load or when radioChannels changes
+  useEffect(() => {
+    const fetchParticipantsForRooms = async () => {
+      if (!radioChannels || radioChannels.length === 0) return;
+      const participantsMap = {};
+      await Promise.all(
+        radioChannels.map(async room => {
+          try {
+            const participants = await radioChannelsApi.getChannelParticipants(
+              room.id,
+            );
+            participantsMap[room.id] =
+              Array.isArray(participants) && participants.length > 0;
+          } catch (e) {
+            participantsMap[room.id] = false;
+          }
+        }),
+      );
+      setRoomParticipants(participantsMap);
+    };
+    fetchParticipantsForRooms();
+  }, [radioChannels]);
+
   // Handle selection of a radio channel
   const handleChannelSelect = id => {
     setSelectedChannel(id); // Set selected channel by id
   };
 
-  // Handle toggle of radio channel state (Idle, ListenOnly, ListenAndTalk)
-  const handleToggleChannelState = async channelId => {
+  // Unified channel state handler with Voice Integration
+  const handleChannelStateChange = async (
+    channelId,
+    direction = 'forward',
+    pinCode = null,
+  ) => {
     const current = radioChannels.find(c => c.id === channelId);
-    const nextState = getNextState(current.channelState); // Get the next state for the channel
+    const newState =
+      direction === 'forward'
+        ? getNextState(current.channelState)
+        : getPreviousState(current.channelState);
 
-    const updatedChannels = radioChannels.map(c =>
-      c.id === channelId ? {...c, channelState: nextState} : c,
-    );
-    setRadioChannels(updatedChannels); // Update the channel state locally
+    // Update UI state
+    const updatedChannels =
+      newState === 'ListenOnly' || newState === 'ListenAndTalk'
+        ? radioChannels.map(c =>
+            c.id === channelId
+              ? {...c, channelState: newState}
+              : c.channelState !== 'Idle'
+              ? {...c, channelState: 'Idle'}
+              : c,
+          )
+        : radioChannels.map(c =>
+            c.id === channelId ? {...c, channelState: newState} : c,
+          );
+
+    setRadioChannels(updatedChannels);
 
     try {
+      clearPendingAudioTimeouts();
+
+      // Update backend FIRST
       const userId = user?.id;
       if (!userId) throw new Error('User ID not found');
-      await radioChannelsApi.updateChannelState(userId, channelId, nextState); // Update channel state in the backend
+      await radioChannelsApi.updateChannelState(
+        userId,
+        channelId,
+        newState,
+        pinCode,
+      );
+
+      // Handle voice operations ONLY after backend validation
+      switch (newState) {
+        case 'Idle':
+          await leaveVoiceChannel();
+          break;
+        case 'ListenOnly':
+        case 'ListenAndTalk':
+          if (activeVoiceChannel === channelId) {
+            // Channel is already connected, just mute/unmute
+            if (newState === 'ListenOnly') {
+              AgoraModule.MuteLocalAudio(true);
+              setIsMicrophoneEnabled(false);
+            } else if (newState === 'ListenAndTalk') {
+              AgoraModule.MuteLocalAudio(false);
+              setIsMicrophoneEnabled(true);
+            }
+          } else {
+            // Join the channel and set to muted/unmuted state
+            const joinSuccess = await joinVoiceChannel(
+              channelId,
+              current.name,
+              newState,
+            );
+            if (joinSuccess) {
+              const timeout = setTimeout(
+                () => {
+                  setPendingMuteTimeout(null);
+                  setPendingUnmuteTimeout(null);
+                },
+                newState === 'ListenOnly' ? 1500 : 1000,
+              );
+              newState === 'ListenOnly'
+                ? setPendingMuteTimeout(timeout)
+                : setPendingUnmuteTimeout(timeout);
+            }
+          }
+          break;
+      }
+
+      // Set other channels to Idle if needed
+      if (newState === 'ListenOnly' || newState === 'ListenAndTalk') {
+        const channelsToSetIdle = radioChannels.filter(
+          c => c.id !== channelId && c.channelState !== 'Idle',
+        );
+
+        await Promise.all(
+          channelsToSetIdle.map(channel =>
+            radioChannelsApi.updateChannelState(userId, channel.id, 'Idle'),
+          ),
+        );
+      }
     } catch (error) {
-      console.error('Error updating channel state:', error); // Handle errors during state update
+      console.error('❌ Error updating channel state:', error);
+      setRadioChannels(radioChannels);
+      Alert.alert(
+        'Connection Error',
+        `Failed to ${
+          newState === 'Idle' ? 'disconnect from' : 'connect to'
+        } voice channel.`,
+      );
     }
+  };
+
+  // Wrapper functions for backwards compatibility
+  const handleToggleChannelState = channelId =>
+    handleChannelStateChange(channelId, 'forward');
+  const handleReverseChannelState = channelId =>
+    handleChannelStateChange(channelId, 'reverse');
+
+  // Remove lastTapTime state
+  // Remove handleChannelPress and double-tap logic
+  const handleChannelLongPress = async channel => {
+    try {
+      const participants = await radioChannelsApi.getChannelParticipants(
+        channel.id,
+      );
+      setParticipantsForModal(participants);
+    } catch (err) {
+      setParticipantsForModal([]);
+    }
+    setSelectedChannelForModal(channel);
+    setIsParticipantsModalVisible(true);
+  };
+
+  // Close participants modal
+  const closeParticipantsModal = () => {
+    setIsParticipantsModalVisible(false);
+    setSelectedChannelForModal(null);
   };
 
   // Helper function to get the next state of a channel
@@ -97,213 +287,52 @@ const MainScreen = ({navigation}) => {
     }
   };
 
+  // Helper function to get the previous state of a channel (reverse cycle)
+  const getPreviousState = state => {
+    switch (state) {
+      case 'Idle':
+        return 'ListenAndTalk';
+      case 'ListenOnly':
+        return 'Idle';
+      case 'ListenAndTalk':
+        return 'ListenOnly';
+      default:
+        return 'Idle';
+    }
+  };
+
   // Handle adding a new radio channel
   const handleAddChannel = () => {
-    navigation.navigate('PickRadios'); // Navigate to pick radios screen
-    console.log('Add channel button pressed');
+    navigation.navigate('PickRadios');
   };
 
-  // Test function to verify native module is working
-  const testAgoraModule = () => {
-    // Alert to confirm button press
-    Alert.alert('Test Started', '🔍 TESTING NATIVE MODULES...');
-    console.log('🔍 testAgoraModule called - starting test');
+  // When user tries to join a room:
+  const handleJoinRoom = channel => {
+    if (channel.mode === 'Private') {
+      setPendingJoinChannel(channel);
+      setPinInput('');
+      setPinError('');
+      setPinModalVisible(true);
+    } else {
+      // For public rooms, join directly
+      handleToggleChannelState(channel.id);
+    }
+  };
 
-    // Check if module exists
-    if (!NativeModules.AgoraModule) {
-      console.error('❌ AgoraModule not found in NativeModules!');
-      Alert.alert(
-        'Critical Error',
-        'AgoraModule not found in NativeModules. Available modules: ' +
-          Object.keys(NativeModules).join(', '),
-      );
+  const handlePinJoin = async () => {
+    if (pinInput.length !== 4) {
+      setPinError('PIN must be 4 digits');
       return;
     }
-
-    let statusText = '';
-
     try {
-      // Check TestModule first
-      if (TestModule) {
-        Alert.alert(
-          'TestModule Status',
-          '✅ TestModule is registered correctly!\n🔍 Calling TestModule.TestMethod()...',
-        );
-        TestModule.TestMethod();
-        Alert.alert(
-          'TestModule Success',
-          '✅ TestModule.TestMethod() called successfully',
-        );
-        statusText += '✅ TestModule: WORKING\n';
-      } else {
-        Alert.alert('TestModule Error', '❌ TestModule is null or undefined');
-        statusText += '❌ TestModule: NULL\n';
-      }
-
-      // Check AgoraModule
-      if (!AgoraModule) {
-        console.log('❌ AgoraModule is null or undefined');
-        Alert.alert(
-          'AgoraModule Error',
-          '❌ AgoraModule is null or undefined - module not registered properly',
-        );
-        statusText += '❌ AgoraModule: NULL\n';
-        setModuleStatus(statusText);
-        return;
-      }
-
-      console.log('✅ AgoraModule found, calling InitializeAgoraEngine');
-      Alert.alert(
-        'AgoraModule Status',
-        '✅ AgoraModule found!\n🔍 Calling AgoraModule.InitializeAgoraEngine()...',
-      );
-      statusText += '✅ AgoraModule: WORKING\n';
-
-      // Test with the real App ID - now using proper C++ SDK
-      console.log('🔧 About to call InitializeAgoraEngine with App ID');
-      AgoraModule.InitializeAgoraEngine('e5631d55e8a24b08b067bb73f8797fe3');
-      console.log('✅ InitializeAgoraEngine called successfully');
-      Alert.alert(
-        'AgoraModule Success',
-        '✅ AgoraModule.InitializeAgoraEngine() called successfully',
-      );
-      statusText += '✅ Initialize: SUCCESS\n';
-
-      // Test JoinChannel method
-      Alert.alert('Channel Test', '🔍 Testing AgoraModule.JoinChannel()...');
-      AgoraModule.JoinChannel('test-voice-channel');
-      Alert.alert(
-        'Channel Success',
-        '✅ AgoraModule.JoinChannel() called successfully',
-      );
-      statusText += '✅ JoinChannel: SUCCESS\n';
-
-      // Test LeaveChannel method (NEW)
-      Alert.alert('Leave Test', '🔍 Testing AgoraModule.LeaveChannel()...');
-      AgoraModule.LeaveChannel();
-      Alert.alert(
-        'Leave Success',
-        '✅ AgoraModule.LeaveChannel() called successfully',
-      );
-      statusText += '✅ LeaveChannel: SUCCESS\n';
-
-      // Skip ReleaseEngine to keep engine initialized for echo test
-      // Alert.alert('Release Test', '🔍 Testing AgoraModule.ReleaseEngine()...');
-      // AgoraModule.ReleaseEngine();
-      // Alert.alert(
-      //   'Release Success',
-      //   '✅ AgoraModule.ReleaseEngine() called successfully',
-      // );
-      statusText += '✅ Engine: READY FOR ECHO TEST';
-
-      Alert.alert(
-        'Test Complete',
-        '✅ VOICE COMMUNICATION CYCLE TESTED\n\n' + statusText,
-      );
-
-      setModuleStatus(statusText);
-    } catch (error) {
-      Alert.alert(
-        'Test Error',
-        `❌ Error testing Native Modules:\n${error.message}`,
-      );
-      statusText += `❌ ERROR: ${error.message}`;
-      setModuleStatus(statusText);
-    }
-  };
-
-  // Individual test functions for detailed debugging
-  const testJoinChannel = () => {
-    try {
-      if (!AgoraModule) {
-        Alert.alert('Error', '❌ AgoraModule not available');
-        return;
-      }
-      Alert.alert('Join Test', '🔍 Testing JoinChannel only...');
-      AgoraModule.JoinChannel('test-voice-channel');
-      Alert.alert('Success', '✅ JoinChannel called successfully');
-    } catch (error) {
-      Alert.alert('Error', `❌ JoinChannel failed: ${error.message}`);
-    }
-  };
-
-  const testLeaveChannel = () => {
-    try {
-      if (!AgoraModule) {
-        Alert.alert('Error', '❌ AgoraModule not available');
-        return;
-      }
-      Alert.alert('Leave Test', '🔍 Testing LeaveChannel only...');
-      AgoraModule.LeaveChannel();
-      Alert.alert('Success', '✅ LeaveChannel called successfully');
-    } catch (error) {
-      Alert.alert('Error', `❌ LeaveChannel failed: ${error.message}`);
-    }
-  };
-
-  const testReleaseEngine = () => {
-    try {
-      if (!AgoraModule) {
-        Alert.alert('Error', '❌ AgoraModule not available');
-        return;
-      }
-      Alert.alert('Release Test', '🔍 Testing ReleaseEngine only...');
-      AgoraModule.ReleaseEngine();
-      Alert.alert('Success', '✅ ReleaseEngine called successfully');
-    } catch (error) {
-      Alert.alert('Error', `❌ ReleaseEngine failed: ${error.message}`);
-    }
-  };
-
-  // Check function loading status
-  const checkFunctionStatus = () => {
-    try {
-      if (!AgoraModule) {
-        Alert.alert('Error', '❌ AgoraModule not available');
-        return;
-      }
-
-      // Use callback pattern for React Native method
-      AgoraModule.GetFunctionLoadingStatus(status => {
-        Alert.alert('Function Loading Status', status);
-      });
-    } catch (error) {
-      Alert.alert('Error', `❌ Failed to get status: ${error.message}`);
-    }
-  };
-
-  // Echo test functions
-  const startEchoTest = () => {
-    try {
-      console.log('🎤 startEchoTest called');
-      if (!AgoraModule) {
-        console.log('❌ AgoraModule not available in startEchoTest');
-        Alert.alert('Error', '❌ AgoraModule not available');
-        return;
-      }
-      console.log('🔧 About to call StartEchoTest');
-      Alert.alert(
-        'Echo Test',
-        '🎤 Starting echo test...\n\nSpeak into your microphone - you should hear your voice after 3 seconds!',
-      );
-      AgoraModule.StartEchoTest();
-      console.log('✅ StartEchoTest called successfully');
-    } catch (error) {
-      console.log('❌ StartEchoTest error:', error.message);
-      Alert.alert('Error', `❌ StartEchoTest failed: ${error.message}`);
-    }
-  };
-
-  const stopEchoTest = () => {
-    try {
-      if (!AgoraModule) {
-        Alert.alert('Error', '❌ AgoraModule not available');
-        return;
-      }
-      Alert.alert('Echo Test', '🛑 Stopping echo test...');
-      AgoraModule.StopEchoTest();
-    } catch (error) {
-      Alert.alert('Error', `❌ StopEchoTest failed: ${error.message}`);
+      setPinError('');
+      if (!pendingJoinChannel) return;
+      setPinModalVisible(false);
+      setTimeout(() => {
+        handleChannelStateChange(pendingJoinChannel.id, 'forward', pinInput);
+      }, 200);
+    } catch (err) {
+      setPinError('Incorrect PIN or failed to join room');
     }
   };
 
@@ -342,75 +371,253 @@ const MainScreen = ({navigation}) => {
         <ScrollView style={styles.scrollView}>
           <View style={styles.mainGrid}>
             {radioChannels.map(channel => (
-              <TouchableOpacity
-                key={channel.id}
-                onPress={() => {
-                  handleChannelSelect(channel.id);
-                  handleToggleChannelState(channel.id);
-                }}>
-                <RadioChannel
-                  name={channel.name}
-                  frequency={channel.frequency}
-                  isActive={channel.status === 'Active'}
-                  mode={channel.mode}
-                  isSelected={selectedChannel === channel.id}
-                  channelState={channel.channelState}
-                  showFrequency={showFrequency}
-                  showStatus={showStatus}
-                  numberOfChannels={radioChannels.length}
-                />
-              </TouchableOpacity>
+              <View key={channel.id}>
+                <TouchableOpacity
+                  onPress={e => {
+                    if (e && e.nativeEvent && e.nativeEvent.shiftKey) {
+                      handleReverseChannelState(channel.id);
+                    } else if (channel.channelState === 'Idle') {
+                      handleJoinRoom(channel); // Show PIN modal for Private rooms
+                    } else {
+                      handleChannelSelect(channel.id);
+                      handleToggleChannelState(channel.id);
+                    }
+                  }}
+                  onLongPress={() => handleChannelLongPress(channel)}
+                  style={{flex: 1}}>
+                  <RadioChannel
+                    name={channel.name}
+                    frequency={channel.frequency}
+                    isActive={roomParticipants[channel.id]}
+                    mode={channel.mode}
+                    isSelected={selectedChannel === channel.id}
+                    channelState={channel.channelState}
+                    showFrequency={showFrequency}
+                    showStatus={showStatus}
+                    numberOfChannels={radioChannels.length}
+                    // Voice connection props
+                    isVoiceConnected={activeVoiceChannel === channel.id}
+                    voiceStatus={
+                      activeVoiceChannel === channel.id
+                        ? voiceStatus
+                        : 'disconnected'
+                    }
+                    isMicrophoneEnabled={
+                      activeVoiceChannel === channel.id
+                        ? channel.channelState === 'ListenAndTalk'
+                        : false
+                    }
+                  />
+                </TouchableOpacity>
+              </View>
             ))}
           </View>
         </ScrollView>
 
-        <TouchableOpacity style={styles.addButton} onPress={handleAddChannel}>
-          <Text style={styles.addButtonText}>+</Text>
-        </TouchableOpacity>
+        {/* Add Channel Button - Styled with hover and dark/light mode, circular */}
+        <Pressable
+          onPress={handleAddChannel}
+          onHoverIn={() => setAddHovering(true)}
+          onHoverOut={() => setAddHovering(false)}
+          style={[
+            styles.addButton,
+            {
+              backgroundColor: addHovering
+                ? addColors.backgroundHover
+                : addColors.background,
+              borderColor: addHovering
+                ? addColors.borderHover
+                : addColors.border,
+              borderWidth: 1,
+            },
+          ]}>
+          <Text
+            style={[
+              styles.addButtonText,
+              {
+                color: addHovering ? addColors.textHover : addColors.text,
+              },
+            ]}>
+            +
+          </Text>
+        </Pressable>
 
-        <TouchableOpacity style={styles.testButton} onPress={testAgoraModule}>
-          <Text style={styles.testButtonText}>Test Agora</Text>
-        </TouchableOpacity>
+        {/* Emergency Voice Reset Button - Styled exactly like LogoutButton */}
+        <Pressable
+          onPress={emergencyVoiceReset}
+          onHoverIn={() => setResetHovering(true)}
+          onHoverOut={() => setResetHovering(false)}
+          style={[
+            styles.resetVoiceButton,
+            {
+              backgroundColor: resetHovering
+                ? resetColors.backgroundHover
+                : resetColors.background,
+              borderColor: resetHovering
+                ? resetColors.borderHover
+                : resetColors.border,
+            },
+          ]}>
+          <View style={styles.resetVoiceContent}>
+            <Image
+              source={require('../../assets/logos/microphone.png')}
+              style={[
+                styles.resetVoiceIcon,
+                {
+                  tintColor: resetHovering
+                    ? resetColors.iconHover
+                    : resetColors.icon,
+                },
+              ]}
+              resizeMode="contain"
+            />
+            <Text
+              style={[
+                styles.resetVoiceText,
+                {
+                  color: resetHovering
+                    ? resetColors.textHover
+                    : resetColors.text,
+                },
+              ]}>
+              Reset Voice
+            </Text>
+          </View>
+        </Pressable>
 
-        {/* Individual test buttons for detailed testing */}
-        <TouchableOpacity style={styles.joinButton} onPress={testJoinChannel}>
-          <Text style={styles.testButtonText}>Join</Text>
-        </TouchableOpacity>
-
-        <TouchableOpacity style={styles.leaveButton} onPress={testLeaveChannel}>
-          <Text style={styles.testButtonText}>Leave</Text>
-        </TouchableOpacity>
-
-        <TouchableOpacity
-          style={styles.releaseButton}
-          onPress={testReleaseEngine}>
-          <Text style={styles.testButtonText}>Release</Text>
-        </TouchableOpacity>
-
-        {/* Function Status Check Button */}
-        <TouchableOpacity
-          style={styles.statusCheckButton}
-          onPress={checkFunctionStatus}>
-          <Text style={styles.testButtonText}>Status</Text>
-        </TouchableOpacity>
-
-        {/* Echo Test Buttons */}
-        <TouchableOpacity
-          style={styles.startEchoButton}
-          onPress={startEchoTest}>
-          <Text style={styles.testButtonText}>Start Echo</Text>
-        </TouchableOpacity>
-
-        <TouchableOpacity style={styles.stopEchoButton} onPress={stopEchoTest}>
-          <Text style={styles.testButtonText}>Stop Echo</Text>
-        </TouchableOpacity>
-
-        {/* Module Status Display */}
-        <View style={styles.statusContainer}>
-          <Text style={styles.statusTitle}>Module Status:</Text>
-          <Text style={styles.statusText}>{moduleStatus}</Text>
-        </View>
+        {/* Voice Status Indicator */}
       </View>
+
+      {/* Channel Participants Modal */}
+      <ChannelParticipantsModal
+        visible={isParticipantsModalVisible}
+        onClose={closeParticipantsModal}
+        channelName={selectedChannelForModal?.name || ''}
+        participants={participantsForModal}
+      />
+
+      {pinModalVisible && (
+        <View
+          style={{
+            position: 'absolute',
+            top: 0,
+            left: 0,
+            right: 0,
+            bottom: 0,
+            backgroundColor: darkMode ? 'rgba(0,0,0,0.7)' : 'rgba(0,0,0,0.2)',
+            justifyContent: 'center',
+            alignItems: 'center',
+            zIndex: 2000,
+          }}>
+          <View
+            style={{
+              backgroundColor: darkMode ? '#1a1a1a' : '#fff',
+              borderRadius: 16,
+              padding: 24,
+              width: 320,
+              alignItems: 'center',
+              borderWidth: 1,
+              borderColor: darkMode ? '#333' : '#ccc',
+            }}>
+            {/* Header */}
+            <View
+              style={{
+                flexDirection: 'row',
+                justifyContent: 'space-between',
+                alignItems: 'center',
+                width: '100%',
+                marginBottom: 20,
+                paddingBottom: 16,
+                borderBottomWidth: 1,
+                borderBottomColor: darkMode ? '#333' : '#eee',
+              }}>
+              <Text
+                style={{
+                  fontSize: 22,
+                  fontWeight: 'bold',
+                  color: darkMode ? '#fff' : '#222',
+                }}>
+                Enter Room PIN
+              </Text>
+              <TouchableOpacity
+                onPress={() => setPinModalVisible(false)}
+                style={{padding: 8}}>
+                <Text style={{fontSize: 24, color: darkMode ? '#888' : '#aaa'}}>
+                  ×
+                </Text>
+              </TouchableOpacity>
+            </View>
+            {/* PIN Input */}
+            <TextInput
+              style={{
+                borderWidth: 1,
+                borderColor: '#ccc',
+                borderRadius: 6,
+                width: 120,
+                fontSize: 20,
+                textAlign: 'center',
+                marginBottom: 10,
+                padding: 6,
+                color: darkMode ? '#fff' : '#000',
+                backgroundColor: darkMode ? '#222' : '#fff',
+              }}
+              placeholder="4-digit PIN"
+              placeholderTextColor={darkMode ? '#aaa' : '#888'}
+              keyboardType="numeric"
+              maxLength={4}
+              value={pinInput}
+              onChangeText={text =>
+                setPinInput(text.replace(/[^0-9]/g, '').slice(0, 4))
+              }
+              secureTextEntry
+            />
+            {pinError ? (
+              <Text style={{color: 'red', marginBottom: 8}}>{pinError}</Text>
+            ) : null}
+            <View
+              style={{
+                flexDirection: 'row',
+                justifyContent: 'space-between',
+                width: '100%',
+              }}>
+              <TouchableOpacity
+                style={{
+                  flex: 1,
+                  alignItems: 'center',
+                  padding: 10,
+                  borderRadius: 8,
+                  backgroundColor: darkMode ? '#2a2a2a' : '#f0f0f0',
+                  marginRight: 8,
+                  borderWidth: 1,
+                  borderColor: darkMode ? '#333' : '#ccc',
+                }}
+                onPress={() => setPinModalVisible(false)}>
+                <Text
+                  style={{
+                    color: darkMode ? '#fff' : '#333',
+                    fontWeight: 'bold',
+                  }}>
+                  Cancel
+                </Text>
+              </TouchableOpacity>
+              <TouchableOpacity
+                style={{
+                  flex: 1,
+                  alignItems: 'center',
+                  padding: 10,
+                  borderRadius: 8,
+                  backgroundColor: darkMode ? '#2196F3' : '#1976d2',
+                  marginLeft: 8,
+                  opacity: pinInput.length === 4 ? 1 : 0.5,
+                }}
+                onPress={handlePinJoin}
+                disabled={pinInput.length !== 4}>
+                <Text style={{color: '#fff', fontWeight: 'bold'}}>Join</Text>
+              </TouchableOpacity>
+            </View>
+          </View>
+        </View>
+      )}
     </AppLayout>
   );
 };
@@ -455,8 +662,8 @@ const styles = StyleSheet.create({
   },
   addButton: {
     position: 'absolute',
-    right: 20,
-    bottom: 30,
+    right: 50,
+    bottom: 80,
     backgroundColor: '#1DB954',
     width: 50,
     height: 50,
@@ -479,11 +686,11 @@ const styles = StyleSheet.create({
     fontWeight: 'bold',
     lineHeight: 30,
   },
-  testButton: {
+  emergencyResetButton: {
     position: 'absolute',
-    left: 20,
-    bottom: 30,
-    backgroundColor: '#FF5722',
+    right: 20,
+    bottom: 100,
+    backgroundColor: '#D32F2F',
     padding: 10,
     borderRadius: 5,
     elevation: 5,
@@ -493,92 +700,38 @@ const styles = StyleSheet.create({
     fontSize: 14,
     fontWeight: 'bold',
   },
-  testText: {
-    fontSize: 24,
-    textAlign: 'center',
-    marginTop: 100,
-    color: '#333',
-  },
-  statusContainer: {
+  resetVoiceButton: {
     position: 'absolute',
-    top: 20,
-    left: 20,
     right: 20,
-    backgroundColor: 'rgba(0, 0, 0, 0.8)',
-    padding: 10,
-    borderRadius: 5,
-    zIndex: 1001,
+    bottom: 30,
+    borderWidth: 1,
+    borderRadius: 6,
+    paddingVertical: 8,
+    paddingHorizontal: 12,
+    minWidth: 120,
+    shadowOffset: {
+      width: 0,
+      height: 1,
+    },
+    shadowOpacity: 0.05,
+    shadowRadius: 2,
+    elevation: 1,
+    zIndex: 1000,
   },
-  statusTitle: {
-    color: '#fff',
-    fontSize: 14,
-    fontWeight: 'bold',
-    marginBottom: 5,
+  resetVoiceContent: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
   },
-  statusText: {
-    color: '#fff',
-    fontSize: 12,
-    fontFamily: 'monospace',
+  resetVoiceIcon: {
+    width: 16,
+    height: 16,
+    marginRight: 6,
   },
-  joinButton: {
-    position: 'absolute',
-    left: 20,
-    bottom: 90,
-    backgroundColor: '#4CAF50',
-    padding: 8,
-    borderRadius: 5,
-    elevation: 5,
-    minWidth: 60,
-  },
-  leaveButton: {
-    position: 'absolute',
-    left: 90,
-    bottom: 90,
-    backgroundColor: '#FF9800',
-    padding: 8,
-    borderRadius: 5,
-    elevation: 5,
-    minWidth: 60,
-  },
-  releaseButton: {
-    position: 'absolute',
-    left: 160,
-    bottom: 90,
-    backgroundColor: '#F44336',
-    padding: 8,
-    borderRadius: 5,
-    elevation: 5,
-    minWidth: 60,
-  },
-  statusCheckButton: {
-    position: 'absolute',
-    left: 220,
-    bottom: 90,
-    backgroundColor: '#FF5722',
-    padding: 8,
-    borderRadius: 5,
-    elevation: 5,
-    minWidth: 60,
-  },
-  startEchoButton: {
-    position: 'absolute',
-    left: 20,
-    bottom: 150,
-    backgroundColor: '#9C27B0',
-    padding: 8,
-    borderRadius: 5,
-    elevation: 5,
-    minWidth: 80,
-  },
-  stopEchoButton: {
-    position: 'absolute',
-    left: 110,
-    bottom: 150,
-    backgroundColor: '#E91E63',
-    padding: 8,
-    borderRadius: 5,
-    elevation: 5,
-    minWidth: 80,
+  resetVoiceText: {
+    fontSize: 13,
+    fontWeight: '500',
+    letterSpacing: 0.2,
   },
 });
 

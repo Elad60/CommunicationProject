@@ -22,12 +22,19 @@ namespace winrt::FinalProject::implementation
         AgoraEventHandler() = default;
         virtual ~AgoraEventHandler() = default;
 
+        // Add ReactContext setter
+        void SetReactContext(winrt::Microsoft::ReactNative::ReactContext const& context) {
+            m_reactContext = context;
+        }
+
         // Override key event methods
         void onJoinChannelSuccess(const char* channel, uid_t uid, int elapsed) override;
         void onLeaveChannel(const RtcStats& stats) override;
         void onUserJoined(uid_t uid, int elapsed) override;
         void onUserOffline(uid_t uid, USER_OFFLINE_REASON_TYPE reason) override;
         void onError(int err, const char* msg) override;
+    private:
+        winrt::Microsoft::ReactNative::ReactContext m_reactContext{ nullptr };
     };
 
     // Global singleton class for Agora management
@@ -48,7 +55,6 @@ namespace winrt::FinalProject::implementation
         bool m_isLocalAudioMuted = false;
         bool m_isLocalAudioEnabled = true;
         int m_recordingVolume = 100;
-        bool m_isSpeakerphoneOn = false;
 
         AgoraManager() = default;
 
@@ -79,12 +85,14 @@ namespace winrt::FinalProject::implementation
         void EnableNoiseSuppressionMode(bool enabled, int mode);
         void SetAudioScenario(int scenario);
         
-        // New functions for private calls
-        void SetSpeakerphoneOn(bool enable);
+        // Debug and status methods
         bool IsLocalAudioMuted();
-        bool IsSpeakerphoneOn();
-        std::string GetCurrentChannel();
-        int GetConnectionState();
+
+        void SetReactContext(winrt::Microsoft::ReactNative::ReactContext const& context) {
+            if (m_eventHandler) {
+                m_eventHandler->SetReactContext(context);
+            }
+        }
 
         ~AgoraManager() {
             ReleaseEngine();
@@ -98,6 +106,7 @@ namespace winrt::FinalProject::implementation
         void Initialize(winrt::Microsoft::ReactNative::ReactContext const& reactContext) noexcept
         {
             m_reactContext = reactContext;
+            AgoraManager::GetInstance()->SetReactContext(reactContext);
         }
 
         REACT_METHOD(InitializeAgoraEngine)
@@ -180,34 +189,11 @@ namespace winrt::FinalProject::implementation
             AgoraManager::GetInstance()->SetAudioScenario(scenario);
         }
 
-        REACT_METHOD(SetSpeakerphoneOn)
-        void SetSpeakerphoneOn(bool enable) noexcept
-        {
-            AgoraManager::GetInstance()->SetSpeakerphoneOn(enable);
-        }
-
+        // Debug and status React Native methods
         REACT_METHOD(IsLocalAudioMuted)
         void IsLocalAudioMuted(std::function<void(bool)> const& callback) noexcept
         {
             callback(AgoraManager::GetInstance()->IsLocalAudioMuted());
-        }
-
-        REACT_METHOD(IsSpeakerphoneOn)
-        void IsSpeakerphoneOn(std::function<void(bool)> const& callback) noexcept
-        {
-            callback(AgoraManager::GetInstance()->IsSpeakerphoneOn());
-        }
-
-        REACT_METHOD(GetCurrentChannel)
-        void GetCurrentChannel(std::function<void(std::string)> const& callback) noexcept
-        {
-            callback(AgoraManager::GetInstance()->GetCurrentChannel());
-        }
-
-        REACT_METHOD(GetConnectionState)
-        void GetConnectionState(std::function<void(int)> const& callback) noexcept
-        {
-            callback(AgoraManager::GetInstance()->GetConnectionState());
         }
 
     private:
