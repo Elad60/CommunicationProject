@@ -274,8 +274,8 @@ const IncomingCallScreen = ({route, navigation}) => {
       if (response.success) {
         console.log('✅ Call accepted successfully:', response);
         
-        // 🎯 SAME LOGIC AS MAINSCREEN: Connect to Agora
-        const agoraChannelName = `private_call_${callId}`;
+        // 🎯 FIXED: Create proper channel name without duplication
+        const agoraChannelName = callId.startsWith('call_') ? `private_${callId}` : `private_call_${callId}`;
         console.log('🎤 Connecting to Agora channel:', agoraChannelName);
         
         try {

@@ -28,13 +28,19 @@ const PrivateCallScreen = ({route, navigation}) => {
     otherUser: otherUser?.username,
     invitationId,
     currentUserId,
-    agoraChannelName, // 🎯 NEW: Log Agora channel name
+    agoraChannelName, // 🎯 Channel name from previous screen
   });
+  
+  // 🔧 VALIDATION: Check if channel name has duplicate 'call_'
+  if (agoraChannelName && agoraChannelName.includes('call_call_')) {
+    console.warn('⚠️ DUPLICATE DETECTED in channel name:', agoraChannelName);
+  }
 
-  // 🎯 FIXED: Don't reconnect to Agora - already connected from previous screen
+  // 🎯 FIXED: Set Agora state only once on mount
   useEffect(() => {
+    console.log('🎤 PrivateCallScreen: Agora already connected from previous screen to:', agoraChannelName);
+    
     if (agoraChannelName) {
-      console.log('🎤 PrivateCallScreen: Agora already connected from previous screen to:', agoraChannelName);
       // Set the connection state to true since we're already connected
       setIsAgoraConnected(true);
     } else {
@@ -49,7 +55,7 @@ const PrivateCallScreen = ({route, navigation}) => {
         disconnectFromAgora(); // Second attempt
       }, 100);
     };
-  }, [agoraChannelName]);
+  }, []); // Empty dependency array - run only once
 
   // Component lifecycle logging with cleanup
   useEffect(() => {
