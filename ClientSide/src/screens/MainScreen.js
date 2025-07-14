@@ -62,6 +62,19 @@ const MainScreen = ({navigation}) => {
     iconHover: darkMode ? '#c82333' : '#c82333',
   };
 
+  // Hover state for Add (+) button
+  const [addHovering, setAddHovering] = useState(false);
+
+  // Colors for Add (+) button (same logic as LogoutButton, but green for icon/text)
+  const addColors = {
+    background: darkMode ? '#2a2a2a' : '#f8f9fa',
+    backgroundHover: darkMode ? '#3a3a3a' : '#e9ecef',
+    border: darkMode ? '#404040' : '#dee2e6',
+    borderHover: darkMode ? '#555555' : '#adb5bd',
+    text: darkMode ? '#1DB954' : '#1DB954',
+    textHover: darkMode ? '#1ed760' : '#1ed760',
+  };
+
   // Fetch radio channels for the authenticated user
   const fetchRadioChannels = async () => {
     try {
@@ -325,9 +338,33 @@ const MainScreen = ({navigation}) => {
           </View>
         </ScrollView>
 
-        <TouchableOpacity style={styles.addButton} onPress={handleAddChannel}>
-          <Text style={styles.addButtonText}>+</Text>
-        </TouchableOpacity>
+        {/* Add Channel Button - Styled with hover and dark/light mode, circular */}
+        <Pressable
+          onPress={handleAddChannel}
+          onHoverIn={() => setAddHovering(true)}
+          onHoverOut={() => setAddHovering(false)}
+          style={[
+            styles.addButton,
+            {
+              backgroundColor: addHovering
+                ? addColors.backgroundHover
+                : addColors.background,
+              borderColor: addHovering
+                ? addColors.borderHover
+                : addColors.border,
+              borderWidth: 1,
+            },
+          ]}>
+          <Text
+            style={[
+              styles.addButtonText,
+              {
+                color: addHovering ? addColors.textHover : addColors.text,
+              },
+            ]}>
+            +
+          </Text>
+        </Pressable>
 
         {/* Emergency Voice Reset Button - Styled exactly like LogoutButton */}
         <Pressable
