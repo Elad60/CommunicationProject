@@ -13,6 +13,7 @@ const ControlPanel = ({
   darkMode,
   height,
   width,
+  onShowInstructions,
 }) => {
   // Determine layout orientation and panel dimensions
   let CONTROL_PANEL_HEIGHT;
@@ -68,32 +69,44 @@ const ControlPanel = ({
 
   // Define control panel buttons
   const buttons = [
-    {
-      title: 'Speaker',
-      icon: require('../../assets/logos/speaker.png'),
-      onPress: () => {
-        setSpeakerVolume((speakerVolume + 10) % 110);
-        setSelectedButton('Speaker');
+    // Show volume controls only if NOT in Groups screen (when onShowInstructions is not available)
+    ...(!onShowInstructions ? [
+      {
+        title: 'Speaker',
+        icon: require('../../assets/logos/speaker.png'),
+        onPress: () => {
+          setSpeakerVolume((speakerVolume + 10) % 110);
+          setSelectedButton('Speaker');
+        },
       },
-    },
-    {
-      title: 'Ch Vol',
-      icon: require('../../assets/logos/volume-adjustment.png'),
-      onPress: () => {
-        setSelectedButton('Ch Vol');
-        selectedChannel
-          ? alert(`Adjusting volume for ${selectedChannel}`)
-          : alert('Please select a channel first');
+      {
+        title: 'Ch Vol',
+        icon: require('../../assets/logos/volume-adjustment.png'),
+        onPress: () => {
+          setSelectedButton('Ch Vol');
+          selectedChannel
+            ? alert(`Adjusting volume for ${selectedChannel}`)
+            : alert('Please select a channel first');
+        },
       },
-    },
-    {
-      title: 'Mute All',
-      icon: require('../../assets/logos/mute.png'),
-      onPress: () => {
-        setSpeakerVolume(0);
-        setSelectedButton('Mute All');
+      {
+        title: 'Mute All',
+        icon: require('../../assets/logos/mute.png'),
+        onPress: () => {
+          setSpeakerVolume(0);
+          setSelectedButton('Mute All');
+        },
       },
-    },
+    ] : []),
+    // Add Details button only when onShowInstructions is available (Groups screen)
+    ...(onShowInstructions ? [{
+      title: 'Details',
+      icon: require('../../assets/logos/announcement.png'),
+      onPress: () => {
+        setSelectedButton('Details');
+        onShowInstructions();
+      },
+    }] : []),
     {
       title: 'Settings',
       icon: require('../../assets/logos/settings.png'),

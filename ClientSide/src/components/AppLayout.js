@@ -14,7 +14,7 @@ import ControlPanel from './ControlPanel';
 import NavPanel from './NavPanel';
 import {useSettings} from '../context/SettingsContext';
 import LogoutButton from './LogoutButton';
-import {useIncomingCallListener} from '../hooks/useIncomingCallListener';
+// import {useIncomingCallListener} from '../hooks/useIncomingCallListener'; // FULLY DISABLED
 
 const AppLayout = ({
   children,
@@ -22,6 +22,7 @@ const AppLayout = ({
   title,
   showControls = true,
   showNavPanel = true,
+  onShowInstructions,
 }) => {
   const {height, width} = useDebouncedDimensions(300);
   const isLandscape = width > height;
@@ -170,6 +171,7 @@ const AppLayout = ({
           navigation={navigation}
           height={height}
           width={width}
+          onShowInstructions={onShowInstructions}
         />
       )}
 

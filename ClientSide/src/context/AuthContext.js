@@ -13,18 +13,34 @@ export const AuthProvider = ({children}) => {
   useEffect(() => {
     const loadUser = async () => {
       try {
+        console.log('🔄 AuthContext: Loading user from storage...');
         const storedUser = await AsyncStorage.getItem('user');
         if (storedUser) {
-          setUser(JSON.parse(storedUser));
+          const parsedUser = JSON.parse(storedUser);
+          console.log('✅ AuthContext: User loaded from storage:', parsedUser);
+          setUser(parsedUser);
+        } else {
+          console.log('⚠️ AuthContext: No user found in storage');
         }
       } catch (err) {
-        console.error('Error loading user from storage:', err);
+        console.error('❌ AuthContext: Error loading user from storage:', err);
       } finally {
         setLoading(false);
+        console.log('🔄 AuthContext: Initial loading complete');
       }
     };
     loadUser();
   }, []);
+
+  // Track user state changes
+  useEffect(() => {
+    console.log('🔄 AuthContext: User state changed:', user);
+    if (user) {
+      console.log('👤 AuthContext: User is now logged in:', user.username, 'ID:', user.id);
+    } else {
+      console.log('👤 AuthContext: User is now logged out');
+    }
+  }, [user]);
 
   // Register a new user
   const register = async (username, password, email, group) => {
@@ -62,14 +78,17 @@ export const AuthProvider = ({children}) => {
     setLoading(true);
     setError('');
     try {
+      console.log('🔄 AuthContext: Attempting login for:', username);
       const result = await authApi.login(username, password);
 
       if (result.success && result.user) {
+        console.log('✅ AuthContext: Login successful for user:', result.user);
         await AsyncStorage.setItem('user', JSON.stringify(result.user));
         setUser(result.user);
         return { success: true };
       } else {
         const message = result.message || 'Login failed';
+        console.log('❌ AuthContext: Login failed:', message);
         setError(message);
         return {
           success: false,
@@ -124,14 +143,15 @@ export const AuthProvider = ({children}) => {
   const logout = async () => {
     setLoading(true);
     try {
+      console.log('🔄 AuthContext: Logging out user:', user?.username);
       if (user?.id) {
         await authApi.logout(user.id);
       }
       await AsyncStorage.removeItem('user');
       setUser(null);
-      console.log('Logged out (server + local)');
+      console.log('✅ AuthContext: Logged out (server + local)');
     } catch (err) {
-      console.error('Logout error:', err);
+      console.error('❌ AuthContext: Logout error:', err);
     } finally {
       setLoading(false);
     }

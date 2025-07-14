@@ -7,80 +7,75 @@ import {
   ScrollView,
   TouchableOpacity,
   ActivityIndicator,
-  Image,
   Alert,
 } from 'react-native';
 import AppLayout from '../components/AppLayout';
 import {useAuth} from '../context/AuthContext';
-import {groupUsersApi} from '../utils/apiService';
+import {groupUsersApi, privateCallApi} from '../utils/apiService';
 import {useSettings} from '../context/SettingsContext';
-import {useDebouncedDimensions} from '../utils/useDebouncedDimensions';
-import {useVoice} from '../context/VoiceContext';
-import {radioChannelsApi} from '../utils/apiService';
+import { useDebouncedDimensions } from '../utils/useDebouncedDimensions';
+// import useIncomingCallListener from '../hooks/useIncomingCallListener'; // MOVED TO GLOBAL
 
 const GroupsScreen = ({navigation}) => {
+  console.log('🟢 GroupsScreen RENDERED');
+  
   // Destructuring user and changeGroup from AuthContext
   const {user, changeGroup} = useAuth();
-
-  // States for managing group users, user states, loading status, and errors
+  
+  // States for managing group users, loading status, and errors
   const [groupUsers, setGroupUsers] = useState([]);
-  const [userStates, setUserStates] = useState({});
   const [loading, setLoading] = useState(true);
   const [, setError] = useState(null);
-
+  
   // Array for group letter options
   const letters = ['A', 'B', 'C', 'D', 'E', 'F'];
-
+  
   // Fetching dark mode setting from SettingsContext
   const {darkMode} = useSettings();
-
+  
   // Setting text color based on dark mode
   const textColor = darkMode ? '#fff' : '#000';
-
+  
   // Debounced dimensions for responsive UI
-  const {height, width} = useDebouncedDimensions(300);
+  const { height, width } = useDebouncedDimensions(300);
 
-  const { leaveVoiceChannel, activeVoiceChannel } = useVoice();
-
+  // Component lifecycle logging
   useEffect(() => {
-    // Disconnect voice
-    leaveVoiceChannel();
-
-    // Update only the active channel to Idle on the server
-    const updateSelectedChannelToIdle = async () => {
-      if (user?.id && activeVoiceChannel) {
-        try {
-          await radioChannelsApi.updateChannelState(user.id, activeVoiceChannel, 'Idle');
-        } catch (err) {
-          console.error('Failed to update selected channel to Idle:', err);
-        }
-      }
+    console.log('🎬 GroupsScreen MOUNTED');
+    return () => {
+      console.log('🏁 GroupsScreen UNMOUNTED');
     };
-
-    updateSelectedChannelToIdle();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
+
+  // Navigation listener to detect focus/blur
+  useEffect(() => {
+    const unsubscribe = navigation.addListener('focus', () => {
+      console.log('🔵 GroupsScreen FOCUSED');
+    });
+
+    const unsubscribeBlur = navigation.addListener('blur', () => {
+      console.log('🔴 GroupsScreen BLURRED');
+    });
+
+    return () => {
+      unsubscribe();
+      unsubscribeBlur();
+    };
+  }, [navigation]);
+
+  // Incoming call listening is now handled globally by GlobalCallListener
 
   // Function to fetch users for the current group
   const fetchGroupUsers = async () => {
     try {
       setLoading(true);
       const groupName = user?.group;
-      if (!groupName) {
-        throw new Error('Group not found');
-      }
+      if (!groupName) {throw new Error('Group not found');}
 
       // API call to get users by group
       const users = await groupUsersApi.getUsersByGroup(groupName);
       const filtered = users.filter(u => u.id !== user.id); // Excluding the current user
       setGroupUsers(filtered);
-
-      // Initialize user states as 'Idle'
-      const initialStates = {};
-      filtered.forEach(u => {
-        initialStates[u.id] = 'Idle';
-      });
-      setUserStates(initialStates);
       setError(null);
     } catch (err) {
       console.error('Error fetching group users:', err);
@@ -103,123 +98,95 @@ const GroupsScreen = ({navigation}) => {
     changeGroup(newGroup);
   };
 
-  // Function to return appropriate icon paths based on user state
-  const getIconPaths = channelState => {
-    switch (channelState) {
-      case 'Idle':
-        return {
-          headphones: require('../../assets/logos/crossed-HF.png'),
-          mic: require('../../assets/logos/crossed-mic.png'),
-        };
-      case 'ListenOnly':
-        return {
-          headphones: require('../../assets/logos/headphones.png'),
-          mic: require('../../assets/logos/crossed-mic.png'),
-        };
-      case 'ListenAndTalk':
-        return {
-          headphones: require('../../assets/logos/headphones.png'),
-          mic: require('../../assets/logos/microphone.png'),
-        };
-      default:
-        return {
-          headphones: require('../../assets/logos/crossed-HF.png'),
-          mic: require('../../assets/logos/microphone.png'),
-        };
-    }
+  // Function to get simple background color for user cards
+  const getBackgroundColor = () => {
+    return darkMode ? '#2a2a2a' : '#ffffff'; // Clean white/dark background
   };
 
-  // Function to get background color based on user state
-  const getBackgroundColor = state => {
-    switch (state) {
-      case 'ListenOnly':
-        return darkMode ? '#1f3d1f' : '#99cc99'; // green
-      case 'ListenAndTalk':
-        return darkMode ? '#1e2f4d' : '#91aad4'; // blue
-      case 'Idle':
-      default:
-        return darkMode ? '#222' : '#ddd'; // default
-    }
-  };
-
-  // Function to cycle through states: Idle -> ListenOnly -> ListenAndTalk
-  const cycleState = state => {
-    switch (state) {
-      case 'Idle':
-        return 'ListenOnly';
-      case 'ListenOnly':
-        return 'ListenAndTalk';
-      case 'ListenAndTalk':
-      default:
-        return 'Idle';
-    }
-  };
-
-  // Function to handle user press event to change their state
+  // Function to handle user press for private call options
   const onUserPress = userId => {
-    setUserStates(prev => ({
-      ...prev,
-      [userId]: cycleState(prev[userId] || 'Idle'), // Toggle user state
-    }));
-  };
-
-  // Function to handle long press for private call options
-  const onUserLongPress = userId => {
     const selectedUser = groupUsers.find(u => u.id === userId);
     
+    // Show confirmation dialog before starting private call
     Alert.alert(
-      'User Options',
-      `What would you like to do with ${selectedUser.username}?`,
+      'Start Private Call',
+      `Are you sure you want to call ${selectedUser.username}?`,
       [
-        {
-          text: 'Change Status',
-          onPress: () => onUserPress(userId),
-        },
-        {
-          text: 'Private Call',
-          onPress: () => startPrivateCall(selectedUser),
-        },
-        {
-          text: 'Direct Call (Test)',
-          onPress: () => startDirectCall(selectedUser),
-        },
         {
           text: 'Cancel',
           style: 'cancel',
+          onPress: () => console.log('Call cancelled by user')
         },
+        {
+          text: 'Call',
+          style: 'default',
+          onPress: () => startPrivateCall(selectedUser)
+        }
       ]
     );
   };
 
   // Function to start private call (send invitation)
-  const startPrivateCall = (otherUser) => {
-    console.log(`📞 Sending call invitation to ${otherUser.username}`);
-    navigation.navigate('WaitingForCall', {otherUser});
+  const startPrivateCall = async (otherUser) => {
+    console.log(`📞 Starting private call with ${otherUser.username}`);
+    
+    try {
+      // Send invitation using the API first
+      const response = await privateCallApi.sendInvitation(user.id, otherUser.id);
+      
+      console.log('📋 Full API response:', response);
+      
+      if (response.success) {  // ← Fixed: lowercase 'success'
+        console.log('✅ Invitation sent successfully:', response);
+        
+        // Navigate to waiting screen with invitation details
+        navigation.navigate('WaitingForCall', {
+          otherUser,
+          invitationId: response.invitationId,  // ← Fixed: lowercase 'invitationId'
+          channelName: response.channelName,    // ← Fixed: lowercase 'channelName'
+        });
+      } else {
+        console.log('❌ Invitation failed:', response.message);
+        
+        Alert.alert(
+          'Call Failed',
+          response.message || 'Failed to send call invitation. Please try again.',
+          [{text: 'OK'}]
+        );
+      }
+    } catch (error) {
+      console.error('❌ Error sending call invitation:', error);
+      
+      Alert.alert(
+        'Call Failed',
+        error.message || 'Failed to send call invitation. Please try again.',
+        [{text: 'OK'}]
+      );
+    }
   };
 
-  // Function for direct call (bypass invitation system for testing)
-  const startDirectCall = (otherUser) => {
-    console.log(`🔗 Starting direct call with ${otherUser.username} (test mode)`);
+  // Function to show instructions in an alert
+  const showInstructions = () => {
     Alert.alert(
-      'Direct Call',
-      `Starting direct call with ${otherUser.username}.\n\nThis bypasses the invitation system for testing purposes.`,
-      [
-        {text: 'Cancel', style: 'cancel'},
-        {
-          text: 'Start Call',
-          onPress: () => navigation.navigate('PrivateCall', {
-            otherUser,
-            isCallAccepted: true,
-          }),
-        },
-      ]
+      '💡 How to make Private Calls',
+      '• Tap on any user to start a private call\n\n' +
+      '📞 Your invitation will be sent immediately\n\n' +
+      '• 🟢 Online users are more likely to respond\n' +
+      '• 🔴 Offline users may not see your call\n\n' +
+      '• You can cancel the call while waiting\n' +
+      '• The other user has 1 minute to respond',
+      [{text: 'Got it!', style: 'default'}]
     );
   };
 
   // Loading state display
   if (loading) {
     return (
-      <AppLayout navigation={navigation} title={`Group: ${user?.group}`}>
+      <AppLayout 
+        navigation={navigation} 
+        title={`Group: ${user?.group}`}
+        onShowInstructions={showInstructions}
+      >
         <View
           style={[
             styles.centerContainer,
@@ -234,15 +201,17 @@ const GroupsScreen = ({navigation}) => {
     );
   }
 
-  // Calculate the card size dynamically based on screen size
-  const CardSize = Math.max(
-    130,
-    Math.sqrt((width * 0.7 * height * 0.7) / (groupUsers.length + 4)),
-  );
+  // Calculate responsive card dimensions
+  const cardWidth = Math.min(width * 0.42, 180); // Max 180px width, responsive
+  const cardHeight = Math.min(height * 0.16, 120); // Max 120px height, responsive
 
   // Main screen layout
   return (
-    <AppLayout navigation={navigation} title={`Group: ${user?.group}`}>
+    <AppLayout 
+      navigation={navigation} 
+      title={`Group: ${user?.group}`}
+      onShowInstructions={showInstructions}
+    >
       <ScrollView
         style={[
           styles.scrollView,
@@ -251,9 +220,7 @@ const GroupsScreen = ({navigation}) => {
         <View style={styles.mainGrid}>
           {groupUsers.length > 0 ? (
             groupUsers.map(u => {
-              const channelState = userStates[u.id] || 'Idle';
-              const icons = getIconPaths(channelState);
-              const bgColor = getBackgroundColor(channelState);
+              const bgColor = getBackgroundColor();
 
               return (
                 <TouchableOpacity
@@ -262,32 +229,57 @@ const GroupsScreen = ({navigation}) => {
                     styles.userCard,
                     {
                       backgroundColor: bgColor,
-                      borderColor: darkMode ? '#888' : '#333',
-                      width: CardSize,
-                      height: CardSize,
+                      borderColor: darkMode ? '#555' : '#ddd',
+                      width: cardWidth,
+                      height: cardHeight,
+                      shadowColor: darkMode ? '#000' : '#333',
+                      shadowOffset: {width: 0, height: 2},
+                      shadowOpacity: u.isActive ? 0.1 : 0.05,
+                      shadowRadius: 4,
+                      elevation: u.isActive ? 3 : 1,
+                      opacity: u.isActive ? 1 : 0.6, // Disabled appearance for offline users
                     },
                   ]}
-                  onPress={() => onUserPress(u.id)}
-                  onLongPress={() => onUserLongPress(u.id)}>
-                  <Text style={{color: textColor, fontWeight: 'bold'}}>
-                    {u.username}
-                  </Text>
-                  <Text style={{color: darkMode ? '#ccc' : '#333'}}>
-                    {u.email}
-                  </Text>
-                  <Text style={{color: darkMode ? '#91aad4' : '#004080'}}>
-                    Role: {u.role}
-                  </Text>
+                  onPress={u.isActive ? () => onUserPress(u.id) : null}
+                  disabled={!u.isActive}
+                  activeOpacity={u.isActive ? 0.7 : 1}>
+                  
+                  {/* User Avatar Circle */}
+                  <View style={[
+                    styles.userAvatar,
+                    {backgroundColor: u.isActive ? '#4CAF50' : '#f44336'}
+                  ]}>
+                    <Text style={styles.avatarText}>
+                      {u.username.charAt(0).toUpperCase()}
+                    </Text>
+                  </View>
 
-                  <View style={styles.iconRow}>
-                    <Image source={icons.headphones} style={styles.icon} />
-                    <View
-                      style={[
-                        styles.statusDot,
-                        {backgroundColor: u.isActive ? '#00cc00' : '#555'},
-                      ]}
-                    />
-                    <Image source={icons.mic} style={styles.icon} />
+                  {/* User Info */}
+                  <View style={styles.userInfo}>
+                    <Text style={[styles.username, {color: textColor}]} numberOfLines={1}>
+                      {u.username}
+                    </Text>
+                    <Text style={[styles.email, {color: darkMode ? '#ccc' : '#666'}]} numberOfLines={1}>
+                      {u.email}
+                    </Text>
+                    <Text style={[styles.role, {color: darkMode ? '#91aad4' : '#004080'}]} numberOfLines={1}>
+                      {u.role}
+                    </Text>
+                    {!u.isActive && (
+                      <Text style={[styles.offlineText, {color: '#f44336'}]} numberOfLines={1}>
+                        Unavailable for calls
+                      </Text>
+                    )}
+                  </View>
+
+                  {/* Status Indicator */}
+                  <View style={[
+                    styles.statusIndicator,
+                    {backgroundColor: u.isActive ? '#4CAF50' : '#f44336'}
+                  ]}>
+                    <Text style={styles.statusText}>
+                      {u.isActive ? '●' : '●'}
+                    </Text>
                   </View>
                 </TouchableOpacity>
               );
@@ -305,59 +297,39 @@ const GroupsScreen = ({navigation}) => {
         </View>
       </ScrollView>
 
-      <View style={{backgroundColor: darkMode ? '#000' : '#d9d9d9'}}>
+      <View style={[
+        styles.bottomSection,
+        {
+          backgroundColor: darkMode ? '#000' : '#d9d9d9',
+          paddingBottom: Math.max(height * 0.15, 90), // Responsive padding based on screen height
+        }
+      ]}>
         <Text style={[styles.label, {color: textColor}]}>
           Change Your Group:
         </Text>
-        <View style={styles.instructionsContainer}>
-          <Text style={[styles.instructionText, {color: darkMode ? '#ccc' : '#666'}]}>
-            💡 <Text style={{fontWeight: 'bold'}}>How to use Private Calls:</Text>
-          </Text>
-          <Text style={[styles.instructionText, {color: darkMode ? '#ccc' : '#666'}]}>
-            • <Text style={{fontWeight: 'bold'}}>Tap</Text> a user to change their status
-          </Text>
-          <Text style={[styles.instructionText, {color: darkMode ? '#ccc' : '#666'}]}>
-            • <Text style={{fontWeight: 'bold'}}>Long press</Text> a user for call options:
-          </Text>
-          <Text style={[styles.instructionText, {color: darkMode ? '#ccc' : '#666'}]}>
-            &nbsp;&nbsp;&nbsp;&nbsp;📞 <Text style={{fontWeight: 'bold'}}>Private Call</Text> - Send invitation & wait
-          </Text>
-          <Text style={[styles.instructionText, {color: darkMode ? '#ccc' : '#666'}]}>
-            &nbsp;&nbsp;&nbsp;&nbsp;🔗 <Text style={{fontWeight: 'bold'}}>Direct Call (Test)</Text> - Jump to call immediately
-          </Text>
-          <Text style={[styles.instructionText, {color: darkMode ? '#ccc' : '#666'}]}>
-            • Use <Text style={{fontWeight: 'bold'}}>Direct Call</Text> for testing until server is ready
-          </Text>
-          <Text style={[styles.instructionText, {color: darkMode ? '#ccc' : '#666'}]}>
-            • Use mute/speaker controls during the call
-          </Text>
+        
+        <View style={styles.letterContainer}>
+          {letters.map(letter => (
+            <TouchableOpacity
+              key={letter}
+              style={[
+                styles.letterButton,
+                {
+                  backgroundColor:
+                    user?.group === letter
+                      ? darkMode
+                        ? '#0066cc'
+                        : '#91aad4'
+                      : darkMode
+                      ? '#333'
+                      : '#eee',
+                },
+              ]}
+              onPress={() => handleGroupChange(letter)}>
+              <Text style={[styles.letterText, {color: textColor}]}>{letter}</Text>
+            </TouchableOpacity>
+          ))}
         </View>
-      </View>
-      <View
-        style={[
-          styles.letterContainer,
-          {backgroundColor: darkMode ? '#000' : '#d9d9d9'},
-        ]}>
-        {letters.map(letter => (
-          <TouchableOpacity
-            key={letter}
-            style={[
-              styles.letterButton,
-              {
-                backgroundColor:
-                  user?.group === letter
-                    ? darkMode
-                      ? '#0066cc'
-                      : '#91aad4'
-                    : darkMode
-                    ? '#333'
-                    : '#eee',
-              },
-            ]}
-            onPress={() => handleGroupChange(letter)}>
-            <Text style={{color: textColor}}>{letter}</Text>
-          </TouchableOpacity>
-        ))}
       </View>
     </AppLayout>
   );
@@ -370,63 +342,100 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     flexWrap: 'wrap',
     justifyContent: 'center',
-    paddingVertical: 10,
+    alignItems: 'flex-start',
+    paddingVertical: 20,
+    paddingHorizontal: 15,
   },
   userCard: {
-    borderRadius: 8,
-    padding: 10,
+    borderRadius: 12,
+    padding: 12,
     margin: 8,
+    marginVertical: 6,
+    flexDirection: 'row',
     alignItems: 'center',
     borderWidth: 1,
+    position: 'relative',
+  },
+  userAvatar: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginRight: 12,
+  },
+  avatarText: {
+    fontSize: 18,
+    fontWeight: 'bold',
+    color: '#fff',
+  },
+  userInfo: {
+    flex: 1,
+    justifyContent: 'center',
   },
   username: {
-    fontSize: 16,
+    fontSize: 14,
     fontWeight: 'bold',
-    textAlign: 'center',
+    marginBottom: 2,
   },
   email: {
-    fontSize: 12,
-    textAlign: 'center',
+    fontSize: 11,
+    marginBottom: 2,
   },
   role: {
-    fontSize: 12,
-    textAlign: 'center',
+    fontSize: 10,
+    fontWeight: '500',
   },
-  iconRow: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
+  offlineText: {
+    fontSize: 9,
+    fontWeight: '600',
+    fontStyle: 'italic',
+    marginTop: 2,
+  },
+  statusIndicator: {
+    position: 'absolute',
+    top: 8,
+    right: 8,
+    width: 12,
+    height: 12,
+    borderRadius: 6,
+    justifyContent: 'center',
     alignItems: 'center',
-    marginTop: 10,
-    width: '100%',
-    paddingHorizontal: 10,
   },
-  icon: {
-    width: 24,
-    height: 24,
-    resizeMode: 'contain',
-  },
-  statusDot: {
-    width: 14,
-    height: 14,
-    borderRadius: 7,
-    marginHorizontal: 5,
+  statusText: {
+    fontSize: 8,
+    color: '#fff',
+    fontWeight: 'bold',
   },
   label: {
     fontSize: 18,
+    fontWeight: '600',
     margin: 10,
     textAlign: 'center',
   },
   letterContainer: {
     flexDirection: 'row',
     justifyContent: 'center',
+    paddingHorizontal: 15,
+    paddingTop: 15,
+    flexWrap: 'wrap', // Allow wrapping on smaller screens
   },
   letterButton: {
-    padding: 10,
-    margin: 5,
-    borderRadius: 5,
+    padding: 12,
+    margin: 6,
+    borderRadius: 8,
+    minWidth: 40,
+    alignItems: 'center',
+    justifyContent: 'center',
+    shadowColor: '#000',
+    shadowOffset: {width: 0, height: 2},
+    shadowOpacity: 0.1,
+    shadowRadius: 3,
+    elevation: 2,
   },
   letterText: {
-    fontSize: 18,
+    fontSize: 16,
+    fontWeight: '600',
   },
   centerContainer: {
     flex: 1,
@@ -439,15 +448,15 @@ const styles = StyleSheet.create({
     marginTop: 20,
     width: '100%',
   },
-  instructionsContainer: {
-    margin: 10,
-    padding: 15,
-    borderRadius: 10,
-    backgroundColor: 'rgba(100, 100, 100, 0.1)',
+  bottomSection: {
+    paddingHorizontal: 15,
+    paddingTop: 15,
+    // paddingBottom is now handled dynamically in the component
   },
-  instructionText: {
-    fontSize: 14,
-    marginBottom: 5,
+  loadingText: {
+    fontSize: 16,
+    marginTop: 10,
+    textAlign: 'center',
   },
 });
 
