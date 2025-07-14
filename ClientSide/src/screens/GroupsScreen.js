@@ -79,7 +79,7 @@ const GroupsScreen = ({navigation}) => {
       setError(null);
     } catch (err) {
       console.error('Error fetching group users:', err);
-      setError('Failed to load group users.'); // Error handling
+      setError('Failed to load contacts.'); // Error handling
     } finally {
       setLoading(false); // Stop loading
     }
@@ -184,7 +184,7 @@ const GroupsScreen = ({navigation}) => {
     return (
       <AppLayout 
         navigation={navigation} 
-        title={`Group: ${user?.group}`}
+        title={`Department: ${user?.group}`}
         onShowInstructions={showInstructions}
       >
         <View
@@ -209,7 +209,7 @@ const GroupsScreen = ({navigation}) => {
   return (
     <AppLayout 
       navigation={navigation} 
-      title={`Group: ${user?.group}`}
+              title={`Department: ${user?.group}`}
       onShowInstructions={showInstructions}
     >
       <ScrollView
@@ -291,7 +291,7 @@ const GroupsScreen = ({navigation}) => {
                 textAlign: 'center',
                 marginTop: 20,
               }}>
-              No other users in this group.
+              No other contacts in this department.
             </Text>
           )}
         </View>
@@ -305,7 +305,7 @@ const GroupsScreen = ({navigation}) => {
         }
       ]}>
         <Text style={[styles.label, {color: textColor}]}>
-          Change Your Group:
+          Change Your Department:
         </Text>
         
         <View style={styles.letterContainer}>
