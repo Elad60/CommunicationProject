@@ -31,11 +31,12 @@ const PrivateCallScreen = ({route, navigation}) => {
     agoraChannelName, // 🎯 NEW: Log Agora channel name
   });
 
-  // 🎯 SAME LOGIC AS MAINSCREEN: Agora connection management
+  // 🎯 FIXED: Don't reconnect to Agora - already connected from previous screen
   useEffect(() => {
     if (agoraChannelName) {
-      console.log('🎤 Setting up Agora connection (same as MainScreen)...');
-      connectToAgora();
+      console.log('🎤 PrivateCallScreen: Agora already connected from previous screen to:', agoraChannelName);
+      // Set the connection state to true since we're already connected
+      setIsAgoraConnected(true);
     } else {
       console.log('⚠️ No Agora channel name provided - voice disabled');
     }
@@ -67,24 +68,23 @@ const PrivateCallScreen = ({route, navigation}) => {
     };
   }, []);
 
-  // Connect to Agora voice channel (SAME AS MAINSCREEN joinVoiceChannel)
+  // Connect to Agora voice channel (FOR MANUAL RECONNECTION ONLY)
   const connectToAgora = async () => {
     try {
       if (!AgoraModule) {
         throw new Error('AgoraModule not available');
       }
 
-      console.log('🎤 Connecting to Agora channel (MainScreen style):', agoraChannelName);
+      console.log('🎤 Manually connecting to Agora channel:', agoraChannelName);
       
-      // Same initialization as MainScreen
+      // Initialize Agora engine
       AgoraModule.InitializeAgoraEngine('e5631d55e8a24b08b067bb73f8797fe3');
       
-      // Join the Agora channel (same as MainScreen joinVoiceChannel)
-      if (!isAgoraConnected) {
-        AgoraModule.JoinChannel(agoraChannelName);
-        setIsAgoraConnected(true);
-        console.log('✅ Successfully connected to Agora channel (MainScreen style):', agoraChannelName);
-      }
+      // Join the Agora channel
+      AgoraModule.JoinChannel(agoraChannelName);
+      setIsAgoraConnected(true);
+      console.log('✅ Successfully connected to Agora channel (manual reconnect):', agoraChannelName);
+      
     } catch (error) {
       console.error('❌ Failed to connect to Agora:', error);
       Alert.alert(
