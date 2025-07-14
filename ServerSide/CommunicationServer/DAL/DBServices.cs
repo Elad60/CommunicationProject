@@ -4,6 +4,8 @@ using System;
 using System.Collections.Generic;
 using System.Data;
 using System.Data.SqlClient;
+using System.Security.Cryptography;
+using System.Text;
 
 namespace CommunicationServer.DAL
 {
@@ -497,16 +499,27 @@ namespace CommunicationServer.DAL
             try
             {
                 con = Connect("myProjDB");
-
+                string pinCodeHash = null;
+                if (channel.Mode == "Private" && !string.IsNullOrEmpty(channel.PinCode))
+                {
+                    using (SHA256 sha256 = SHA256.Create())
+                    {
+                        byte[] bytes = sha256.ComputeHash(Encoding.UTF8.GetBytes(channel.PinCode));
+                        StringBuilder builder = new StringBuilder();
+                        foreach (var b in bytes)
+                            builder.Append(b.ToString("x2"));
+                        pinCodeHash = builder.ToString();
+                    }
+                }
                 Dictionary<string, object> parameters = new Dictionary<string, object>
-        {
-            { "@Name", channel.Name },
-            { "@Frequency", channel.Frequency },
-            { "@Status", "Active" },
-            { "@Mode", channel.Mode },
-            { "@ChannelState", "Idle" }
-        };
-
+                {
+                    { "@Name", channel.Name },
+                    { "@Frequency", channel.Frequency },
+                    { "@Status", "Active" },
+                    { "@Mode", channel.Mode },
+                    { "@ChannelState", "Idle" },
+                    { "@PinCodeHash", pinCodeHash != null ? (object)pinCodeHash : DBNull.Value }
+                };
                 SqlCommand cmd = CreateCommandWithStoredProcedure("sp_AddRadioChannel", con, parameters);
                 cmd.ExecuteNonQuery();
             }
@@ -793,6 +806,46 @@ namespace CommunicationServer.DAL
                 con?.Close();
             }
             return participants;
+        }
+
+        public RadioChannel GetRadioChannelById(int channelId)
+        {
+            SqlConnection con = null;
+            try
+            {
+                con = Connect("myProjDB");
+                var parameters = new Dictionary<string, object>
+                {
+                    { "@ChannelId", channelId }
+                };
+                SqlCommand cmd = CreateCommandWithStoredProcedure("sp_GetRadioChannelById", con, parameters);
+                SqlDataReader reader = cmd.ExecuteReader();
+                if (reader.Read())
+                {
+                    RadioChannel channel = new RadioChannel
+                    {
+                        Id = Convert.ToInt32(reader["Id"]),
+                        Name = reader["Name"].ToString(),
+                        Frequency = reader["Frequency"].ToString(),
+                        Status = reader["Status"].ToString(),
+                        Mode = reader["Mode"].ToString(),
+                        ChannelState = reader["ChannelState"].ToString(),
+                        PinCodeHash = reader["PinCodeHash"] == DBNull.Value ? null : reader["PinCodeHash"].ToString()
+                    };
+                    reader.Close();
+                    return channel;
+                }
+                reader.Close();
+                return null;
+            }
+            catch (Exception ex)
+            {
+                throw new Exception("Error retrieving radio channel by ID: " + ex.Message);
+            }
+            finally
+            {
+                con?.Close();
+            }
         }
     }
 }

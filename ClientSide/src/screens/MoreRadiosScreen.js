@@ -7,6 +7,7 @@ import {
   ScrollView,
   StyleSheet,
   Alert,
+  Switch,
 } from 'react-native';
 import {useAuth} from '../context/AuthContext';
 import AppLayout from '../components/AppLayout';
@@ -21,8 +22,8 @@ const MoreRadiosScreen = ({navigation}) => {
   const [search, setSearch] = useState(''); // Search term for filtering channels
 
   const [name, setName] = useState(''); // State to hold new channel name input
-  const [frequency, setFrequency] = useState(''); // State to hold new channel frequency input
-  const [mode, setMode] = useState(''); // State to hold new channel mode input
+  const [mode, setMode] = useState('Public'); // 'Public' or 'Private'
+  const [pinCode, setPinCode] = useState(''); // For Private rooms
 
   // Function to load all channels from the API
   const loadChannels = async () => {
@@ -38,32 +39,35 @@ const MoreRadiosScreen = ({navigation}) => {
   // Function to handle adding a new channel
   const handleAddChannel = async () => {
     // Validation check for input fields
-    if (!name || !frequency || !mode) {
-      Alert.alert('Missing Fields', 'All fields are required.');
+    if (!name || (mode === 'Private' && pinCode.length !== 4)) {
+      Alert.alert(
+        'Missing Fields',
+        mode === 'Private'
+          ? 'All fields are required and PIN must be 4 digits.'
+          : 'All fields are required.',
+      );
       return;
     }
 
     try {
-      // Adding the new channel via API
+      // Adding the new room via API
       await radioChannelsApi.addChannel({
         name,
-        frequency,
+        frequency: '', // Always send frequency, even if empty
         mode,
+        pinCode: mode === 'Private' ? pinCode : undefined,
         status: 'Active',
         channelState: 'Idle',
       });
 
-      Alert.alert('Success', 'Channel added successfully ✅'); // Success alert
+      Alert.alert('Success', 'Room added successfully ✅'); // Success alert
       setName(''); // Resetting inputs
-      setFrequency('');
-      setMode('');
+      setPinCode('');
+      setMode('Public');
       loadChannels(); // Reload channels after adding
     } catch (err) {
-      console.error('Add channel failed:', err.response?.data || err.message);
-      Alert.alert(
-        'Error',
-        err.response?.data?.message || 'Failed to add channel',
-      );
+      console.error('Add room failed:', err.response?.data || err.message);
+      Alert.alert('Error', err.response?.data?.message || 'Failed to add room');
     }
   };
 
@@ -110,14 +114,41 @@ const MoreRadiosScreen = ({navigation}) => {
             value={name}
             onChangeText={setName}
           />
-          {/* Frequency input removed */}
-          <TextInput
-            style={styles.input}
-            placeholder="🛠️ Mode"
-            placeholderTextColor="#aaa"
-            value={mode}
-            onChangeText={setMode}
-          />
+          <View
+            style={{
+              flexDirection: 'row',
+              alignItems: 'center',
+              marginBottom: 10,
+            }}>
+            <Text style={{marginRight: 10, color: darkMode ? '#fff' : '#000'}}>
+              Public
+            </Text>
+            <Switch
+              value={mode === 'Private'}
+              onValueChange={val => setMode(val ? 'Private' : 'Public')}
+              thumbColor={mode === 'Private' ? '#607D8B' : '#4CAF50'}
+              trackColor={{false: '#bdbdbd', true: '#90caf9'}}
+            />
+            <Text style={{marginLeft: 10, color: darkMode ? '#fff' : '#000'}}>
+              Private
+            </Text>
+          </View>
+          {mode === 'Private' && (
+            <TextInput
+              style={styles.input}
+              placeholder="🔒 4-digit PIN"
+              placeholderTextColor="#aaa"
+              value={pinCode}
+              onChangeText={text => {
+                // Only allow numbers and max 4 digits
+                const cleaned = text.replace(/[^0-9]/g, '').slice(0, 4);
+                setPinCode(cleaned);
+              }}
+              keyboardType="numeric"
+              maxLength={4}
+              secureTextEntry
+            />
+          )}
           <TouchableOpacity style={styles.button} onPress={handleAddChannel}>
             <Text style={styles.buttonText}>Create Room</Text>
           </TouchableOpacity>

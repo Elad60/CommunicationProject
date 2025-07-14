@@ -17,13 +17,11 @@ const radioChannelsApi = {
     return response.data;
   },
 
-  updateChannelState: async (userId, channelId, newState) => {
+  updateChannelState: async (userId, channelId, newState, pinCode) => {
+    const body = pinCode ? {newState, pinCode} : {newState};
     await api.post(
       `/radiochannels/user/${userId}/channel/${channelId}/state`,
-      JSON.stringify(newState),
-      {
-        headers: {'Content-Type': 'application/json'},
-      },
+      body,
     );
   },
 
@@ -37,8 +35,12 @@ const radioChannelsApi = {
     await api.delete(`/radiochannels/${channelId}`);
   },
 
-  addUserChannel: async (userId, channelId) => {
-    await api.post(`/radiochannels/user/${userId}/add-channel/${channelId}`);
+  addUserChannel: async (userId, channelId, pinCode) => {
+    const body = pinCode ? {pinCode} : {};
+    await api.post(
+      `/radiochannels/user/${userId}/add-channel/${channelId}`,
+      body,
+    );
   },
 
   removeUserChannel: async (userId, channelId) => {

@@ -9,6 +9,9 @@ import {
   Alert,
   Image,
   Pressable,
+  Modal,
+  TextInput,
+  Button,
 } from 'react-native';
 import RadioChannel from '../components/RadioChannel';
 import AppLayout from '../components/AppLayout';
@@ -76,6 +79,10 @@ const MainScreen = ({navigation}) => {
   };
 
   const [roomParticipants, setRoomParticipants] = useState({}); // roomId -> hasParticipants
+  const [pinModalVisible, setPinModalVisible] = useState(false);
+  const [pinInput, setPinInput] = useState('');
+  const [pendingJoinChannel, setPendingJoinChannel] = useState(null); // channel object
+  const [pinError, setPinError] = useState('');
 
   // Fetch radio channels for the authenticated user
   const fetchRadioChannels = async () => {
@@ -132,7 +139,11 @@ const MainScreen = ({navigation}) => {
   };
 
   // Unified channel state handler with Voice Integration
-  const handleChannelStateChange = async (channelId, direction = 'forward') => {
+  const handleChannelStateChange = async (
+    channelId,
+    direction = 'forward',
+    pinCode = null,
+  ) => {
     const current = radioChannels.find(c => c.id === channelId);
     const newState =
       direction === 'forward'
@@ -164,34 +175,23 @@ const MainScreen = ({navigation}) => {
           await leaveVoiceChannel();
           break;
         case 'ListenOnly':
-          if (activeVoiceChannel === channelId) {
-            // Channel is already connected, just mute
-            // The VoiceContext handles the actual muting
-          } else {
-            // Join the channel and set to muted state
-            const joinSuccess = await joinVoiceChannel(channelId, current.name);
-            if (joinSuccess) {
-              const muteTimeout = setTimeout(() => {
-                // The VoiceContext will handle the actual muting
-                setPendingMuteTimeout(null);
-              }, 1500);
-              setPendingMuteTimeout(muteTimeout);
-            }
-          }
-          break;
         case 'ListenAndTalk':
           if (activeVoiceChannel === channelId) {
-            // Channel is already connected, just unmute
-            // The VoiceContext handles the actual unmuting
+            // Channel is already connected, just mute/unmute
           } else {
-            // Join the channel and set to unmuted state
+            // Join the channel and set to muted/unmuted state
             const joinSuccess = await joinVoiceChannel(channelId, current.name);
             if (joinSuccess) {
-              const unmuteTimeout = setTimeout(() => {
-                // The VoiceContext will handle the actual unmuting
-                setPendingUnmuteTimeout(null);
-              }, 1000);
-              setPendingUnmuteTimeout(unmuteTimeout);
+              const timeout = setTimeout(
+                () => {
+                  setPendingMuteTimeout(null);
+                  setPendingUnmuteTimeout(null);
+                },
+                newState === 'ListenOnly' ? 1500 : 1000,
+              );
+              newState === 'ListenOnly'
+                ? setPendingMuteTimeout(timeout)
+                : setPendingUnmuteTimeout(timeout);
             }
           }
           break;
@@ -201,7 +201,12 @@ const MainScreen = ({navigation}) => {
       const userId = user?.id;
       if (!userId) throw new Error('User ID not found');
 
-      await radioChannelsApi.updateChannelState(userId, channelId, newState);
+      await radioChannelsApi.updateChannelState(
+        userId,
+        channelId,
+        newState,
+        pinCode,
+      );
 
       // Set other channels to Idle if needed
       if (newState === 'ListenOnly' || newState === 'ListenAndTalk') {
@@ -287,6 +292,36 @@ const MainScreen = ({navigation}) => {
     navigation.navigate('PickRadios');
   };
 
+  // When user tries to join a room:
+  const handleJoinRoom = channel => {
+    if (channel.mode === 'Private') {
+      setPendingJoinChannel(channel);
+      setPinInput('');
+      setPinError('');
+      setPinModalVisible(true);
+    } else {
+      // For public rooms, join directly
+      handleToggleChannelState(channel.id);
+    }
+  };
+
+  const handlePinJoin = async () => {
+    if (pinInput.length !== 4) {
+      setPinError('PIN must be 4 digits');
+      return;
+    }
+    try {
+      setPinError('');
+      if (!pendingJoinChannel) return;
+      setPinModalVisible(false);
+      setTimeout(() => {
+        handleChannelStateChange(pendingJoinChannel.id, 'forward', pinInput);
+      }, 200);
+    } catch (err) {
+      setPinError('Incorrect PIN or failed to join room');
+    }
+  };
+
   // Show loading indicator while data is being fetched
   if (isLoading) {
     return (
@@ -327,6 +362,8 @@ const MainScreen = ({navigation}) => {
                   onPress={e => {
                     if (e && e.nativeEvent && e.nativeEvent.shiftKey) {
                       handleReverseChannelState(channel.id);
+                    } else if (channel.channelState === 'Idle') {
+                      handleJoinRoom(channel); // Show PIN modal for Private rooms
                     } else {
                       handleChannelSelect(channel.id);
                       handleToggleChannelState(channel.id);
@@ -444,6 +481,129 @@ const MainScreen = ({navigation}) => {
         channelName={selectedChannelForModal?.name || ''}
         participants={participantsForModal}
       />
+
+      {pinModalVisible && (
+        <View
+          style={{
+            position: 'absolute',
+            top: 0,
+            left: 0,
+            right: 0,
+            bottom: 0,
+            backgroundColor: darkMode ? 'rgba(0,0,0,0.7)' : 'rgba(0,0,0,0.2)',
+            justifyContent: 'center',
+            alignItems: 'center',
+            zIndex: 2000,
+          }}>
+          <View
+            style={{
+              backgroundColor: darkMode ? '#1a1a1a' : '#fff',
+              borderRadius: 16,
+              padding: 24,
+              width: 320,
+              alignItems: 'center',
+              borderWidth: 1,
+              borderColor: darkMode ? '#333' : '#ccc',
+            }}>
+            {/* Header */}
+            <View
+              style={{
+                flexDirection: 'row',
+                justifyContent: 'space-between',
+                alignItems: 'center',
+                width: '100%',
+                marginBottom: 20,
+                paddingBottom: 16,
+                borderBottomWidth: 1,
+                borderBottomColor: darkMode ? '#333' : '#eee',
+              }}>
+              <Text
+                style={{
+                  fontSize: 22,
+                  fontWeight: 'bold',
+                  color: darkMode ? '#fff' : '#222',
+                }}>
+                Enter Room PIN
+              </Text>
+              <TouchableOpacity
+                onPress={() => setPinModalVisible(false)}
+                style={{padding: 8}}>
+                <Text style={{fontSize: 24, color: darkMode ? '#888' : '#aaa'}}>
+                  ×
+                </Text>
+              </TouchableOpacity>
+            </View>
+            {/* PIN Input */}
+            <TextInput
+              style={{
+                borderWidth: 1,
+                borderColor: '#ccc',
+                borderRadius: 6,
+                width: 120,
+                fontSize: 20,
+                textAlign: 'center',
+                marginBottom: 10,
+                padding: 6,
+                color: darkMode ? '#fff' : '#000',
+                backgroundColor: darkMode ? '#222' : '#fff',
+              }}
+              placeholder="4-digit PIN"
+              placeholderTextColor={darkMode ? '#aaa' : '#888'}
+              keyboardType="numeric"
+              maxLength={4}
+              value={pinInput}
+              onChangeText={text =>
+                setPinInput(text.replace(/[^0-9]/g, '').slice(0, 4))
+              }
+              secureTextEntry
+            />
+            {pinError ? (
+              <Text style={{color: 'red', marginBottom: 8}}>{pinError}</Text>
+            ) : null}
+            <View
+              style={{
+                flexDirection: 'row',
+                justifyContent: 'space-between',
+                width: '100%',
+              }}>
+              <TouchableOpacity
+                style={{
+                  flex: 1,
+                  alignItems: 'center',
+                  padding: 10,
+                  borderRadius: 8,
+                  backgroundColor: darkMode ? '#2a2a2a' : '#f0f0f0',
+                  marginRight: 8,
+                  borderWidth: 1,
+                  borderColor: darkMode ? '#333' : '#ccc',
+                }}
+                onPress={() => setPinModalVisible(false)}>
+                <Text
+                  style={{
+                    color: darkMode ? '#fff' : '#333',
+                    fontWeight: 'bold',
+                  }}>
+                  Cancel
+                </Text>
+              </TouchableOpacity>
+              <TouchableOpacity
+                style={{
+                  flex: 1,
+                  alignItems: 'center',
+                  padding: 10,
+                  borderRadius: 8,
+                  backgroundColor: darkMode ? '#2196F3' : '#1976d2',
+                  marginLeft: 8,
+                  opacity: pinInput.length === 4 ? 1 : 0.5,
+                }}
+                onPress={handlePinJoin}
+                disabled={pinInput.length !== 4}>
+                <Text style={{color: '#fff', fontWeight: 'bold'}}>Join</Text>
+              </TouchableOpacity>
+            </View>
+          </View>
+        </View>
+      )}
     </AppLayout>
   );
 };
