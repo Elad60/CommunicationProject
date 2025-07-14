@@ -7,6 +7,8 @@ import {
   ScrollView,
   StyleSheet,
   Alert,
+  Pressable,
+  Image,
 } from 'react-native';
 import AppLayout from '../components/AppLayout';
 import {radioChannelsApi} from '../utils/apiService';
@@ -24,6 +26,8 @@ const PickRadiosScreen = ({navigation}) => {
   const [hasChanges, setHasChanges] = useState(false); // State to track if user made changes
   const {darkMode, showFrequency, showStatus} = useSettings(); // Fetch dark mode and settings for frequency/status display
   const {activeVoiceChannel, leaveVoiceChannel} = useVoice();
+  const [discardHovering, setDiscardHovering] = useState(false);
+  const [saveHovering, setSaveHovering] = useState(false);
 
   useEffect(() => {
     // Function to load all radio channels and user's selected channels
@@ -190,46 +194,131 @@ const PickRadiosScreen = ({navigation}) => {
   });
 
   return (
-    <AppLayout navigation={navigation} title="Pick Radios">
+    <AppLayout navigation={navigation} title="Pick Rooms">
       {/* Action Header - Only show when there are changes */}
       {hasChanges && (
         <View style={[styles.actionHeader, dynamicStyles.headerContainer]}>
           <View
             style={[styles.actionHeaderContent, dynamicStyles.headerContent]}>
             <Text style={[styles.actionHeaderTitle, dynamicStyles.headerTitle]}>
-              🎯 Channel Selection
+              🎯 Room Selection
             </Text>
             <View style={styles.actionButtons}>
-              <TouchableOpacity
+              <Pressable
+                onPress={handleDiscard}
+                onHoverIn={() => setDiscardHovering(true)}
+                onHoverOut={() => setDiscardHovering(false)}
                 style={[
-                  styles.actionButton,
-                  dynamicStyles.actionButton,
-                  dynamicStyles.discardActionButton,
-                ]}
-                onPress={handleDiscard}>
-                <Text
-                  style={[
-                    styles.actionButtonText,
-                    dynamicStyles.discardActionButtonText,
-                  ]}>
-                  ❌ Discard
-                </Text>
-              </TouchableOpacity>
-              <TouchableOpacity
+                  styles.logoutLikeButton,
+                  {
+                    backgroundColor: discardHovering
+                      ? darkMode
+                        ? '#3a3a3a'
+                        : '#e9ecef'
+                      : darkMode
+                      ? '#2a2a2a'
+                      : '#f8f9fa',
+                    borderColor: discardHovering
+                      ? darkMode
+                        ? '#555555'
+                        : '#adb5bd'
+                      : darkMode
+                      ? '#404040'
+                      : '#dee2e6',
+                    marginRight: 8,
+                  },
+                ]}>
+                <View style={styles.logoutLikeContent}>
+                  <Image
+                    source={require('../../assets/logos/crossed-HF.png')}
+                    style={[
+                      styles.logoutLikeImage,
+                      {
+                        tintColor: discardHovering
+                          ? darkMode
+                            ? '#c82333'
+                            : '#c82333'
+                          : darkMode
+                          ? '#dc3545'
+                          : '#dc3545',
+                      },
+                    ]}
+                    resizeMode="contain"
+                  />
+                  <Text
+                    style={[
+                      styles.logoutLikeText,
+                      {
+                        color: discardHovering
+                          ? darkMode
+                            ? '#fff'
+                            : '#212529'
+                          : darkMode
+                          ? '#e9ecef'
+                          : '#495057',
+                      },
+                    ]}>
+                    Discard
+                  </Text>
+                </View>
+              </Pressable>
+              <Pressable
+                onPress={handleSave}
+                onHoverIn={() => setSaveHovering(true)}
+                onHoverOut={() => setSaveHovering(false)}
                 style={[
-                  styles.actionButton,
-                  dynamicStyles.actionButton,
-                  dynamicStyles.saveActionButton,
-                ]}
-                onPress={handleSave}>
-                <Text
-                  style={[
-                    styles.actionButtonText,
-                    dynamicStyles.saveActionButtonText,
-                  ]}>
-                  ✅ Save Changes
-                </Text>
-              </TouchableOpacity>
+                  styles.logoutLikeButton,
+                  {
+                    backgroundColor: saveHovering
+                      ? darkMode
+                        ? '#3a3a3a'
+                        : '#e9ecef'
+                      : darkMode
+                      ? '#2a2a2a'
+                      : '#f8f9fa',
+                    borderColor: saveHovering
+                      ? darkMode
+                        ? '#555555'
+                        : '#adb5bd'
+                      : darkMode
+                      ? '#404040'
+                      : '#dee2e6',
+                  },
+                ]}>
+                <View style={styles.logoutLikeContent}>
+                  <Image
+                    source={require('../../assets/logos/radio.png')}
+                    style={[
+                      styles.logoutLikeImage,
+                      {
+                        tintColor: saveHovering
+                          ? darkMode
+                            ? '#388e3c'
+                            : '#388e3c'
+                          : darkMode
+                          ? '#1DB954'
+                          : '#21bf73',
+                      },
+                    ]}
+                    resizeMode="contain"
+                  />
+                  <Text
+                    style={[
+                      styles.logoutLikeText,
+                      {
+                        color: saveHovering
+                          ? darkMode
+                            ? '#fff'
+                            : '#212529'
+                          : darkMode
+                          ? '#e9ecef'
+                          : '#495057',
+                      },
+                    ]}>
+                    Save Changes
+                  </Text>
+                </View>
+              </Pressable>
             </View>
           </View>
         </View>
@@ -239,12 +328,12 @@ const PickRadiosScreen = ({navigation}) => {
         contentContainerStyle={[styles.container, dynamicStyles.container]}>
         <View style={[styles.sectionCard, dynamicStyles.sectionCard]}>
           <Text style={[styles.title, dynamicStyles.title]}>
-            🎧 Select Your Channels
+            🎧 Select Your Rooms
           </Text>
 
           <TextInput
             style={[styles.input, dynamicStyles.input]}
-            placeholder="🔍 Search by name / frequency / mode"
+            placeholder="🔍 Search by name / mode"
             placeholderTextColor={darkMode ? '#aaa' : '#888'}
             value={search}
             onChangeText={setSearch} // Update search state on input change
@@ -252,7 +341,7 @@ const PickRadiosScreen = ({navigation}) => {
 
           {filteredChannels.length === 0 && (
             <Text style={[styles.noResults, dynamicStyles.noResults]}>
-              No matching channels found.
+              No matching rooms found.
             </Text>
           )}
 
@@ -274,12 +363,7 @@ const PickRadiosScreen = ({navigation}) => {
                       style={[styles.channelName, dynamicStyles.channelName]}>
                       {c.name}
                     </Text>
-                    {showFrequency && (
-                      <Text
-                        style={[styles.channelFreq, dynamicStyles.channelFreq]}>
-                        {c.frequency}
-                      </Text>
-                    )}
+                    {/* Frequency removed */}
                     <Text
                       style={[styles.channelMode, dynamicStyles.channelMode]}>
                       Mode: {c.mode}
@@ -415,6 +499,36 @@ const styles = StyleSheet.create({
   actionButtonText: {
     fontSize: 14,
     fontWeight: '600',
+  },
+  logoutLikeButton: {
+    borderWidth: 1,
+    borderRadius: 6,
+    paddingVertical: 8,
+    paddingHorizontal: 12,
+    marginLeft: 8,
+    minWidth: 110,
+    shadowOffset: {
+      width: 0,
+      height: 1,
+    },
+    shadowOpacity: 0.05,
+    shadowRadius: 2,
+    elevation: 1,
+  },
+  logoutLikeContent: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  logoutLikeImage: {
+    width: 16,
+    height: 16,
+    marginRight: 6,
+  },
+  logoutLikeText: {
+    fontSize: 13,
+    fontWeight: '500',
+    letterSpacing: 0.2,
   },
 });
 

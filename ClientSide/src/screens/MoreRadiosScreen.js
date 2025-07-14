@@ -7,74 +7,77 @@ import {
   ScrollView,
   StyleSheet,
   Alert,
+  Switch,
 } from 'react-native';
 import {useAuth} from '../context/AuthContext';
 import AppLayout from '../components/AppLayout';
 import {radioChannelsApi} from '../utils/apiService';
-import { useSettings } from '../context/SettingsContext';
+import {useSettings} from '../context/SettingsContext';
 
 const MoreRadiosScreen = ({navigation}) => {
-  const {user} = useAuth();
-  const {darkMode} = useSettings();
+  const {user} = useAuth(); // Fetching user data from AuthContext
+  const {darkMode} = useSettings(); // Fetching dark mode setting from SettingsContext
+  const [channels, setChannels] = useState([]); // State to hold all channels
+  const [filteredChannels, setFilteredChannels] = useState([]); // State to hold filtered channels based on search
+  const [search, setSearch] = useState(''); // Search term for filtering channels
 
-  const [channels, setChannels] = useState([]);
-  const [filteredChannels, setFilteredChannels] = useState([]);
-  const [search, setSearch] = useState('');
+  const [name, setName] = useState(''); // State to hold new channel name input
+  const [mode, setMode] = useState('Public'); // 'Public' or 'Private'
+  const [pinCode, setPinCode] = useState(''); // For Private rooms
 
-  const [name, setName] = useState('');  
-  const [frequency, setFrequency] = useState('');  
-  const [mode, setMode] = useState('');  
-
-  // Load all available channels (admin view)
+  // Function to load all channels from the API
   const loadChannels = async () => {
     try {
-      const data = await radioChannelsApi.getAllChannels();  // Fetching channels
-      setChannels(data);  
-      setFilteredChannels(data);  
+      const data = await radioChannelsApi.getAllChannels(); // Fetching channels
+      setChannels(data); // Storing channels in state
+      setFilteredChannels(data); // Also setting filtered channels to all channels initially
     } catch (err) {
-      Alert.alert('Error', 'Failed to load channels');  
+      Alert.alert('Error', 'Failed to load channels'); // Alert in case of failure
     }
   };
 
-  // Create a new radio channel
+  // Function to handle adding a new channel
   const handleAddChannel = async () => {
     // Validation check for input fields
-    if (!name || !frequency || !mode) {
-      Alert.alert('Missing Fields', 'All fields are required.');
+    if (!name || (mode === 'Private' && pinCode.length !== 4)) {
+      Alert.alert(
+        'Missing Fields',
+        mode === 'Private'
+          ? 'All fields are required and PIN must be 4 digits.'
+          : 'All fields are required.',
+      );
       return;
     }
 
     try {
-      // Adding the new channel via API
+      // Adding the new room via API
       await radioChannelsApi.addChannel({
         name,
-        frequency,
+        frequency: '', // Always send frequency, even if empty
         mode,
+        pinCode: mode === 'Private' ? pinCode : undefined,
         status: 'Active',
         channelState: 'Idle',
       });
 
-      Alert.alert('Success', 'Channel added successfully ✅');  // Success alert
-      setName('');  // Resetting inputs
-      setFrequency('');
-      setMode('');
-      loadChannels(); // Refresh list
+      Alert.alert('Success', 'Room added successfully ✅'); // Success alert
+      setName(''); // Resetting inputs
+      setPinCode('');
+      setMode('Public');
+      loadChannels(); // Reload channels after adding
     } catch (err) {
-      console.error('Add channel failed:', err.response?.data || err.message);
-      Alert.alert(
-        'Error',
-        err.response?.data?.message || 'Failed to add channel',
-      );
+      console.error('Add room failed:', err.response?.data || err.message);
+      Alert.alert('Error', err.response?.data?.message || 'Failed to add room');
     }
   };
 
-  // Delete a channel
+  // Function to handle deleting a channel
   const handleDelete = async id => {
     try {
-      await radioChannelsApi.deleteChannel(id);
-      loadChannels(); // Refresh list after deletion
+      await radioChannelsApi.deleteChannel(id); // Deleting the channel
+      loadChannels(); // Reload channels after deletion
     } catch (err) {
-      Alert.alert('Error', 'Failed to delete channel');  // Alert in case of failure
+      Alert.alert('Error', 'Failed to delete channel'); // Alert in case of failure
     }
   };
 
@@ -83,79 +86,94 @@ const MoreRadiosScreen = ({navigation}) => {
     loadChannels();
   }, []);
 
-  // Filter channels as user types in search
+  // useEffect hook to filter channels whenever search term or channels change
   useEffect(() => {
-    const lowerSearch = search.toLowerCase();  // Converting search term to lowercase
+    const lowerSearch = search.toLowerCase(); // Converting search term to lowercase
     const filtered = channels.filter(
       c =>
-        c.name.toLowerCase().includes(lowerSearch) ||  // Filtering by channel name
-        c.frequency.toLowerCase().includes(lowerSearch) ||  // Filtering by frequency
-        c.mode.toLowerCase().includes(lowerSearch),  // Filtering by mode
+        c.name.toLowerCase().includes(lowerSearch) || // Filtering by channel name
+        c.frequency.toLowerCase().includes(lowerSearch) || // Filtering by frequency
+        c.mode.toLowerCase().includes(lowerSearch), // Filtering by mode
     );
-    setFilteredChannels(filtered);  // Updating filtered channels
+    setFilteredChannels(filtered); // Updating filtered channels
   }, [search, channels]);
 
+  // Getting styles based on dark mode
   const styles = getStyles(darkMode);
 
   return (
-    <AppLayout navigation={navigation} title="More Radios">
+    <AppLayout navigation={navigation} title="More Rooms">
       <ScrollView contentContainerStyle={styles.container}>
-
-        {/* Channel creation form */}
+        {/* Add Room Section */}
         <View style={styles.sectionCard}>
-          <Text style={styles.title}>Add New Channel</Text>
+          <Text style={styles.title}>Add New Room</Text>
           <TextInput
             style={styles.input}
-            placeholder="🔤 Channel Name"
+            placeholder="🔤 Room Name"
             placeholderTextColor="#aaa"
             value={name}
             onChangeText={setName}
           />
-          <TextInput
-            style={styles.input}
-            placeholder="📶 Frequency"
-            placeholderTextColor="#aaa"
-            value={frequency}
-            onChangeText={setFrequency}
-          />
-          <TextInput
-            style={styles.input}
-            placeholder="🛠️ Mode"
-            placeholderTextColor="#aaa"
-            value={mode}
-            onChangeText={setMode}
-          />
+          <View
+            style={{
+              flexDirection: 'row',
+              alignItems: 'center',
+              marginBottom: 10,
+            }}>
+            <Text style={{marginRight: 10, color: darkMode ? '#fff' : '#000'}}>
+              Public
+            </Text>
+            <Switch
+              value={mode === 'Private'}
+              onValueChange={val => setMode(val ? 'Private' : 'Public')}
+              thumbColor={mode === 'Private' ? '#607D8B' : '#4CAF50'}
+              trackColor={{false: '#bdbdbd', true: '#90caf9'}}
+            />
+            <Text style={{marginLeft: 10, color: darkMode ? '#fff' : '#000'}}>
+              Private
+            </Text>
+          </View>
+          {mode === 'Private' && (
+            <TextInput
+              style={styles.input}
+              placeholder="🔒 4-digit PIN"
+              placeholderTextColor="#aaa"
+              value={pinCode}
+              onChangeText={text => {
+                // Only allow numbers and max 4 digits
+                const cleaned = text.replace(/[^0-9]/g, '').slice(0, 4);
+                setPinCode(cleaned);
+              }}
+              keyboardType="numeric"
+              maxLength={4}
+              secureTextEntry
+            />
+          )}
           <TouchableOpacity style={styles.button} onPress={handleAddChannel}>
-            <Text style={styles.buttonText}>Create Channel</Text>
+            <Text style={styles.buttonText}>Create Room</Text>
           </TouchableOpacity>
         </View>
 
-        {/* Search and list of channels */}
+        {/* Search + List Section */}
         <View style={styles.sectionCard}>
-          <Text style={styles.title}>Existing Channels</Text>
+          <Text style={styles.title}>Existing Rooms</Text>
           <TextInput
             style={styles.input}
-            placeholder="🔍 Search by name / frequency / mode"
+            placeholder="🔍 Search by name / mode"
             placeholderTextColor="#aaa"
             value={search}
             onChangeText={setSearch}
           />
 
-          {/* If nothing matches search */}
           {filteredChannels.length === 0 && (
-            <Text style={styles.noResultsText}>
-              No matching channels found.
-            </Text>
+            <Text style={styles.noResultsText}>No matching rooms found.</Text>
           )}
 
-          {/* List of channels */}
           {filteredChannels.map(c => (
             <View key={c.id} style={styles.channelRow}>
               <View>
                 <Text style={styles.channelName}>{c.name}</Text>
-                <Text style={styles.channelDetails}>
-                  {c.frequency} • {c.mode}
-                </Text>
+                <Text style={styles.channelDetails}>{c.mode}</Text>
               </View>
               <TouchableOpacity onPress={() => handleDelete(c.id)}>
                 <Text style={styles.deleteText}>🗑️</Text>
@@ -169,7 +187,7 @@ const MoreRadiosScreen = ({navigation}) => {
 };
 
 // Function to dynamically generate styles based on dark mode
-const getStyles = (darkMode) =>
+const getStyles = darkMode =>
   StyleSheet.create({
     container: {
       padding: 20,

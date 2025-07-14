@@ -1,6 +1,8 @@
 ﻿using Microsoft.AspNetCore.Mvc;
 using CommunicationServer.BL;
 using CommunicationServer.DAL;
+using System.Security.Cryptography;
+using System.Text;
 
 namespace CommunicationServer.Controllers
 {
@@ -40,14 +42,39 @@ namespace CommunicationServer.Controllers
             }
         }
 
+        public class ChannelStateUpdateDto
+        {
+            public string? newState { get; set; }
+            public string? pinCode { get; set; } // optional
+        }
+
         // 📌 Update the state of a user's channel (e.g., active/inactive)
         [HttpPost("user/{userId}/channel/{channelId}/state")]
-        public IActionResult UpdateChannelState(int userId, int channelId, [FromBody] string newState)
+        public IActionResult UpdateChannelState(int userId, int channelId, [FromBody] ChannelStateUpdateDto dto)
         {
             try
             {
+                Console.WriteLine($"newState: {dto?.newState}, pinCode: {dto?.pinCode}");
                 DBServices dbs = new DBServices();
-                dbs.UpdateUserChannelState(userId, channelId, newState);
+                var channel = dbs.GetRadioChannelById(channelId);
+                if (channel == null)
+                    return NotFound("Channel not found");
+                // Only validate PIN if provided (frontend controls when PIN is needed)
+                if (channel.Mode == "Private" && !string.IsNullOrEmpty(dto.pinCode))
+                {
+                    string hashedPin;
+                    using (SHA256 sha256 = SHA256.Create())
+                    {
+                        byte[] bytes = sha256.ComputeHash(Encoding.UTF8.GetBytes(dto.pinCode));
+                        StringBuilder builder = new StringBuilder();
+                        foreach (var b in bytes)
+                            builder.Append(b.ToString("x2"));
+                        hashedPin = builder.ToString();
+                    }
+                    if (hashedPin != channel.PinCodeHash)
+                        return Unauthorized("Incorrect PIN");
+                }
+                dbs.UpdateUserChannelState(userId, channelId, dto.newState);
                 return Ok();
             }
             catch (Exception ex)
@@ -62,6 +89,7 @@ namespace CommunicationServer.Controllers
         {
             try
             {
+                // PinCode is only used for creation, not stored or returned
                 DBServices db = new DBServices();
                 db.AddRadioChannel(newChannel);
                 return Ok(new { success = true });

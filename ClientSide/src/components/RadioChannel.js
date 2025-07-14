@@ -5,7 +5,7 @@ import {useDebouncedDimensions} from '../utils/useDebouncedDimensions';
 
 const RadioChannel = ({
   name,
-  frequency,
+  // frequency, // Removed
   isActive,
   mode,
   isSelected,
@@ -103,31 +103,30 @@ const RadioChannel = ({
 
   return (
     <View style={[styles.container, {backgroundColor: getBackgroundColor()}]}>
-      {/* Display channel name */}
+      {/* Display room name */}
       <Text style={[styles.name, {color: darkMode ? '#fff' : '#000'}]}>
         {name}
       </Text>
-
+      {/* Display mode as a badge */}
       {/* Voice status indicator (shows instead of frequency when voice connected) */}
       {isVoiceConnected ? (
         <Text style={[styles.voiceStatus, {color: darkMode ? '#fff' : '#000'}]}>
           {getVoiceStatusText()}
         </Text>
-      ) : (
-        showFrequency && (
-          <Text style={[styles.frequency, {color: darkMode ? '#fff' : '#000'}]}>
-            {frequency} {mode}
-          </Text>
-        )
-      )}
-
+      ) : null}
       {/* Conditionally show status */}
       {showStatus && !isVoiceConnected && (
         <Text style={[styles.status, {color: darkMode ? '#fff' : '#000'}]}>
-          {isActive ? 'Active' : 'Not used'}
+          {isActive ? 'Active' : 'Inactive'}
         </Text>
       )}
-
+      <View
+        style={[
+          styles.modeBadge,
+          {backgroundColor: mode === 'Public' ? '#4CAF50' : '#607D8B'},
+        ]}>
+        <Text style={styles.modeBadgeText}>{mode}</Text>
+      </View>
       {/* Display headphone and mic icons with voice connection indicator */}
       <View style={styles.iconContainer}>
         <Image source={headphones} style={styles.iconImage} />
@@ -141,7 +140,6 @@ const RadioChannel = ({
         />
         <Image source={mic} style={styles.iconImage} />
       </View>
-
       {/* Voice connection border indicator */}
       {isVoiceConnected && (
         <View
@@ -221,6 +219,20 @@ const styles = StyleSheet.create({
     bottom: 0,
     borderRadius: 5,
     pointerEvents: 'none', // Allow touches to pass through
+  },
+  modeBadge: {
+    alignSelf: 'center',
+    paddingHorizontal: 8,
+    paddingVertical: 2,
+    borderRadius: 10,
+    marginTop: 2,
+    marginBottom: 4,
+  },
+  modeBadgeText: {
+    color: '#fff',
+    fontSize: 12,
+    fontWeight: 'bold',
+    letterSpacing: 0.5,
   },
 });
 

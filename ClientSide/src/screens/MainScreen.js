@@ -7,6 +7,11 @@ import {
   ActivityIndicator,
   Text,
   Alert,
+  Image,
+  Pressable,
+  Modal,
+  TextInput,
+  Button,
 } from 'react-native';
 import RadioChannel from '../components/RadioChannel';
 import AppLayout from '../components/AppLayout';
@@ -43,7 +48,41 @@ const MainScreen = ({navigation}) => {
   const [participantsForModal, setParticipantsForModal] = useState([]);
 
   const {user} = useAuth();
-  const {showFrequency, showStatus} = useSettings();
+  const {showFrequency, showStatus, darkMode} = useSettings();
+
+  // Hover state for Reset Voice button
+  const [resetHovering, setResetHovering] = useState(false);
+
+  // Colors for Reset Voice button (same as LogoutButton)
+  const resetColors = {
+    background: darkMode ? '#2a2a2a' : '#f8f9fa',
+    backgroundHover: darkMode ? '#3a3a3a' : '#e9ecef',
+    border: darkMode ? '#404040' : '#dee2e6',
+    borderHover: darkMode ? '#555555' : '#adb5bd',
+    text: darkMode ? '#e9ecef' : '#495057',
+    textHover: darkMode ? '#ffffff' : '#212529',
+    icon: darkMode ? '#dc3545' : '#dc3545',
+    iconHover: darkMode ? '#c82333' : '#c82333',
+  };
+
+  // Hover state for Add (+) button
+  const [addHovering, setAddHovering] = useState(false);
+
+  // Colors for Add (+) button (same logic as LogoutButton, but green for icon/text)
+  const addColors = {
+    background: darkMode ? '#2a2a2a' : '#f8f9fa',
+    backgroundHover: darkMode ? '#3a3a3a' : '#e9ecef',
+    border: darkMode ? '#404040' : '#dee2e6',
+    borderHover: darkMode ? '#555555' : '#adb5bd',
+    text: darkMode ? '#1DB954' : '#1DB954',
+    textHover: darkMode ? '#1ed760' : '#1ed760',
+  };
+
+  const [roomParticipants, setRoomParticipants] = useState({}); // roomId -> hasParticipants
+  const [pinModalVisible, setPinModalVisible] = useState(false);
+  const [pinInput, setPinInput] = useState('');
+  const [pendingJoinChannel, setPendingJoinChannel] = useState(null); // channel object
+  const [pinError, setPinError] = useState('');
 
   // Fetch radio channels for the authenticated user
   const fetchRadioChannels = async () => {
@@ -71,13 +110,40 @@ const MainScreen = ({navigation}) => {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [user]);
 
+  // Poll participants only once on page load or when radioChannels changes
+  useEffect(() => {
+    const fetchParticipantsForRooms = async () => {
+      if (!radioChannels || radioChannels.length === 0) return;
+      const participantsMap = {};
+      await Promise.all(
+        radioChannels.map(async room => {
+          try {
+            const participants = await radioChannelsApi.getChannelParticipants(
+              room.id,
+            );
+            participantsMap[room.id] =
+              Array.isArray(participants) && participants.length > 0;
+          } catch (e) {
+            participantsMap[room.id] = false;
+          }
+        }),
+      );
+      setRoomParticipants(participantsMap);
+    };
+    fetchParticipantsForRooms();
+  }, [radioChannels]);
+
   // Handle selection of a radio channel
   const handleChannelSelect = id => {
     setSelectedChannel(id); // Set selected channel by id
   };
 
   // Unified channel state handler with Voice Integration
-  const handleChannelStateChange = async (channelId, direction = 'forward') => {
+  const handleChannelStateChange = async (
+    channelId,
+    direction = 'forward',
+    pinCode = null,
+  ) => {
     const current = radioChannels.find(c => c.id === channelId);
     const newState =
       direction === 'forward'
@@ -103,50 +169,43 @@ const MainScreen = ({navigation}) => {
     try {
       clearPendingAudioTimeouts();
 
-      // Handle voice operations
+      // Update backend FIRST
+      const userId = user?.id;
+      if (!userId) throw new Error('User ID not found');
+      await radioChannelsApi.updateChannelState(
+        userId,
+        channelId,
+        newState,
+        pinCode,
+      );
+
+      // Handle voice operations ONLY after backend validation
       switch (newState) {
         case 'Idle':
           await leaveVoiceChannel();
           break;
         case 'ListenOnly':
-          if (activeVoiceChannel === channelId) {
-            // Channel is already connected, just mute
-            // The VoiceContext handles the actual muting
-          } else {
-            // Join the channel and set to muted state
-            const joinSuccess = await joinVoiceChannel(channelId, current.name);
-            if (joinSuccess) {
-              const muteTimeout = setTimeout(() => {
-                // The VoiceContext will handle the actual muting
-                setPendingMuteTimeout(null);
-              }, 1500);
-              setPendingMuteTimeout(muteTimeout);
-            }
-          }
-          break;
         case 'ListenAndTalk':
           if (activeVoiceChannel === channelId) {
-            // Channel is already connected, just unmute
-            // The VoiceContext handles the actual unmuting
+            // Channel is already connected, just mute/unmute
           } else {
-            // Join the channel and set to unmuted state
+            // Join the channel and set to muted/unmuted state
             const joinSuccess = await joinVoiceChannel(channelId, current.name);
             if (joinSuccess) {
-              const unmuteTimeout = setTimeout(() => {
-                // The VoiceContext will handle the actual unmuting
-                setPendingUnmuteTimeout(null);
-              }, 1000);
-              setPendingUnmuteTimeout(unmuteTimeout);
+              const timeout = setTimeout(
+                () => {
+                  setPendingMuteTimeout(null);
+                  setPendingUnmuteTimeout(null);
+                },
+                newState === 'ListenOnly' ? 1500 : 1000,
+              );
+              newState === 'ListenOnly'
+                ? setPendingMuteTimeout(timeout)
+                : setPendingUnmuteTimeout(timeout);
             }
           }
           break;
       }
-
-      // Update backend
-      const userId = user?.id;
-      if (!userId) throw new Error('User ID not found');
-
-      await radioChannelsApi.updateChannelState(userId, channelId, newState);
 
       // Set other channels to Idle if needed
       if (newState === 'ListenOnly' || newState === 'ListenAndTalk') {
@@ -232,6 +291,36 @@ const MainScreen = ({navigation}) => {
     navigation.navigate('PickRadios');
   };
 
+  // When user tries to join a room:
+  const handleJoinRoom = channel => {
+    if (channel.mode === 'Private') {
+      setPendingJoinChannel(channel);
+      setPinInput('');
+      setPinError('');
+      setPinModalVisible(true);
+    } else {
+      // For public rooms, join directly
+      handleToggleChannelState(channel.id);
+    }
+  };
+
+  const handlePinJoin = async () => {
+    if (pinInput.length !== 4) {
+      setPinError('PIN must be 4 digits');
+      return;
+    }
+    try {
+      setPinError('');
+      if (!pendingJoinChannel) return;
+      setPinModalVisible(false);
+      setTimeout(() => {
+        handleChannelStateChange(pendingJoinChannel.id, 'forward', pinInput);
+      }, 200);
+    } catch (err) {
+      setPinError('Incorrect PIN or failed to join room');
+    }
+  };
+
   // Show loading indicator while data is being fetched
   if (isLoading) {
     return (
@@ -272,6 +361,8 @@ const MainScreen = ({navigation}) => {
                   onPress={e => {
                     if (e && e.nativeEvent && e.nativeEvent.shiftKey) {
                       handleReverseChannelState(channel.id);
+                    } else if (channel.channelState === 'Idle') {
+                      handleJoinRoom(channel); // Show PIN modal for Private rooms
                     } else {
                       handleChannelSelect(channel.id);
                       handleToggleChannelState(channel.id);
@@ -282,7 +373,7 @@ const MainScreen = ({navigation}) => {
                   <RadioChannel
                     name={channel.name}
                     frequency={channel.frequency}
-                    isActive={channel.status === 'Active'}
+                    isActive={roomParticipants[channel.id]}
                     mode={channel.mode}
                     isSelected={selectedChannel === channel.id}
                     channelState={channel.channelState}
@@ -308,16 +399,76 @@ const MainScreen = ({navigation}) => {
           </View>
         </ScrollView>
 
-        <TouchableOpacity style={styles.addButton} onPress={handleAddChannel}>
-          <Text style={styles.addButtonText}>+</Text>
-        </TouchableOpacity>
+        {/* Add Channel Button - Styled with hover and dark/light mode, circular */}
+        <Pressable
+          onPress={handleAddChannel}
+          onHoverIn={() => setAddHovering(true)}
+          onHoverOut={() => setAddHovering(false)}
+          style={[
+            styles.addButton,
+            {
+              backgroundColor: addHovering
+                ? addColors.backgroundHover
+                : addColors.background,
+              borderColor: addHovering
+                ? addColors.borderHover
+                : addColors.border,
+              borderWidth: 1,
+            },
+          ]}>
+          <Text
+            style={[
+              styles.addButtonText,
+              {
+                color: addHovering ? addColors.textHover : addColors.text,
+              },
+            ]}>
+            +
+          </Text>
+        </Pressable>
 
-        {/* Emergency Voice Reset Button - Keep for production troubleshooting */}
-        <TouchableOpacity
-          style={styles.emergencyResetButton}
-          onPress={emergencyVoiceReset}>
-          <Text style={styles.testButtonText}>🚨 Reset</Text>
-        </TouchableOpacity>
+        {/* Emergency Voice Reset Button - Styled exactly like LogoutButton */}
+        <Pressable
+          onPress={emergencyVoiceReset}
+          onHoverIn={() => setResetHovering(true)}
+          onHoverOut={() => setResetHovering(false)}
+          style={[
+            styles.resetVoiceButton,
+            {
+              backgroundColor: resetHovering
+                ? resetColors.backgroundHover
+                : resetColors.background,
+              borderColor: resetHovering
+                ? resetColors.borderHover
+                : resetColors.border,
+            },
+          ]}>
+          <View style={styles.resetVoiceContent}>
+            <Image
+              source={require('../../assets/logos/microphone.png')}
+              style={[
+                styles.resetVoiceIcon,
+                {
+                  tintColor: resetHovering
+                    ? resetColors.iconHover
+                    : resetColors.icon,
+                },
+              ]}
+              resizeMode="contain"
+            />
+            <Text
+              style={[
+                styles.resetVoiceText,
+                {
+                  color: resetHovering
+                    ? resetColors.textHover
+                    : resetColors.text,
+                },
+              ]}>
+              Reset Voice
+            </Text>
+          </View>
+        </Pressable>
 
         {/* Voice Status Indicator */}
       </View>
@@ -329,6 +480,129 @@ const MainScreen = ({navigation}) => {
         channelName={selectedChannelForModal?.name || ''}
         participants={participantsForModal}
       />
+
+      {pinModalVisible && (
+        <View
+          style={{
+            position: 'absolute',
+            top: 0,
+            left: 0,
+            right: 0,
+            bottom: 0,
+            backgroundColor: darkMode ? 'rgba(0,0,0,0.7)' : 'rgba(0,0,0,0.2)',
+            justifyContent: 'center',
+            alignItems: 'center',
+            zIndex: 2000,
+          }}>
+          <View
+            style={{
+              backgroundColor: darkMode ? '#1a1a1a' : '#fff',
+              borderRadius: 16,
+              padding: 24,
+              width: 320,
+              alignItems: 'center',
+              borderWidth: 1,
+              borderColor: darkMode ? '#333' : '#ccc',
+            }}>
+            {/* Header */}
+            <View
+              style={{
+                flexDirection: 'row',
+                justifyContent: 'space-between',
+                alignItems: 'center',
+                width: '100%',
+                marginBottom: 20,
+                paddingBottom: 16,
+                borderBottomWidth: 1,
+                borderBottomColor: darkMode ? '#333' : '#eee',
+              }}>
+              <Text
+                style={{
+                  fontSize: 22,
+                  fontWeight: 'bold',
+                  color: darkMode ? '#fff' : '#222',
+                }}>
+                Enter Room PIN
+              </Text>
+              <TouchableOpacity
+                onPress={() => setPinModalVisible(false)}
+                style={{padding: 8}}>
+                <Text style={{fontSize: 24, color: darkMode ? '#888' : '#aaa'}}>
+                  ×
+                </Text>
+              </TouchableOpacity>
+            </View>
+            {/* PIN Input */}
+            <TextInput
+              style={{
+                borderWidth: 1,
+                borderColor: '#ccc',
+                borderRadius: 6,
+                width: 120,
+                fontSize: 20,
+                textAlign: 'center',
+                marginBottom: 10,
+                padding: 6,
+                color: darkMode ? '#fff' : '#000',
+                backgroundColor: darkMode ? '#222' : '#fff',
+              }}
+              placeholder="4-digit PIN"
+              placeholderTextColor={darkMode ? '#aaa' : '#888'}
+              keyboardType="numeric"
+              maxLength={4}
+              value={pinInput}
+              onChangeText={text =>
+                setPinInput(text.replace(/[^0-9]/g, '').slice(0, 4))
+              }
+              secureTextEntry
+            />
+            {pinError ? (
+              <Text style={{color: 'red', marginBottom: 8}}>{pinError}</Text>
+            ) : null}
+            <View
+              style={{
+                flexDirection: 'row',
+                justifyContent: 'space-between',
+                width: '100%',
+              }}>
+              <TouchableOpacity
+                style={{
+                  flex: 1,
+                  alignItems: 'center',
+                  padding: 10,
+                  borderRadius: 8,
+                  backgroundColor: darkMode ? '#2a2a2a' : '#f0f0f0',
+                  marginRight: 8,
+                  borderWidth: 1,
+                  borderColor: darkMode ? '#333' : '#ccc',
+                }}
+                onPress={() => setPinModalVisible(false)}>
+                <Text
+                  style={{
+                    color: darkMode ? '#fff' : '#333',
+                    fontWeight: 'bold',
+                  }}>
+                  Cancel
+                </Text>
+              </TouchableOpacity>
+              <TouchableOpacity
+                style={{
+                  flex: 1,
+                  alignItems: 'center',
+                  padding: 10,
+                  borderRadius: 8,
+                  backgroundColor: darkMode ? '#2196F3' : '#1976d2',
+                  marginLeft: 8,
+                  opacity: pinInput.length === 4 ? 1 : 0.5,
+                }}
+                onPress={handlePinJoin}
+                disabled={pinInput.length !== 4}>
+                <Text style={{color: '#fff', fontWeight: 'bold'}}>Join</Text>
+              </TouchableOpacity>
+            </View>
+          </View>
+        </View>
+      )}
     </AppLayout>
   );
 };
@@ -410,6 +684,39 @@ const styles = StyleSheet.create({
     color: '#fff',
     fontSize: 14,
     fontWeight: 'bold',
+  },
+  resetVoiceButton: {
+    position: 'absolute',
+    right: 20,
+    bottom: 100,
+    borderWidth: 1,
+    borderRadius: 6,
+    paddingVertical: 8,
+    paddingHorizontal: 12,
+    minWidth: 120,
+    shadowOffset: {
+      width: 0,
+      height: 1,
+    },
+    shadowOpacity: 0.05,
+    shadowRadius: 2,
+    elevation: 1,
+    zIndex: 1000,
+  },
+  resetVoiceContent: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  resetVoiceIcon: {
+    width: 16,
+    height: 16,
+    marginRight: 6,
+  },
+  resetVoiceText: {
+    fontSize: 13,
+    fontWeight: '500',
+    letterSpacing: 0.2,
   },
 });
 
