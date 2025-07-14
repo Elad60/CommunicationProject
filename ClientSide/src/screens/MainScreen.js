@@ -13,6 +13,7 @@ import {
   TextInput,
   Button,
 } from 'react-native';
+import {NativeModules} from 'react-native';
 import RadioChannel from '../components/RadioChannel';
 import AppLayout from '../components/AppLayout';
 import ChannelParticipantsModal from '../components/ChannelParticipantsModal';
@@ -20,6 +21,8 @@ import {useAuth} from '../context/AuthContext';
 import {radioChannelsApi} from '../utils/apiService';
 import {useSettings} from '../context/SettingsContext';
 import {useVoice} from '../context/VoiceContext';
+
+const {AgoraModule} = NativeModules;
 
 const MainScreen = ({navigation}) => {
   console.log('MainScreen rendered');
@@ -39,6 +42,7 @@ const MainScreen = ({navigation}) => {
     setPendingMuteTimeout,
     setPendingUnmuteTimeout,
     emergencyVoiceReset,
+    setIsMicrophoneEnabled,
   } = useVoice();
 
   // Modal state
@@ -188,9 +192,20 @@ const MainScreen = ({navigation}) => {
         case 'ListenAndTalk':
           if (activeVoiceChannel === channelId) {
             // Channel is already connected, just mute/unmute
+            if (newState === 'ListenOnly') {
+              AgoraModule.MuteLocalAudio(true);
+              setIsMicrophoneEnabled(false);
+            } else if (newState === 'ListenAndTalk') {
+              AgoraModule.MuteLocalAudio(false);
+              setIsMicrophoneEnabled(true);
+            }
           } else {
             // Join the channel and set to muted/unmuted state
-            const joinSuccess = await joinVoiceChannel(channelId, current.name);
+            const joinSuccess = await joinVoiceChannel(
+              channelId,
+              current.name,
+              newState,
+            );
             if (joinSuccess) {
               const timeout = setTimeout(
                 () => {
@@ -647,8 +662,8 @@ const styles = StyleSheet.create({
   },
   addButton: {
     position: 'absolute',
-    right: 20,
-    bottom: 30,
+    right: 50,
+    bottom: 80,
     backgroundColor: '#1DB954',
     width: 50,
     height: 50,
@@ -688,7 +703,7 @@ const styles = StyleSheet.create({
   resetVoiceButton: {
     position: 'absolute',
     right: 20,
-    bottom: 100,
+    bottom: 30,
     borderWidth: 1,
     borderRadius: 6,
     paddingVertical: 8,

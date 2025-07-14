@@ -74,7 +74,11 @@ export const VoiceProvider = ({children}) => {
   };
 
   // Join a voice channel for a specific radio channel
-  const joinVoiceChannel = async (channelId, channelName) => {
+  const joinVoiceChannel = async (
+    channelId,
+    channelName,
+    initialState = 'ListenOnly',
+  ) => {
     try {
       if (!isAgoraInitialized) {
         const initialized = await initializeAgoraEngine();
@@ -95,6 +99,18 @@ export const VoiceProvider = ({children}) => {
 
       setActiveVoiceChannel(channelId);
       setVoiceStatus('connected');
+
+      // Set initial microphone state based on the channel state
+      if (initialState === 'ListenOnly') {
+        AgoraModule.MuteLocalAudio(true);
+        setIsMicrophoneEnabled(false);
+        console.log('🎤 Microphone muted on join (ListenOnly mode)');
+      } else if (initialState === 'ListenAndTalk') {
+        AgoraModule.MuteLocalAudio(false);
+        setIsMicrophoneEnabled(true);
+        console.log('🎤 Microphone enabled on join (ListenAndTalk mode)');
+      }
+
       return true;
     } catch (error) {
       console.error('❌ Failed to join voice channel:', error);
@@ -241,6 +257,7 @@ export const VoiceProvider = ({children}) => {
         emergencyVoiceReset,
         setPendingMuteTimeout,
         setPendingUnmuteTimeout,
+        setIsMicrophoneEnabled,
       }}>
       {children}
     </VoiceContext.Provider>
