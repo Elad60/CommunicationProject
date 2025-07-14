@@ -15,26 +15,36 @@ import {privateCallApi} from '../utils/apiService';
 const {AgoraModule} = NativeModules; // 🎯 NEW: Import AgoraModule
 
 const PrivateCallScreen = ({route, navigation}) => {
-  const {otherUser, invitationId, currentUserId, channelName, agoraChannelName, isCaller, isCallAccepted} = route.params; // 🎯 NEW: Extract agoraChannelName
+  const {otherUser, invitationId, currentUserId, channelName, agoraChannelName, isCaller, isCallAccepted} = route.params;
   const {darkMode} = useSettings();
   const [callDuration, setCallDuration] = useState(0);
   const [isEnding, setIsEnding] = useState(false);
   const [isCallActive, setIsCallActive] = useState(true);
-  const [isAgoraConnected, setIsAgoraConnected] = useState(false); // 🎯 NEW: Track Agora connection
+  const [isAgoraConnected, setIsAgoraConnected] = useState(false);
   const intervalRef = useRef(null);
   const statusCheckRef = useRef(null);
+  const isMountedRef = useRef(false); // 🔧 FIX: Track if component is mounted
   
-  console.log('🔵 PrivateCallScreen mounted with:', {
-    otherUser: otherUser?.username,
-    invitationId,
-    currentUserId,
-    agoraChannelName, // 🎯 Channel name from previous screen
-  });
-  
-  // 🔧 VALIDATION: Check if channel name has duplicate 'call_'
-  if (agoraChannelName && agoraChannelName.includes('call_call_')) {
-    console.warn('⚠️ DUPLICATE DETECTED in channel name:', agoraChannelName);
-  }
+  // 🔧 FIX: Only log once on mount
+  useEffect(() => {
+    if (!isMountedRef.current) {
+      console.log('🔵 PrivateCallScreen mounted with:', {
+        otherUser: otherUser?.username,
+        invitationId,
+        currentUserId,
+        agoraChannelName,
+      });
+      
+      // Validation: Check if channel name has duplicate 'call_'
+      if (agoraChannelName && agoraChannelName.includes('call_call_')) {
+        console.warn('⚠️ DUPLICATE DETECTED in channel name:', agoraChannelName);
+      }
+      
+      isMountedRef.current = true;
+    } else {
+      console.warn('🔄 PrivateCallScreen: Component re-mounted unexpectedly!');
+    }
+  }, []);
 
   // 🎯 FIXED: Set Agora state only once on mount
   useEffect(() => {
@@ -42,7 +52,9 @@ const PrivateCallScreen = ({route, navigation}) => {
     
     if (agoraChannelName) {
       // Set the connection state to true since we're already connected
-      setIsAgoraConnected(true);
+      if (isMountedRef.current) {
+        setIsAgoraConnected(true);
+      }
     } else {
       console.log('⚠️ No Agora channel name provided - voice disabled');
     }
@@ -62,6 +74,10 @@ const PrivateCallScreen = ({route, navigation}) => {
     console.log('🎬 PrivateCallScreen MOUNTED');
     return () => {
       console.log('🏁 PrivateCallScreen UNMOUNTED - FORCE cleaning up all resources');
+      
+      // 🔧 FIX: Mark component as unmounted
+      isMountedRef.current = false;
+      
       // 🔧 FIX: Final force disconnect on unmount
       if (AgoraModule) {
         try {
@@ -88,7 +104,11 @@ const PrivateCallScreen = ({route, navigation}) => {
       
       // Join the Agora channel
       AgoraModule.JoinChannel(agoraChannelName);
-      setIsAgoraConnected(true);
+      
+      // 🔧 FIX: Only update state if component is still mounted
+      if (isMountedRef.current) {
+        setIsAgoraConnected(true);
+      }
       console.log('✅ Successfully connected to Agora channel (manual reconnect):', agoraChannelName);
       
     } catch (error) {
@@ -113,12 +133,16 @@ const PrivateCallScreen = ({route, navigation}) => {
       }
       
       // Update state after successful disconnect
-      setIsAgoraConnected(false);
+      if (isMountedRef.current) {
+        setIsAgoraConnected(false);
+      }
       
     } catch (error) {
       console.error('❌ Error disconnecting from Agora:', error);
       // Even if error, update state to prevent stuck connections
-      setIsAgoraConnected(false);
+      if (isMountedRef.current) {
+        setIsAgoraConnected(false);
+      }
     }
   };
 
@@ -126,12 +150,16 @@ const PrivateCallScreen = ({route, navigation}) => {
   useEffect(() => {
     console.log('⏱️ Starting call duration timer...');
     intervalRef.current = setInterval(() => {
-      setCallDuration(prev => prev + 1);
+      // 🔧 FIX: Only update if component is still mounted
+      if (isMountedRef.current) {
+        setCallDuration(prev => prev + 1);
+      }
     }, 1000);
 
     return () => {
       if (intervalRef.current) {
         clearInterval(intervalRef.current);
+        intervalRef.current = null;
       }
     };
   }, []);
@@ -144,27 +172,20 @@ const PrivateCallScreen = ({route, navigation}) => {
     let intervalId = null; // Store interval ID locally
     
     const checkCallStatus = async () => {
-      console.log('🔍 checkCallStatus called, isMonitoring:', isMonitoring, 'isCallActive:', isCallActive);
-      
       // Don't check if we're no longer monitoring
       if (!isMonitoring) {
-        console.log('🛑 Stopping call status check - monitoring stopped');
         return;
       }
       
       // Don't check if call is not active
       if (!isCallActive) {
-        console.log('🛑 Stopping call status check - call not active');
         return;
       }
       
       try {
-        console.log('🔄 Polling for call status...');
         const response = await privateCallApi.getCallStatus(invitationId, currentUserId);
         
         if (response.success) {
-          console.log('📊 Call status:', response.status);
-          
           // If call was ended by the other user
           if (response.status === 'cancelled' || response.status === 'ended') {
             console.log('❌ Call ended by other user');
@@ -180,7 +201,11 @@ const PrivateCallScreen = ({route, navigation}) => {
             
             // Stop monitoring IMMEDIATELY
             isMonitoring = false;
-            setIsCallActive(false);
+            
+            // 🔧 FIX: Only update state if component is still mounted
+            if (isMountedRef.current) {
+              setIsCallActive(false);
+            }
             
             // Clear the interval IMMEDIATELY
             if (intervalId) {
@@ -244,7 +269,7 @@ const PrivateCallScreen = ({route, navigation}) => {
         statusCheckRef.current = null;
       }
     };
-  }, [invitationId, currentUserId, navigation]);
+  }, []); // 🔧 FIX: Empty dependency array to prevent re-runs
 
   // Handle back button
   useEffect(() => {
@@ -271,8 +296,12 @@ const PrivateCallScreen = ({route, navigation}) => {
     }
     
     console.log('🔴 Ending call...');
-    setIsEnding(true);
-    setIsCallActive(false);
+    
+    // 🔧 FIX: Only update state if component is still mounted
+    if (isMountedRef.current) {
+      setIsEnding(true);
+      setIsCallActive(false);
+    }
     
     // 🔧 FIX: Force disconnect from Agora MULTIPLE TIMES to ensure it works
     console.log('🎤 FORCE disconnecting from Agora before ending call...');
