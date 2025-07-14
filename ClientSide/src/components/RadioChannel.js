@@ -108,13 +108,6 @@ const RadioChannel = ({
         {name}
       </Text>
       {/* Display mode as a badge */}
-      <View
-        style={[
-          styles.modeBadge,
-          {backgroundColor: mode === 'Public' ? '#4CAF50' : '#607D8B'},
-        ]}>
-        <Text style={styles.modeBadgeText}>{mode}</Text>
-      </View>
       {/* Voice status indicator (shows instead of frequency when voice connected) */}
       {isVoiceConnected ? (
         <Text style={[styles.voiceStatus, {color: darkMode ? '#fff' : '#000'}]}>
@@ -127,6 +120,13 @@ const RadioChannel = ({
           {isActive ? 'Active' : 'Inactive'}
         </Text>
       )}
+      <View
+        style={[
+          styles.modeBadge,
+          {backgroundColor: mode === 'Public' ? '#4CAF50' : '#607D8B'},
+        ]}>
+        <Text style={styles.modeBadgeText}>{mode}</Text>
+      </View>
       {/* Display headphone and mic icons with voice connection indicator */}
       <View style={styles.iconContainer}>
         <Image source={headphones} style={styles.iconImage} />

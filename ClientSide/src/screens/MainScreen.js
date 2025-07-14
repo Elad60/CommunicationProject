@@ -75,6 +75,8 @@ const MainScreen = ({navigation}) => {
     textHover: darkMode ? '#1ed760' : '#1ed760',
   };
 
+  const [roomParticipants, setRoomParticipants] = useState({}); // roomId -> hasParticipants
+
   // Fetch radio channels for the authenticated user
   const fetchRadioChannels = async () => {
     try {
@@ -100,6 +102,29 @@ const MainScreen = ({navigation}) => {
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [user]);
+
+  // Poll participants only once on page load or when radioChannels changes
+  useEffect(() => {
+    const fetchParticipantsForRooms = async () => {
+      if (!radioChannels || radioChannels.length === 0) return;
+      const participantsMap = {};
+      await Promise.all(
+        radioChannels.map(async room => {
+          try {
+            const participants = await radioChannelsApi.getChannelParticipants(
+              room.id,
+            );
+            participantsMap[room.id] =
+              Array.isArray(participants) && participants.length > 0;
+          } catch (e) {
+            participantsMap[room.id] = false;
+          }
+        }),
+      );
+      setRoomParticipants(participantsMap);
+    };
+    fetchParticipantsForRooms();
+  }, [radioChannels]);
 
   // Handle selection of a radio channel
   const handleChannelSelect = id => {
@@ -312,7 +337,7 @@ const MainScreen = ({navigation}) => {
                   <RadioChannel
                     name={channel.name}
                     frequency={channel.frequency}
-                    isActive={channel.status === 'Active'}
+                    isActive={roomParticipants[channel.id]}
                     mode={channel.mode}
                     isSelected={selectedChannel === channel.id}
                     channelState={channel.channelState}
