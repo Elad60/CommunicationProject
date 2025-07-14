@@ -100,7 +100,7 @@ const GroupsScreen = ({navigation}) => {
 
   // Function to get simple background color for user cards
   const getBackgroundColor = () => {
-    return darkMode ? '#333' : '#f5f5f5'; // Simple consistent color
+    return darkMode ? '#2a2a2a' : '#ffffff'; // Clean white/dark background
   };
 
   // Function to handle user press for private call options
@@ -182,7 +182,11 @@ const GroupsScreen = ({navigation}) => {
   // Loading state display
   if (loading) {
     return (
-      <AppLayout navigation={navigation} title={`Group: ${user?.group}`}>
+      <AppLayout 
+        navigation={navigation} 
+        title={`Group: ${user?.group}`}
+        onShowInstructions={showInstructions}
+      >
         <View
           style={[
             styles.centerContainer,
@@ -197,11 +201,9 @@ const GroupsScreen = ({navigation}) => {
     );
   }
 
-  // Calculate the card size dynamically based on screen size
-  const CardSize = Math.max(
-    130,
-    Math.sqrt((width * 0.7 * height * 0.7) / (groupUsers.length + 4))
-  );
+  // Calculate responsive card dimensions
+  const cardWidth = Math.min(width * 0.42, 180); // Max 180px width, responsive
+  const cardHeight = Math.min(height * 0.16, 120); // Max 120px height, responsive
 
   // Main screen layout
   return (
@@ -228,30 +230,55 @@ const GroupsScreen = ({navigation}) => {
                     {
                       backgroundColor: bgColor,
                       borderColor: darkMode ? '#555' : '#ddd',
-                      width: CardSize,
-                      height: CardSize,
+                      width: cardWidth,
+                      height: cardHeight,
+                      shadowColor: darkMode ? '#000' : '#333',
+                      shadowOffset: {width: 0, height: 2},
+                      shadowOpacity: u.isActive ? 0.1 : 0.05,
+                      shadowRadius: 4,
+                      elevation: u.isActive ? 3 : 1,
+                      opacity: u.isActive ? 1 : 0.6, // Disabled appearance for offline users
                     },
                   ]}
-                  onPress={() => onUserPress(u.id)}>
-                  <Text style={{color: textColor, fontWeight: 'bold', fontSize: 16}}>
-                    {u.username}
-                  </Text>
-                  <Text style={{color: darkMode ? '#ccc' : '#666', fontSize: 12}}>
-                    {u.email}
-                  </Text>
-                  <Text style={{color: darkMode ? '#91aad4' : '#004080', fontSize: 12}}>
-                    Role: {u.role}
-                  </Text>
+                  onPress={u.isActive ? () => onUserPress(u.id) : null}
+                  disabled={!u.isActive}
+                  activeOpacity={u.isActive ? 0.7 : 1}>
+                  
+                  {/* User Avatar Circle */}
+                  <View style={[
+                    styles.userAvatar,
+                    {backgroundColor: u.isActive ? '#4CAF50' : '#f44336'}
+                  ]}>
+                    <Text style={styles.avatarText}>
+                      {u.username.charAt(0).toUpperCase()}
+                    </Text>
+                  </View>
 
-                  <View style={styles.statusContainer}>
-                    <View
-                      style={[
-                        styles.statusDot,
-                        {backgroundColor: u.isActive ? '#00cc00' : '#ff4444'},
-                      ]}
-                    />
-                    <Text style={{color: darkMode ? '#ccc' : '#666', fontSize: 10}}>
-                      {u.isActive ? 'Online' : 'Offline'}
+                  {/* User Info */}
+                  <View style={styles.userInfo}>
+                    <Text style={[styles.username, {color: textColor}]} numberOfLines={1}>
+                      {u.username}
+                    </Text>
+                    <Text style={[styles.email, {color: darkMode ? '#ccc' : '#666'}]} numberOfLines={1}>
+                      {u.email}
+                    </Text>
+                    <Text style={[styles.role, {color: darkMode ? '#91aad4' : '#004080'}]} numberOfLines={1}>
+                      {u.role}
+                    </Text>
+                    {!u.isActive && (
+                      <Text style={[styles.offlineText, {color: '#f44336'}]} numberOfLines={1}>
+                        Unavailable for calls
+                      </Text>
+                    )}
+                  </View>
+
+                  {/* Status Indicator */}
+                  <View style={[
+                    styles.statusIndicator,
+                    {backgroundColor: u.isActive ? '#4CAF50' : '#f44336'}
+                  ]}>
+                    <Text style={styles.statusText}>
+                      {u.isActive ? '●' : '●'}
                     </Text>
                   </View>
                 </TouchableOpacity>
@@ -270,47 +297,39 @@ const GroupsScreen = ({navigation}) => {
         </View>
       </ScrollView>
 
-      <View style={{backgroundColor: darkMode ? '#000' : '#d9d9d9'}}>
+      <View style={[
+        styles.bottomSection,
+        {
+          backgroundColor: darkMode ? '#000' : '#d9d9d9',
+          paddingBottom: Math.max(height * 0.15, 90), // Responsive padding based on screen height
+        }
+      ]}>
         <Text style={[styles.label, {color: textColor}]}>
           Change Your Group:
         </Text>
         
-        {/* Call Listener Status */}
-        <View style={styles.callListenerStatus}>
-          <View style={[
-            styles.listenerDot,
-            {backgroundColor: '#00cc00'}
-          ]} />
-          <Text style={[styles.listenerText, {color: textColor}]}>
-            Call Listener: Global (Active in all screens except Private Call)
-          </Text>
+        <View style={styles.letterContainer}>
+          {letters.map(letter => (
+            <TouchableOpacity
+              key={letter}
+              style={[
+                styles.letterButton,
+                {
+                  backgroundColor:
+                    user?.group === letter
+                      ? darkMode
+                        ? '#0066cc'
+                        : '#91aad4'
+                      : darkMode
+                      ? '#333'
+                      : '#eee',
+                },
+              ]}
+              onPress={() => handleGroupChange(letter)}>
+              <Text style={[styles.letterText, {color: textColor}]}>{letter}</Text>
+            </TouchableOpacity>
+          ))}
         </View>
-      </View>
-      <View
-        style={[
-          styles.letterContainer,
-          {backgroundColor: darkMode ? '#000' : '#d9d9d9'},
-        ]}>
-        {letters.map(letter => (
-          <TouchableOpacity
-            key={letter}
-            style={[
-              styles.letterButton,
-              {
-                backgroundColor:
-                  user?.group === letter
-                    ? darkMode
-                      ? '#0066cc'
-                      : '#91aad4'
-                    : darkMode
-                    ? '#333'
-                    : '#eee',
-              },
-            ]}
-            onPress={() => handleGroupChange(letter)}>
-            <Text style={{color: textColor}}>{letter}</Text>
-          </TouchableOpacity>
-        ))}
       </View>
     </AppLayout>
   );
@@ -323,57 +342,100 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     flexWrap: 'wrap',
     justifyContent: 'center',
-    paddingVertical: 10,
+    alignItems: 'flex-start',
+    paddingVertical: 20,
+    paddingHorizontal: 15,
   },
   userCard: {
-    borderRadius: 8,
-    padding: 10,
+    borderRadius: 12,
+    padding: 12,
     margin: 8,
+    marginVertical: 6,
+    flexDirection: 'row',
     alignItems: 'center',
     borderWidth: 1,
+    position: 'relative',
   },
-  username: {
-    fontSize: 16,
-    fontWeight: 'bold',
-    textAlign: 'center',
-  },
-  email: {
-    fontSize: 12,
-    textAlign: 'center',
-  },
-  role: {
-    fontSize: 12,
-    textAlign: 'center',
-  },
-  statusContainer: {
-    flexDirection: 'row',
+  userAvatar: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
     justifyContent: 'center',
     alignItems: 'center',
-    marginTop: 10,
-    paddingHorizontal: 10,
+    marginRight: 12,
   },
-  statusDot: {
-    width: 10,
-    height: 10,
-    borderRadius: 5,
-    marginRight: 5,
+  avatarText: {
+    fontSize: 18,
+    fontWeight: 'bold',
+    color: '#fff',
+  },
+  userInfo: {
+    flex: 1,
+    justifyContent: 'center',
+  },
+  username: {
+    fontSize: 14,
+    fontWeight: 'bold',
+    marginBottom: 2,
+  },
+  email: {
+    fontSize: 11,
+    marginBottom: 2,
+  },
+  role: {
+    fontSize: 10,
+    fontWeight: '500',
+  },
+  offlineText: {
+    fontSize: 9,
+    fontWeight: '600',
+    fontStyle: 'italic',
+    marginTop: 2,
+  },
+  statusIndicator: {
+    position: 'absolute',
+    top: 8,
+    right: 8,
+    width: 12,
+    height: 12,
+    borderRadius: 6,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  statusText: {
+    fontSize: 8,
+    color: '#fff',
+    fontWeight: 'bold',
   },
   label: {
     fontSize: 18,
+    fontWeight: '600',
     margin: 10,
     textAlign: 'center',
   },
   letterContainer: {
     flexDirection: 'row',
     justifyContent: 'center',
+    paddingHorizontal: 15,
+    paddingTop: 15,
+    flexWrap: 'wrap', // Allow wrapping on smaller screens
   },
   letterButton: {
-    padding: 10,
-    margin: 5,
-    borderRadius: 5,
+    padding: 12,
+    margin: 6,
+    borderRadius: 8,
+    minWidth: 40,
+    alignItems: 'center',
+    justifyContent: 'center',
+    shadowColor: '#000',
+    shadowOffset: {width: 0, height: 2},
+    shadowOpacity: 0.1,
+    shadowRadius: 3,
+    elevation: 2,
   },
   letterText: {
-    fontSize: 18,
+    fontSize: 16,
+    fontWeight: '600',
   },
   centerContainer: {
     flex: 1,
@@ -386,21 +448,15 @@ const styles = StyleSheet.create({
     marginTop: 20,
     width: '100%',
   },
-  callListenerStatus: {
-    flexDirection: 'row',
-    justifyContent: 'center',
-    alignItems: 'center',
+  bottomSection: {
+    paddingHorizontal: 15,
+    paddingTop: 15,
+    // paddingBottom is now handled dynamically in the component
+  },
+  loadingText: {
+    fontSize: 16,
     marginTop: 10,
-    paddingHorizontal: 10,
-  },
-  listenerDot: {
-    width: 10,
-    height: 10,
-    borderRadius: 5,
-    marginRight: 5,
-  },
-  listenerText: {
-    fontSize: 12,
+    textAlign: 'center',
   },
 });
 

@@ -455,7 +455,7 @@ const IncomingCallScreen = ({route, navigation}) => {
             styles.rejectButton,
             {
               opacity: isResponding ? 0.6 : 1,
-              transform: isResponding ? [{scale: 0.95}, {rotate: '135deg'}] : [{rotate: '135deg'}]
+              transform: isResponding ? [{scale: 0.95}] : [{scale: 1}]
             }
           ]}
           onPress={rejectCall}
@@ -463,8 +463,8 @@ const IncomingCallScreen = ({route, navigation}) => {
           activeOpacity={0.8}
         >
           <View style={styles.buttonContent}>
-            <Text style={[styles.rejectButtonIcon, {transform: [{rotate: '-135deg'}]}]}>📞</Text>
-            <Text style={[styles.rejectButtonLabel, {transform: [{rotate: '-135deg'}]}]}>Decline</Text>
+            <Text style={styles.rejectButtonIcon}>✖️</Text>
+            <Text style={styles.rejectButtonLabel}>Decline</Text>
           </View>
         </TouchableOpacity>
 
@@ -589,10 +589,10 @@ const styles = StyleSheet.create({
     marginHorizontal: 20,
   },
   rejectButton: {
-    backgroundColor: '#ff3333',
+    backgroundColor: '#e74c3c',
     borderWidth: 3,
-    borderColor: '#ff6666',
-    shadowColor: '#ff0000',
+    borderColor: '#c0392b',
+    shadowColor: '#c0392b',
     shadowOffset: {width: 0, height: 6},
     shadowOpacity: 0.6,
     shadowRadius: 12,
@@ -609,8 +609,8 @@ const styles = StyleSheet.create({
     elevation: 12,
   },
   rejectButtonIcon: {
-    fontSize: 32,
-    color: '#fff',
+    fontSize: 28,
+    color: '#ffffff',
     fontWeight: 'bold',
   },
   acceptButtonIcon: {
@@ -619,10 +619,10 @@ const styles = StyleSheet.create({
     fontWeight: 'bold',
   },
   rejectButtonLabel: {
-    color: '#fff',
-    fontSize: 13,
+    color: '#ffffff',
+    fontSize: 12,
     fontWeight: 'bold',
-    marginTop: 6,
+    marginTop: 4,
   },
   acceptButtonLabel: {
     color: '#fff',

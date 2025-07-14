@@ -404,53 +404,41 @@ const PrivateCallScreen = ({route, navigation}) => {
 
       {/* Call Info */}
       <View style={[styles.callInfo, {backgroundColor: cardColor}]}>
-        <Text style={[styles.infoTitle, {color: textColor}]}>Call Information</Text>
+        <Text style={[styles.infoTitle, {color: textColor}]}>Call Status</Text>
+        <Text style={[styles.infoText, {color: isAgoraConnected ? '#4CAF50' : '#f44336'}]}>
+          🔊 Voice: {isAgoraConnected ? 'Connected' : 'Disconnected'}
+        </Text>
         <Text style={[styles.infoText, {color: darkMode ? '#ccc' : '#666'}]}>
           📡 Channel: {channelName}
         </Text>
-        <Text style={[styles.infoText, {color: darkMode ? '#ccc' : '#666'}]}>
-          🆔 Invitation: {invitationId}
-        </Text>
-        <Text style={[styles.infoText, {color: darkMode ? '#ccc' : '#666'}]}>
-          🎤 Agora Channel: {agoraChannelName || 'Not set'}
-        </Text>
-        <Text style={[styles.infoText, {color: isAgoraConnected ? '#4CAF50' : '#f44336'}]}>
-          🔊 Voice Status: {isAgoraConnected ? 'Connected' : 'Disconnected'}
-        </Text>
       </View>
 
-      {/* Agora Controls */}
-      <View style={styles.controlsContainer}>
-        <Text style={[styles.controlsTitle, {color: textColor}]}>Voice Connection</Text>
-        
+      {/* Action Buttons */}
+      <View style={styles.actionButtonsContainer}>
         <TouchableOpacity
-          style={[styles.agoraStatusButton, {backgroundColor: isAgoraConnected ? '#4CAF50' : '#f44336'}]}
+          style={[styles.voiceStatusButton, {backgroundColor: isAgoraConnected ? '#4CAF50' : '#ff9800'}]}
           onPress={checkAgoraStatus}
         >
           <Text style={styles.controlButtonText}>
-            {isAgoraConnected ? '🔊 Check Agora Status' : '❌ Agora Disconnected - Tap to Check'}
+            {isAgoraConnected ? '🔊 Voice Status' : '🔧 Check Voice'}
           </Text>
         </TouchableOpacity>
-      </View>
 
-      {/* End Call Button */}
-      <TouchableOpacity
-        style={[styles.endCallButton, {backgroundColor: '#f44336'}]}
-        onPress={handleEndCall}
-      >
-        <Text style={styles.endCallButtonText}>📞 End Call</Text>
-      </TouchableOpacity>
+        <TouchableOpacity
+          style={[styles.endCallButton, {backgroundColor: '#f44336'}]}
+          onPress={handleEndCall}
+        >
+          <Text style={styles.endCallButtonText}>✖️ End Call</Text>
+        </TouchableOpacity>
+      </View>
 
       {/* Instructions */}
       <View style={styles.instructionsContainer}>
         <Text style={[styles.instructionsText, {color: darkMode ? '#ccc' : '#666'}]}>
-          🎤 Real Agora voice communication
+          🎤 Voice communication active • Tap status to check connection
         </Text>
         <Text style={[styles.instructionsText, {color: darkMode ? '#ccc' : '#666'}]}>
-          🔊 Tap status button to check connection
-        </Text>
-        <Text style={[styles.instructionsText, {color: darkMode ? '#ccc' : '#666'}]}>
-          🔄 Use reconnect if audio issues occur
+          🔄 Use voice status button if audio issues occur
         </Text>
       </View>
     </SafeAreaView>
@@ -461,10 +449,11 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     padding: 20,
+    paddingTop: 10,
   },
   header: {
     alignItems: 'center',
-    marginBottom: 30,
+    marginBottom: 25,
   },
   headerTitle: {
     fontSize: 24,
@@ -484,7 +473,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     padding: 20,
     borderRadius: 15,
-    marginBottom: 20,
+    marginBottom: 15,
     elevation: 3,
     shadowColor: '#000',
     shadowOffset: {width: 0, height: 2},
@@ -519,9 +508,13 @@ const styles = StyleSheet.create({
   },
   callInfo: {
     padding: 15,
-    borderRadius: 10,
-    marginBottom: 20,
+    borderRadius: 12,
+    marginBottom: 15,
     elevation: 2,
+    shadowColor: '#000',
+    shadowOffset: {width: 0, height: 1},
+    shadowOpacity: 0.1,
+    shadowRadius: 3,
   },
   infoTitle: {
     fontSize: 16,
@@ -532,32 +525,20 @@ const styles = StyleSheet.create({
     fontSize: 14,
     marginBottom: 3,
   },
-  controlsContainer: {
+  actionButtonsContainer: {
     marginBottom: 20,
+    paddingHorizontal: 10,
   },
-  controlsTitle: {
-    fontSize: 16,
-    fontWeight: 'bold',
-    textAlign: 'center',
-    marginBottom: 15,
-  },
-  controlsRow: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    marginBottom: 10,
-  },
-  controlButton: {
-    flex: 1,
-    padding: 15,
-    borderRadius: 8,
-    marginHorizontal: 5,
+  voiceStatusButton: {
+    padding: 12,
+    borderRadius: 10,
     alignItems: 'center',
-  },
-  agoraStatusButton: {
-    padding: 15,
-    borderRadius: 8,
-    alignItems: 'center',
-    marginBottom: 10,
+    marginBottom: 12,
+    elevation: 2,
+    shadowColor: '#000',
+    shadowOffset: {width: 0, height: 1},
+    shadowOpacity: 0.1,
+    shadowRadius: 3,
   },
   controlButtonText: {
     color: '#fff',
@@ -565,10 +546,10 @@ const styles = StyleSheet.create({
     fontSize: 14,
   },
   endCallButton: {
-    padding: 18,
-    borderRadius: 25,
+    padding: 14,
+    borderRadius: 20,
     alignItems: 'center',
-    marginBottom: 20,
+    marginBottom: 15,
     elevation: 3,
     shadowColor: '#000',
     shadowOffset: {width: 0, height: 2},
@@ -582,14 +563,15 @@ const styles = StyleSheet.create({
   },
   instructionsContainer: {
     marginTop: 'auto',
-    padding: 10,
-    borderRadius: 8,
+    padding: 12,
+    borderRadius: 10,
     backgroundColor: 'rgba(100, 100, 100, 0.1)',
   },
   instructionsText: {
-    fontSize: 12,
+    fontSize: 11,
     textAlign: 'center',
-    marginBottom: 2,
+    marginBottom: 3,
+    fontStyle: 'italic',
   },
 });
 
