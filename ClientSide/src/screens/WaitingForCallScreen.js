@@ -198,7 +198,7 @@ const WaitingForCallScreen = ({route, navigation}) => {
             stopPollingForResponse();
             
             // 🎯 FIXED: Create proper channel name without duplication
-            const agoraChannelName = invitationId.startsWith('call_') ? `private_${invitationId}` : `private_call_${invitationId}`;
+            const agoraChannelName = invitationId;
             console.log('🎤 Connecting to Agora channel:', agoraChannelName);
             
             try {
