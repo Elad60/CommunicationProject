@@ -169,7 +169,17 @@ const MainScreen = ({navigation}) => {
     try {
       clearPendingAudioTimeouts();
 
-      // Handle voice operations
+      // Update backend FIRST
+      const userId = user?.id;
+      if (!userId) throw new Error('User ID not found');
+      await radioChannelsApi.updateChannelState(
+        userId,
+        channelId,
+        newState,
+        pinCode,
+      );
+
+      // Handle voice operations ONLY after backend validation
       switch (newState) {
         case 'Idle':
           await leaveVoiceChannel();
@@ -196,17 +206,6 @@ const MainScreen = ({navigation}) => {
           }
           break;
       }
-
-      // Update backend
-      const userId = user?.id;
-      if (!userId) throw new Error('User ID not found');
-
-      await radioChannelsApi.updateChannelState(
-        userId,
-        channelId,
-        newState,
-        pinCode,
-      );
 
       // Set other channels to Idle if needed
       if (newState === 'ListenOnly' || newState === 'ListenAndTalk') {
