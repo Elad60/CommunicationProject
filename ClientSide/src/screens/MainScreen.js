@@ -7,6 +7,8 @@ import {
   ActivityIndicator,
   Text,
   Alert,
+  Image,
+  Pressable,
 } from 'react-native';
 import RadioChannel from '../components/RadioChannel';
 import AppLayout from '../components/AppLayout';
@@ -43,7 +45,22 @@ const MainScreen = ({navigation}) => {
   const [participantsForModal, setParticipantsForModal] = useState([]);
 
   const {user} = useAuth();
-  const {showFrequency, showStatus} = useSettings();
+  const {showFrequency, showStatus, darkMode} = useSettings();
+
+  // Hover state for Reset Voice button
+  const [resetHovering, setResetHovering] = useState(false);
+
+  // Colors for Reset Voice button (same as LogoutButton)
+  const resetColors = {
+    background: darkMode ? '#2a2a2a' : '#f8f9fa',
+    backgroundHover: darkMode ? '#3a3a3a' : '#e9ecef',
+    border: darkMode ? '#404040' : '#dee2e6',
+    borderHover: darkMode ? '#555555' : '#adb5bd',
+    text: darkMode ? '#e9ecef' : '#495057',
+    textHover: darkMode ? '#ffffff' : '#212529',
+    icon: darkMode ? '#dc3545' : '#dc3545',
+    iconHover: darkMode ? '#c82333' : '#c82333',
+  };
 
   // Fetch radio channels for the authenticated user
   const fetchRadioChannels = async () => {
@@ -312,12 +329,48 @@ const MainScreen = ({navigation}) => {
           <Text style={styles.addButtonText}>+</Text>
         </TouchableOpacity>
 
-        {/* Emergency Voice Reset Button - Keep for production troubleshooting */}
-        <TouchableOpacity
-          style={styles.emergencyResetButton}
-          onPress={emergencyVoiceReset}>
-          <Text style={styles.testButtonText}>🚨 Reset</Text>
-        </TouchableOpacity>
+        {/* Emergency Voice Reset Button - Styled exactly like LogoutButton */}
+        <Pressable
+          onPress={emergencyVoiceReset}
+          onHoverIn={() => setResetHovering(true)}
+          onHoverOut={() => setResetHovering(false)}
+          style={[
+            styles.resetVoiceButton,
+            {
+              backgroundColor: resetHovering
+                ? resetColors.backgroundHover
+                : resetColors.background,
+              borderColor: resetHovering
+                ? resetColors.borderHover
+                : resetColors.border,
+            },
+          ]}>
+          <View style={styles.resetVoiceContent}>
+            <Image
+              source={require('../../assets/logos/microphone.png')}
+              style={[
+                styles.resetVoiceIcon,
+                {
+                  tintColor: resetHovering
+                    ? resetColors.iconHover
+                    : resetColors.icon,
+                },
+              ]}
+              resizeMode="contain"
+            />
+            <Text
+              style={[
+                styles.resetVoiceText,
+                {
+                  color: resetHovering
+                    ? resetColors.textHover
+                    : resetColors.text,
+                },
+              ]}>
+              Reset Voice
+            </Text>
+          </View>
+        </Pressable>
 
         {/* Voice Status Indicator */}
       </View>
@@ -410,6 +463,39 @@ const styles = StyleSheet.create({
     color: '#fff',
     fontSize: 14,
     fontWeight: 'bold',
+  },
+  resetVoiceButton: {
+    position: 'absolute',
+    right: 20,
+    bottom: 100,
+    borderWidth: 1,
+    borderRadius: 6,
+    paddingVertical: 8,
+    paddingHorizontal: 12,
+    minWidth: 120,
+    shadowOffset: {
+      width: 0,
+      height: 1,
+    },
+    shadowOpacity: 0.05,
+    shadowRadius: 2,
+    elevation: 1,
+    zIndex: 1000,
+  },
+  resetVoiceContent: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  resetVoiceIcon: {
+    width: 16,
+    height: 16,
+    marginRight: 6,
+  },
+  resetVoiceText: {
+    fontSize: 13,
+    fontWeight: '500',
+    letterSpacing: 0.2,
   },
 });
 
