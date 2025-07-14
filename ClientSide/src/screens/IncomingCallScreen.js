@@ -284,10 +284,10 @@ const IncomingCallScreen = ({route, navigation}) => {
             throw new Error('AgoraModule not available');
           }
           
-          // Initialize Agora engine (same as MainScreen)
-          AgoraModule.InitializeAgoraEngine('e5631d55e8a24b08b067bb73f8797fe3');
+          // Don't re-initialize Agora - it's already initialized by VoiceContext
+          // AgoraModule.InitializeAgoraEngine('e5631d55e8a24b08b067bb73f8797fe3');
           
-          // Join the Agora channel (same as MainScreen)
+          // Join the Agora channel directly
           AgoraModule.JoinChannel(agoraChannelName);
           
           console.log('✅ Successfully connected to Agora channel:', agoraChannelName);

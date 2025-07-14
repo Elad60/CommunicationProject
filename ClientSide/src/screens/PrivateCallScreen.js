@@ -83,10 +83,10 @@ const PrivateCallScreen = ({route, navigation}) => {
 
       console.log('🎤 Manually connecting to Agora channel:', agoraChannelName);
       
-      // Initialize Agora engine
-      AgoraModule.InitializeAgoraEngine('e5631d55e8a24b08b067bb73f8797fe3');
+      // Don't re-initialize Agora - it's already initialized by VoiceContext
+      // AgoraModule.InitializeAgoraEngine('e5631d55e8a24b08b067bb73f8797fe3');
       
-      // Join the Agora channel
+      // Join the Agora channel directly
       AgoraModule.JoinChannel(agoraChannelName);
       setIsAgoraConnected(true);
       console.log('✅ Successfully connected to Agora channel (manual reconnect):', agoraChannelName);
