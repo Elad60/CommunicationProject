@@ -194,14 +194,14 @@ const PickRadiosScreen = ({navigation}) => {
   });
 
   return (
-    <AppLayout navigation={navigation} title="Pick Radios">
+    <AppLayout navigation={navigation} title="Pick Rooms">
       {/* Action Header - Only show when there are changes */}
       {hasChanges && (
         <View style={[styles.actionHeader, dynamicStyles.headerContainer]}>
           <View
             style={[styles.actionHeaderContent, dynamicStyles.headerContent]}>
             <Text style={[styles.actionHeaderTitle, dynamicStyles.headerTitle]}>
-              🎯 Channel Selection
+              🎯 Room Selection
             </Text>
             <View style={styles.actionButtons}>
               <Pressable
@@ -328,12 +328,12 @@ const PickRadiosScreen = ({navigation}) => {
         contentContainerStyle={[styles.container, dynamicStyles.container]}>
         <View style={[styles.sectionCard, dynamicStyles.sectionCard]}>
           <Text style={[styles.title, dynamicStyles.title]}>
-            🎧 Select Your Channels
+            🎧 Select Your Rooms
           </Text>
 
           <TextInput
             style={[styles.input, dynamicStyles.input]}
-            placeholder="🔍 Search by name / frequency / mode"
+            placeholder="🔍 Search by name / mode"
             placeholderTextColor={darkMode ? '#aaa' : '#888'}
             value={search}
             onChangeText={setSearch} // Update search state on input change
@@ -341,7 +341,7 @@ const PickRadiosScreen = ({navigation}) => {
 
           {filteredChannels.length === 0 && (
             <Text style={[styles.noResults, dynamicStyles.noResults]}>
-              No matching channels found.
+              No matching rooms found.
             </Text>
           )}
 
@@ -363,12 +363,7 @@ const PickRadiosScreen = ({navigation}) => {
                       style={[styles.channelName, dynamicStyles.channelName]}>
                       {c.name}
                     </Text>
-                    {showFrequency && (
-                      <Text
-                        style={[styles.channelFreq, dynamicStyles.channelFreq]}>
-                        {c.frequency}
-                      </Text>
-                    )}
+                    {/* Frequency removed */}
                     <Text
                       style={[styles.channelMode, dynamicStyles.channelMode]}>
                       Mode: {c.mode}

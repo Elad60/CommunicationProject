@@ -11,27 +11,27 @@ import {
 import {useAuth} from '../context/AuthContext';
 import AppLayout from '../components/AppLayout';
 import {radioChannelsApi} from '../utils/apiService';
-import { useSettings } from '../context/SettingsContext';
+import {useSettings} from '../context/SettingsContext';
 
 const MoreRadiosScreen = ({navigation}) => {
-  const {user} = useAuth();  // Fetching user data from AuthContext
-  const {darkMode} = useSettings();  // Fetching dark mode setting from SettingsContext
-  const [channels, setChannels] = useState([]);  // State to hold all channels
-  const [filteredChannels, setFilteredChannels] = useState([]);  // State to hold filtered channels based on search
-  const [search, setSearch] = useState('');  // Search term for filtering channels
+  const {user} = useAuth(); // Fetching user data from AuthContext
+  const {darkMode} = useSettings(); // Fetching dark mode setting from SettingsContext
+  const [channels, setChannels] = useState([]); // State to hold all channels
+  const [filteredChannels, setFilteredChannels] = useState([]); // State to hold filtered channels based on search
+  const [search, setSearch] = useState(''); // Search term for filtering channels
 
-  const [name, setName] = useState('');  // State to hold new channel name input
-  const [frequency, setFrequency] = useState('');  // State to hold new channel frequency input
-  const [mode, setMode] = useState('');  // State to hold new channel mode input
+  const [name, setName] = useState(''); // State to hold new channel name input
+  const [frequency, setFrequency] = useState(''); // State to hold new channel frequency input
+  const [mode, setMode] = useState(''); // State to hold new channel mode input
 
   // Function to load all channels from the API
   const loadChannels = async () => {
     try {
-      const data = await radioChannelsApi.getAllChannels();  // Fetching channels
-      setChannels(data);  // Storing channels in state
-      setFilteredChannels(data);  // Also setting filtered channels to all channels initially
+      const data = await radioChannelsApi.getAllChannels(); // Fetching channels
+      setChannels(data); // Storing channels in state
+      setFilteredChannels(data); // Also setting filtered channels to all channels initially
     } catch (err) {
-      Alert.alert('Error', 'Failed to load channels');  // Alert in case of failure
+      Alert.alert('Error', 'Failed to load channels'); // Alert in case of failure
     }
   };
 
@@ -53,11 +53,11 @@ const MoreRadiosScreen = ({navigation}) => {
         channelState: 'Idle',
       });
 
-      Alert.alert('Success', 'Channel added successfully ✅');  // Success alert
-      setName('');  // Resetting inputs
+      Alert.alert('Success', 'Channel added successfully ✅'); // Success alert
+      setName(''); // Resetting inputs
       setFrequency('');
       setMode('');
-      loadChannels();  // Reload channels after adding
+      loadChannels(); // Reload channels after adding
     } catch (err) {
       console.error('Add channel failed:', err.response?.data || err.message);
       Alert.alert(
@@ -70,10 +70,10 @@ const MoreRadiosScreen = ({navigation}) => {
   // Function to handle deleting a channel
   const handleDelete = async id => {
     try {
-      await radioChannelsApi.deleteChannel(id);  // Deleting the channel
-      loadChannels();  // Reload channels after deletion
+      await radioChannelsApi.deleteChannel(id); // Deleting the channel
+      loadChannels(); // Reload channels after deletion
     } catch (err) {
-      Alert.alert('Error', 'Failed to delete channel');  // Alert in case of failure
+      Alert.alert('Error', 'Failed to delete channel'); // Alert in case of failure
     }
   };
 
@@ -84,39 +84,33 @@ const MoreRadiosScreen = ({navigation}) => {
 
   // useEffect hook to filter channels whenever search term or channels change
   useEffect(() => {
-    const lowerSearch = search.toLowerCase();  // Converting search term to lowercase
+    const lowerSearch = search.toLowerCase(); // Converting search term to lowercase
     const filtered = channels.filter(
       c =>
-        c.name.toLowerCase().includes(lowerSearch) ||  // Filtering by channel name
-        c.frequency.toLowerCase().includes(lowerSearch) ||  // Filtering by frequency
-        c.mode.toLowerCase().includes(lowerSearch),  // Filtering by mode
+        c.name.toLowerCase().includes(lowerSearch) || // Filtering by channel name
+        c.frequency.toLowerCase().includes(lowerSearch) || // Filtering by frequency
+        c.mode.toLowerCase().includes(lowerSearch), // Filtering by mode
     );
-    setFilteredChannels(filtered);  // Updating filtered channels
+    setFilteredChannels(filtered); // Updating filtered channels
   }, [search, channels]);
 
   // Getting styles based on dark mode
   const styles = getStyles(darkMode);
 
   return (
-    <AppLayout navigation={navigation} title="More Radios">
+    <AppLayout navigation={navigation} title="More Rooms">
       <ScrollView contentContainerStyle={styles.container}>
-        {/* Add Channel Section */}
+        {/* Add Room Section */}
         <View style={styles.sectionCard}>
-          <Text style={styles.title}>Add New Channel</Text>
+          <Text style={styles.title}>Add New Room</Text>
           <TextInput
             style={styles.input}
-            placeholder="🔤 Channel Name"
+            placeholder="🔤 Room Name"
             placeholderTextColor="#aaa"
             value={name}
             onChangeText={setName}
           />
-          <TextInput
-            style={styles.input}
-            placeholder="📶 Frequency"
-            placeholderTextColor="#aaa"
-            value={frequency}
-            onChangeText={setFrequency}
-          />
+          {/* Frequency input removed */}
           <TextInput
             style={styles.input}
             placeholder="🛠️ Mode"
@@ -125,34 +119,30 @@ const MoreRadiosScreen = ({navigation}) => {
             onChangeText={setMode}
           />
           <TouchableOpacity style={styles.button} onPress={handleAddChannel}>
-            <Text style={styles.buttonText}>Create Channel</Text>
+            <Text style={styles.buttonText}>Create Room</Text>
           </TouchableOpacity>
         </View>
 
         {/* Search + List Section */}
         <View style={styles.sectionCard}>
-          <Text style={styles.title}>Existing Channels</Text>
+          <Text style={styles.title}>Existing Rooms</Text>
           <TextInput
             style={styles.input}
-            placeholder="🔍 Search by name / frequency / mode"
+            placeholder="🔍 Search by name / mode"
             placeholderTextColor="#aaa"
             value={search}
             onChangeText={setSearch}
           />
 
           {filteredChannels.length === 0 && (
-            <Text style={styles.noResultsText}>
-              No matching channels found.
-            </Text>
+            <Text style={styles.noResultsText}>No matching rooms found.</Text>
           )}
 
           {filteredChannels.map(c => (
             <View key={c.id} style={styles.channelRow}>
               <View>
                 <Text style={styles.channelName}>{c.name}</Text>
-                <Text style={styles.channelDetails}>
-                  {c.frequency} • {c.mode}
-                </Text>
+                <Text style={styles.channelDetails}>{c.mode}</Text>
               </View>
               <TouchableOpacity onPress={() => handleDelete(c.id)}>
                 <Text style={styles.deleteText}>🗑️</Text>
@@ -166,7 +156,7 @@ const MoreRadiosScreen = ({navigation}) => {
 };
 
 // Function to dynamically generate styles based on dark mode
-const getStyles = (darkMode) =>
+const getStyles = darkMode =>
   StyleSheet.create({
     container: {
       padding: 20,
