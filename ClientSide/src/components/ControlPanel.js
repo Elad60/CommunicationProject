@@ -39,15 +39,6 @@ const ControlPanel = ({
     } = useSettings();
 
     const position = useRef(new Animated.Value(controlPanelPosition)).current;
-
-    <<
-    << << < HEAD
-    // Control panel horizontal offset based on toolbar visibility
-        ===
-        === =
-        // Adjust horizontal margin if toolbar is not adjusted
-        >>>
-        >>> > EladT
     const controlPanelStyle = {
         marginLeft:
             !toolBarAdjustment && isLandscape ?
@@ -74,14 +65,6 @@ const ControlPanel = ({
         setControlPanelPosition(targetPosition);
     }, [controlBarAdjustment, height, width]);
 
-    <<
-    << << < HEAD
-    // Define control panel buttons
-        ===
-        === =
-        // Define control buttons with behavior
-        >>>
-        >>> > EladT
     const buttons = [
         // Show volume controls only if NOT in Groups screen (when onShowInstructions is not available)
         ...(!onShowInstructions ? [{
@@ -166,8 +149,7 @@ const ControlPanel = ({
                 width = { width }
                 />
             ))
-        } <
-        /Animated.View>
+        } </Animated.View>
     );
 };
 
