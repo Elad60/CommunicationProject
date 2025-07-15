@@ -1,5 +1,5 @@
 import React, {createContext, useContext, useState, useEffect} from 'react';
-import {NativeModules, Alert} from 'react-native';
+import {NativeModules, Alert, DeviceEventEmitter} from 'react-native';
 
 const {AgoraModule} = NativeModules;
 
@@ -20,6 +20,47 @@ export const VoiceProvider = ({children}) => {
   // Race condition prevention
   const [pendingMuteTimeout, setPendingMuteTimeout] = useState(null);
   const [pendingUnmuteTimeout, setPendingUnmuteTimeout] = useState(null);
+
+  // Add event listeners for Agora events
+  useEffect(() => {
+    console.log('🎧 Setting up Agora event listeners...');
+
+    // Listen for when a user joins the channel
+    const onUserJoinedListener = DeviceEventEmitter.addListener('onUserJoined', (data) => {
+      console.log('🔥 USER JOINED VOICE CHANNEL:', data);
+      console.log('🎉 You should now be able to hear each other!');
+      console.log('🎤 Both devices can now communicate!');
+      console.log('📊 User data received:', JSON.stringify(data, null, 2));
+      
+      // Show user-friendly notification
+      Alert.alert(
+        'User Joined',
+        `A user joined the voice channel (UID: ${data.uid}). You can now communicate!`,
+        [{text: 'OK'}]
+      );
+    });
+
+    // Listen for when a user leaves the channel
+    const onUserOfflineListener = DeviceEventEmitter.addListener('onUserOffline', (data) => {
+      console.log('😢 USER LEFT VOICE CHANNEL:', data);
+      console.log('⚠️ Voice communication ended with this user');
+      console.log('📊 User data received:', JSON.stringify(data, null, 2));
+      
+      // Show user-friendly notification
+      Alert.alert(
+        'User Left',
+        `A user left the voice channel (UID: ${data.uid}).`,
+        [{text: 'OK'}]
+      );
+    });
+
+    // Cleanup event listeners
+    return () => {
+      console.log('🧹 Cleaning up Agora event listeners...');
+      onUserJoinedListener?.remove();
+      onUserOfflineListener?.remove();
+    };
+  }, []); // Run once on mount
 
   // Initialize Agora engine when provider mounts
   useEffect(() => {
@@ -87,14 +128,36 @@ export const VoiceProvider = ({children}) => {
         }
       }
 
+      // If already connected to the same channel, just update microphone state
+      if (activeVoiceChannel === channelId) {
+        console.log('🔄 Already connected to channel, updating microphone state...');
+        
+        if (initialState === 'ListenOnly') {
+          AgoraModule.MuteLocalAudio(true);
+          setIsMicrophoneEnabled(false);
+          console.log('🎤 Microphone muted (ListenOnly mode)');
+        } else if (initialState === 'ListenAndTalk') {
+          AgoraModule.MuteLocalAudio(false);
+          setIsMicrophoneEnabled(true);
+          console.log('🎤 Microphone enabled (ListenAndTalk mode)');
+        }
+        
+        return true;
+      }
+
       setVoiceStatus('connecting');
 
       // Leave current channel if connected to another
       if (activeVoiceChannel && activeVoiceChannel !== channelId) {
+        console.log('🔄 Leaving current channel before joining new one...');
         AgoraModule.LeaveChannel();
+        // Add small delay to ensure clean disconnect
+        await new Promise(resolve => setTimeout(resolve, 500));
       }
 
       const agoraChannelName = `radio_channel_${channelId}`;
+      console.log('🎤 Joining Agora channel:', agoraChannelName);
+      
       AgoraModule.JoinChannel(agoraChannelName);
 
       setActiveVoiceChannel(channelId);
@@ -111,6 +174,10 @@ export const VoiceProvider = ({children}) => {
         console.log('🎤 Microphone enabled on join (ListenAndTalk mode)');
       }
 
+      console.log('✅ Successfully joined voice channel:', agoraChannelName);
+      console.log('👂 Ready to hear other users in the channel');
+      console.log('🎤 Ready to transmit voice to other users');
+
       return true;
     } catch (error) {
       console.error('❌ Failed to join voice channel:', error);
@@ -123,8 +190,12 @@ export const VoiceProvider = ({children}) => {
   // Leave current voice channel
   const leaveVoiceChannel = async () => {
     try {
-      if (!activeVoiceChannel) return true;
+      if (!activeVoiceChannel) {
+        console.log('⚠️ No active voice channel to leave');
+        return true;
+      }
 
+      console.log('🔄 Leaving voice channel:', activeVoiceChannel);
       clearPendingAudioTimeouts();
       setVoiceStatus('connecting');
 
@@ -133,6 +204,8 @@ export const VoiceProvider = ({children}) => {
       setActiveVoiceChannel(null);
       setVoiceStatus('disconnected');
       setIsMicrophoneEnabled(false);
+      
+      console.log('✅ Successfully left voice channel');
       return true;
     } catch (error) {
       console.error('❌ Failed to leave voice channel:', error);
