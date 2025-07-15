@@ -62,33 +62,47 @@ const MainScreen = ({navigation}) => {
     console.log('🎧 MainScreen: Setting up Agora event listeners...');
 
     // Listen for when a user joins the channel
-    const onUserJoinedListener = DeviceEventEmitter.addListener('onUserJoined', (data) => {
-      console.log('🔥 MainScreen: USER JOINED VOICE CHANNEL:', data);
-      console.log('🎉 MainScreen: You should now be able to hear each other!');
-      console.log('🎤 MainScreen: Both devices can now communicate!');
-      console.log('📊 MainScreen: User data received:', JSON.stringify(data, null, 2));
-      
-      // Show user-friendly notification
-      Alert.alert(
-        'Voice Connected',
-        `A user joined the voice channel (UID: ${data.uid}). You can now communicate!`,
-        [{text: 'OK'}]
-      );
-    });
+    const onUserJoinedListener = DeviceEventEmitter.addListener(
+      'onUserJoined',
+      data => {
+        console.log('🔥 MainScreen: USER JOINED VOICE CHANNEL:', data);
+        console.log(
+          '🎉 MainScreen: You should now be able to hear each other!',
+        );
+        console.log('🎤 MainScreen: Both devices can now communicate!');
+        console.log(
+          '📊 MainScreen: User data received:',
+          JSON.stringify(data, null, 2),
+        );
+
+        // Show user-friendly notification
+        Alert.alert(
+          'Voice Connected',
+          `A user joined the voice channel (UID: ${data.uid}). You can now communicate!`,
+          [{text: 'OK'}],
+        );
+      },
+    );
 
     // Listen for when a user leaves the channel
-    const onUserOfflineListener = DeviceEventEmitter.addListener('onUserOffline', (data) => {
-      console.log('😢 MainScreen: USER LEFT VOICE CHANNEL:', data);
-      console.log('⚠️ MainScreen: Voice communication ended with this user');
-      console.log('📊 MainScreen: User data received:', JSON.stringify(data, null, 2));
-      
-      // Show user-friendly notification
-      Alert.alert(
-        'User Left',
-        `A user left the voice channel (UID: ${data.uid}).`,
-        [{text: 'OK'}]
-      );
-    });
+    const onUserOfflineListener = DeviceEventEmitter.addListener(
+      'onUserOffline',
+      data => {
+        console.log('😢 MainScreen: USER LEFT VOICE CHANNEL:', data);
+        console.log('⚠️ MainScreen: Voice communication ended with this user');
+        console.log(
+          '📊 MainScreen: User data received:',
+          JSON.stringify(data, null, 2),
+        );
+
+        // Show user-friendly notification
+        Alert.alert(
+          'User Left',
+          `A user left the voice channel (UID: ${data.uid}).`,
+          [{text: 'OK'}],
+        );
+      },
+    );
 
     // Cleanup event listeners
     return () => {
@@ -195,7 +209,7 @@ const MainScreen = ({navigation}) => {
         ? getNextState(current.channelState)
         : getPreviousState(current.channelState);
 
-    // Update UI state
+    // Prepare updatedChannels for optimistic update (used for ListenOnly/ListenAndTalk)
     const updatedChannels =
       newState === 'ListenOnly' || newState === 'ListenAndTalk'
         ? radioChannels.map(c =>
@@ -209,78 +223,131 @@ const MainScreen = ({navigation}) => {
             c.id === channelId ? {...c, channelState: newState} : c,
           );
 
-    setRadioChannels(updatedChannels);
-
     try {
       clearPendingAudioTimeouts();
 
       // Update backend FIRST
       const userId = user?.id;
       if (!userId) throw new Error('User ID not found');
-      await radioChannelsApi.updateChannelState(
-        userId,
-        channelId,
-        newState,
-        pinCode,
-      );
 
-      // Handle voice operations ONLY after backend validation
-      switch (newState) {
-        case 'Idle':
-          console.log('🔄 Setting channel to Idle - leaving voice channel');
-          await leaveVoiceChannel();
-          break;
-        case 'ListenOnly':
-        case 'ListenAndTalk':
-          if (activeVoiceChannel === channelId) {
-            console.log('🔄 Already connected to channel, updating microphone state...');
-            // Channel is already connected, just mute/unmute
-            if (newState === 'ListenOnly') {
-              // Mute microphone
-              AgoraModule.MuteLocalAudio(true);
-              console.log('🎤 Microphone muted (ListenOnly mode)');
-            } else {
-              // Unmute microphone
-              AgoraModule.MuteLocalAudio(false);
-              console.log('🎤 Microphone enabled (ListenAndTalk mode)');
-            }
+      if (newState === 'Idle') {
+        // For Idle, wait for both backend and voice disconnect before updating UI
+        await radioChannelsApi.updateChannelState(
+          userId,
+          channelId,
+          newState,
+          pinCode,
+        );
+        await leaveVoiceChannel();
+        setRadioChannels(updatedChannels);
+      } else if (
+        current.channelState === 'Idle' &&
+        (newState === 'ListenOnly' || newState === 'ListenAndTalk')
+      ) {
+        // For Idle -> ListenOnly/ListenAndTalk, wait for both backend and voice join before updating UI
+        await radioChannelsApi.updateChannelState(
+          userId,
+          channelId,
+          newState,
+          pinCode,
+        );
+        let joinSuccess = false;
+        if (activeVoiceChannel === channelId) {
+          // Channel is already connected, just mute/unmute
+          if (newState === 'ListenOnly') {
+            AgoraModule.MuteLocalAudio(true);
+            joinSuccess = true;
           } else {
-            console.log('🔄 Joining new voice channel:', channelId);
-            // Join the channel and set to muted/unmuted state
-            const joinSuccess = await joinVoiceChannel(channelId, current.name, newState);
-            if (joinSuccess) {
-              console.log('✅ Successfully joined voice channel');
-              const timeout = setTimeout(
-                () => {
-                  setPendingMuteTimeout(null);
-                  setPendingUnmuteTimeout(null);
-                },
-                newState === 'ListenOnly' ? 1500 : 1000,
-              );
-              newState === 'ListenOnly'
-                ? setPendingMuteTimeout(timeout)
-                : setPendingUnmuteTimeout(timeout);
-            } else {
-              console.error('❌ Failed to join voice channel');
-            }
+            AgoraModule.MuteLocalAudio(false);
+            joinSuccess = true;
           }
-          break;
-      }
-
-      // Set other channels to Idle if needed
-      if (newState === 'ListenOnly' || newState === 'ListenAndTalk') {
+        } else {
+          joinSuccess = await joinVoiceChannel(
+            channelId,
+            current.name,
+            newState,
+          );
+          if (joinSuccess) {
+            const timeout = setTimeout(
+              () => {
+                setPendingMuteTimeout(null);
+                setPendingUnmuteTimeout(null);
+              },
+              newState === 'ListenOnly' ? 1500 : 1000,
+            );
+            newState === 'ListenOnly'
+              ? setPendingMuteTimeout(timeout)
+              : setPendingUnmuteTimeout(timeout);
+          }
+        }
+        if (joinSuccess) {
+          setRadioChannels(updatedChannels);
+        } else {
+          throw new Error('Failed to join voice channel');
+        }
+        // Set other channels to Idle if needed
         const channelsToSetIdle = radioChannels.filter(
           c => c.id !== channelId && c.channelState !== 'Idle',
         );
-
         await Promise.all(
           channelsToSetIdle.map(channel =>
             radioChannelsApi.updateChannelState(userId, channel.id, 'Idle'),
           ),
         );
+      } else {
+        // Optimistic UI update for other transitions
+        setRadioChannels(updatedChannels);
+        await radioChannelsApi.updateChannelState(
+          userId,
+          channelId,
+          newState,
+          pinCode,
+        );
+        // Handle voice operations ONLY after backend validation
+        switch (newState) {
+          case 'ListenOnly':
+          case 'ListenAndTalk':
+            if (activeVoiceChannel === channelId) {
+              if (newState === 'ListenOnly') {
+                AgoraModule.MuteLocalAudio(true);
+              } else {
+                AgoraModule.MuteLocalAudio(false);
+              }
+            } else {
+              const joinSuccess = await joinVoiceChannel(
+                channelId,
+                current.name,
+                newState,
+              );
+              if (joinSuccess) {
+                const timeout = setTimeout(
+                  () => {
+                    setPendingMuteTimeout(null);
+                    setPendingUnmuteTimeout(null);
+                  },
+                  newState === 'ListenOnly' ? 1500 : 1000,
+                );
+                newState === 'ListenOnly'
+                  ? setPendingMuteTimeout(timeout)
+                  : setPendingUnmuteTimeout(timeout);
+              }
+            }
+            break;
+        }
+        // Set other channels to Idle if needed
+        if (newState === 'ListenOnly' || newState === 'ListenAndTalk') {
+          const channelsToSetIdle = radioChannels.filter(
+            c => c.id !== channelId && c.channelState !== 'Idle',
+          );
+          await Promise.all(
+            channelsToSetIdle.map(channel =>
+              radioChannelsApi.updateChannelState(userId, channel.id, 'Idle'),
+            ),
+          );
+        }
       }
     } catch (error) {
-      console.error('❌ Error updating channel state:', error);
+      // Rollback UI state and show error
       setRadioChannels(radioChannels);
       Alert.alert(
         'Connection Error',
