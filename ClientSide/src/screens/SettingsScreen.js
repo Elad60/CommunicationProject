@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, {useState} from 'react';
 import {
   View,
   Text,
@@ -8,11 +8,11 @@ import {
   ScrollView,
   Linking,
 } from 'react-native';
-import CustomSlider from '../components/CustomSlider'; 
+import CustomSlider from '../components/CustomSlider';
 import AppLayout from '../components/AppLayout';
-import { useSettings } from '../context/SettingsContext';
+import {useSettings} from '../context/SettingsContext';
 
-const SettingsScreen = ({ navigation }) => {
+const SettingsScreen = ({navigation}) => {
   // Destructure settings values and setters from the context
   const {
     showFrequency,
@@ -30,7 +30,7 @@ const SettingsScreen = ({ navigation }) => {
   } = useSettings();
 
   // Toggle setting value for switches
-  const toggleSetting = (key) => {
+  const toggleSetting = key => {
     setSettings({
       ...settings,
       [key]: !settings[key],
@@ -44,11 +44,11 @@ const SettingsScreen = ({ navigation }) => {
   // Render setting item with label, switch, and handler for toggling
   const renderSettingItem = (label, key, value, onToggle) => (
     <View style={styles.settingItem}>
-      <Text style={[styles.settingLabel, { color: textColor }]}>{label}</Text>
+      <Text style={[styles.settingLabel, {color: textColor}]}>{label}</Text>
       <Switch
         trackColor={{
-            false: darkMode ? '#444' : '#767577', 
-            true: buttonColor, 
+          false: darkMode ? '#444' : '#767577',
+          true: buttonColor,
         }}
         thumbColor={darkMode ? '#fff' : '#000'}
         onValueChange={onToggle}
@@ -59,21 +59,44 @@ const SettingsScreen = ({ navigation }) => {
 
   return (
     <AppLayout navigation={navigation} title="Settings">
-      <View style={{ flex: 1 }}>
+      <View style={{flex: 1}}>
         <ScrollView style={styles.container}>
           {/* Display Settings Section */}
           <View style={styles.section}>
-            <Text style={[styles.sectionTitle, { color: textColor }]}>Display Settings</Text>
-            {renderSettingItem('Show Frequency', 'showFrequency', showFrequency, () => setShowFrequency(!showFrequency))}
-            {renderSettingItem('Show Status', 'showStatus', showStatus, () => setShowStatus(!showStatus))}
+            <Text style={[styles.sectionTitle, {color: textColor}]}>
+              Display Settings
+            </Text>
+            {renderSettingItem(
+              'Show Frequency',
+              'showFrequency',
+              showFrequency,
+              () => setShowFrequency(!showFrequency),
+            )}
+            {renderSettingItem('Show Status', 'showStatus', showStatus, () =>
+              setShowStatus(!showStatus),
+            )}
           </View>
 
           {/* Radio Settings Section */}
           <View style={styles.section}>
-            <Text style={[styles.sectionTitle, { color: textColor }]}>Radio Settings</Text>
-            {renderSettingItem('Nav Bar Adjustment ↔️', 'ToolBarAdjustment', toolBarAdjustment, () => setToolBarAdjustment(!toolBarAdjustment))}
-            {renderSettingItem('Control Bar Adjustment ↕️', 'controlBarAdjustment', controlBarAdjustment, () => setControlBarAdjustment(!controlBarAdjustment))}
-            {renderSettingItem('Dark Mode 🌗', 'darkMode', darkMode, () => setDarkMode(!darkMode))}
+            <Text style={[styles.sectionTitle, {color: textColor}]}>
+              Radio Settings
+            </Text>
+            {renderSettingItem(
+              'Nav Bar Adjustment ↔️',
+              'ToolBarAdjustment',
+              toolBarAdjustment,
+              () => setToolBarAdjustment(!toolBarAdjustment),
+            )}
+            {renderSettingItem(
+              'Control Bar Adjustment ↕️',
+              'controlBarAdjustment',
+              controlBarAdjustment,
+              () => setControlBarAdjustment(!controlBarAdjustment),
+            )}
+            {renderSettingItem('Dark Mode 🌗', 'darkMode', darkMode, () =>
+              setDarkMode(!darkMode),
+            )}
             <CustomSlider
               value={brightness}
               onValueChange={setBrightness}
@@ -84,34 +107,44 @@ const SettingsScreen = ({ navigation }) => {
 
           {/* System Section */}
           <View style={styles.section}>
-            <Text style={[styles.sectionTitle, { color: textColor }]}>System</Text>
+            <Text style={[styles.sectionTitle, {color: textColor}]}>
+              System
+            </Text>
             {/* Button to reset all settings */}
             <TouchableOpacity
-              style={[styles.button, { backgroundColor: buttonColor }]}
+              style={[styles.button, {backgroundColor: buttonColor}]}
               onPress={() => {
                 setToolBarAdjustment(true);
                 setControlBarAdjustment(true);
                 setDarkMode(true);
                 setBrightness(1);
-              }}
-            >
-              <Text style={[styles.buttonText, { color: textColor }]}>Reset All Settings</Text>
+              }}>
+              <Text style={[styles.buttonText, {color: textColor}]}>
+                Reset All Settings
+              </Text>
             </TouchableOpacity>
 
             {/* Button to check for updates */}
             <TouchableOpacity
-              style={[styles.button, { backgroundColor: buttonColor }]}
-              onPress={() => Linking.openURL('https://github.com/Elad60/CommunicationProject')}
-            >
-              <Text style={[styles.buttonText, { color: textColor }]}>Check for Updates</Text>
+              style={[styles.button, {backgroundColor: buttonColor}]}
+              onPress={() =>
+                Linking.openURL(
+                  'https://github.com/Elad60/CommunicationProject',
+                )
+              }>
+              <Text style={[styles.buttonText, {color: textColor}]}>
+                Check for Updates
+              </Text>
             </TouchableOpacity>
           </View>
 
           {/* Version Info Section */}
           <View style={styles.versionInfo}>
-            <Text style={[styles.versionText, { color: textColor }]}>Communication System v1.0.0</Text>
+            <Text style={[styles.versionText, {color: textColor}]}>
+              Communication System v1.0.0
+            </Text>
           </View>
-        </ScrollView>    
+        </ScrollView>
       </View>
     </AppLayout>
   );
