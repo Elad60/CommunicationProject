@@ -1,35 +1,36 @@
-import {useState, useEffect, useRef} from 'react';
+import {useState, useEffect} from 'react';
 import {Dimensions} from 'react-native';
 
-// Custom hook to get debounced screen dimensions (on orientation/size change)
+// Custom hook that returns screen dimensions with optional debounce
 export const useDebouncedDimensions = (delay = 0) => {
-  // Current dimensions of the screen
+  // Store current screen dimensions
   const [dimensions, setDimensions] = useState(Dimensions.get('window'));
-  // Store timeout ID to clear if needed - using useRef to avoid infinite loop
-  const timeoutIdRef = useRef(null);
+
+  // Store timeout ID to manage debouncing
+  const [timeoutId, setTimeoutId] = useState(null);
 
   useEffect(() => {
-    // Called when dimensions change
+    // Handler that runs on dimension change, with debounce
     const handleResize = () => {
-      if (timeoutIdRef.current) clearTimeout(timeoutIdRef.current); // Clear previous timeout
+      if (timeoutId) {clearTimeout(timeoutId);} // Clear existing timeout if any
 
       // Set a new timeout to update dimensions after the delay
       const newTimeout = setTimeout(() => {
-        setDimensions(Dimensions.get('window'));
+        setDimensions(Dimensions.get('window')); // Update dimensions after delay
       }, delay);
 
-      timeoutIdRef.current = newTimeout;
+      setTimeoutId(newTimeout); // Save new timeout ID
     };
 
-    // Listen to dimension changes (e.g. screen rotation)
+    // Subscribe to dimension change events
     const subscription = Dimensions.addEventListener('change', handleResize);
 
-    // Clean up listener and timeout on unmount
+    // Clean up on unmount or dependency change
     return () => {
-      if (timeoutIdRef.current) clearTimeout(timeoutIdRef.current);
-      subscription?.remove?.();
+      if (timeoutId) {clearTimeout(timeoutId);}
+      subscription?.remove?.(); // Remove listener if exists
     };
-  }, [delay]); // ✅ FIXED: Removed timeoutId from dependencies
+  }, [timeoutId, delay]);
 
   // Return the debounced dimensions
   return dimensions;
