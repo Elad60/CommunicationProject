@@ -115,9 +115,10 @@ const ControlPanel = ({
     ];
 
     // Render animated control panel with buttons
-    return ( <
-        Animated.View style = {
-            [{
+    return (
+        <Animated.View
+            style={[
+                {
                     position: 'absolute',
                     width: CONTROL_PANEL_WIDTH,
                     height: CONTROL_PANEL_HEIGHT,
@@ -135,21 +136,21 @@ const ControlPanel = ({
                     transform: [{ translateY: position }],
                 },
                 controlPanelStyle,
-            ]
-        } > {
-            buttons.map((btn, index) => ( <
-                ControlButton key = { btn.title }
-                title = { btn.title }
-                icon = { btn.icon }
-                onPress = { btn.onPress }
-                darkMode = { darkMode }
-                textColor = { buttonTextColor }
-                isSelected = { selectedButton === btn.title }
-                height = { height }
-                width = { width }
+            ]}>
+            {buttons.map((btn, index) => (
+                <ControlButton
+                    key={btn.title}
+                    title={btn.title}
+                    icon={btn.icon}
+                    onPress={btn.onPress}
+                    darkMode={darkMode}
+                    textColor={buttonTextColor}
+                    isSelected={selectedButton === btn.title}
+                    height={height}
+                    width={width}
                 />
-            ))
-        } </Animated.View>
+            ))}
+        </Animated.View>
     );
 };
 
