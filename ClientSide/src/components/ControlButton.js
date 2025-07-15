@@ -25,48 +25,50 @@ const ControlButton = ({ title, icon, value, onPress, darkMode, isSelected, heig
     const borderColor = isSelected ? '#3b82f6' : darkMode ? '#555' : '#ccc';
     const textColor = darkMode ? '#fff' : '#000';
 
-    return ( <
-        Pressable onPress = { onPress }
-        onHoverIn = { handleHoverIn }
-        onHoverOut = { handleHoverOut }
-        style = {
-            { marginHorizontal: 8 } } >
+    return (
+        <Pressable 
+            onPress={onPress}
+            onHoverIn={handleHoverIn}
+            onHoverOut={handleHoverOut}
+            style={{ marginHorizontal: 8 }}
+        >
+            {/* Animated button container */}
+            <Animated.View 
+                style={[
+                    styles.button,
+                    {
+                        width: width * 0.10,
+                        height: height * 0.1,
+                        backgroundColor,
+                        borderColor,
+                        borderWidth: isSelected ? 2 : 1,
+                        transform: [{ scale }],
+                        shadowColor: isSelected ? '#3b82f6' : '#000',
+                        shadowOpacity: isSelected ? 0.3 : 0.1,
+                        elevation: isSelected ? 6 : 3,
+                    },
+                ]}
+            >
+                {/* Icon */}
+                <Image 
+                    source={icon}
+                    style={styles.icon}
+                    resizeMode="contain" 
+                />
 
-        { /* Animated button container */ } <
-        Animated.View style = {
-            [
-                styles.button,
-                {
-                    width: width * 0.10,
-                    height: height * 0.1,
-                    backgroundColor,
-                    borderColor,
-                    borderWidth: isSelected ? 2 : 1,
-                    transform: [{ scale }],
-                    shadowColor: isSelected ? '#3b82f6' : '#000',
-                    shadowOpacity: isSelected ? 0.3 : 0.1,
-                    elevation: isSelected ? 6 : 3,
-                },
-            ]
-        } >
+                {/* Optional value (e.g., volume %) */}
+                {value !== undefined && (
+                    <Text style={[styles.value, { color: textColor }]}>
+                        {value}%
+                    </Text>
+                )}
 
-        { /* Icon */ } <
-        Image source = { icon }
-        style = { styles.icon }
-        resizeMode = "contain" / >
-
-        { /* Optional value (e.g., volume %) */ } {
-            value !== undefined && ( <
-                Text style = {
-                    [styles.value, { color: textColor }] } > { value } % < /Text>
-            )
-        }
-
-        { /* Title text */ } <
-        Text style = {
-            [styles.title, { color: textColor }] } > { title } < /Text> <
-        /Animated.View> <
-        /Pressable>
+                {/* Title text */}
+                <Text style={[styles.title, { color: textColor }]}>
+                    {title}
+                </Text>
+            </Animated.View>
+        </Pressable>
     );
 };
 
