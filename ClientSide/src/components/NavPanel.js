@@ -88,7 +88,7 @@ const NavPanel = ({handleNavigation, darkMode, height, width}) => {
       screen: 'Main',
     },
     {
-      title: 'Team',
+      title: 'Groups',
       icon: require('../../assets/logos/groups.png'),
       screen: 'Groups',
     },

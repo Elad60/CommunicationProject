@@ -9,12 +9,10 @@ import {
   Alert,
   Animated,
   NativeModules,
-  ScrollView,
 } from 'react-native';
 import {useAuth} from '../context/AuthContext';
 import {useSettings} from '../context/SettingsContext';
 import {privateCallApi} from '../utils/apiService';
-import {useDebouncedDimensions} from '../utils/useDebouncedDimensions';
 
 const {AgoraModule} = NativeModules; // 🎯 NEW: Import AgoraModule
 
@@ -23,25 +21,14 @@ const WaitingForCallScreen = ({route, navigation}) => {
   const {user} = useAuth();
   const {darkMode} = useSettings();
 
-  // 🎯 NEW: Add responsive dimensions
-  const {height, width} = useDebouncedDimensions(300);
-  const isLandscape = width > height;
-
   const [waitingTime, setWaitingTime] = useState(0);
   const [pulseAnim] = useState(new Animated.Value(1));
   const [status, setStatus] = useState('Sending invitation...');
   const [isPolling, setIsPolling] = useState(false);
-  const didShowRejectedAlertRef = useRef(false); // Prevent duplicate alert (sync)
   
   // Refs for interval management
   const waitingTimerRef = useRef(null);
   const pollIntervalRef = useRef(null);
-
-  // 🎯 NEW: Calculate responsive sizes
-  const avatarSize = Math.min(width * 0.2, 100); // Responsive avatar size
-  const buttonSize = Math.min(width * 0.15, 80); // Responsive button size
-  const fontSize = Math.min(width * 0.035, 14); // Responsive font size
-  const headerFontSize = Math.min(width * 0.05, 20); // Responsive header font size
 
   // Timer for waiting time (max 60 seconds)
   useEffect(() => {
@@ -214,32 +201,27 @@ const WaitingForCallScreen = ({route, navigation}) => {
             const agoraChannelName = invitationId;
             console.log('🎤 Connecting to Agora channel:', agoraChannelName);
             
-            // 🎯 NEW: Add delay to ensure channel is created by the other user
-            console.log('⏰ Waiting 2 seconds for channel to be created by the other user...');
-            
-            setTimeout(() => {
-              try {
-                // Same initialization as MainScreen
-                if (!AgoraModule) {
-                  throw new Error('AgoraModule not available');
-                }
-                
-                // Don't re-initialize Agora - it's already initialized by VoiceContext
-                // AgoraModule.InitializeAgoraEngine('e5631d55e8a24b08b067bb73f8797fe3');
-                
-                // Join the Agora channel directly
-                AgoraModule.JoinChannel(agoraChannelName);
-                
-                console.log('✅ Successfully connected to Agora channel:', agoraChannelName);
-              } catch (agoraError) {
-                console.error('❌ Failed to connect to Agora:', agoraError);
-                Alert.alert(
-                  'Voice Connection Failed',
-                  'Call accepted but voice connection failed. You can still communicate via text.',
-                  [{text: 'OK'}]
-                );
+            try {
+              // Same initialization as MainScreen
+              if (!AgoraModule) {
+                throw new Error('AgoraModule not available');
               }
-            }, 2000); // 🎯 2 second delay
+              
+              // Don't re-initialize Agora - it's already initialized by VoiceContext
+              // AgoraModule.InitializeAgoraEngine('e5631d55e8a24b08b067bb73f8797fe3');
+              
+              // Join the Agora channel directly
+              AgoraModule.JoinChannel(agoraChannelName);
+              
+              console.log('✅ Successfully connected to Agora channel:', agoraChannelName);
+            } catch (agoraError) {
+              console.error('❌ Failed to connect to Agora:', agoraError);
+              Alert.alert(
+                'Voice Connection Failed',
+                'Call accepted but voice connection failed. You can still communicate via text.',
+                [{text: 'OK'}]
+              );
+            }
             
             // Navigate to private call screen
             navigation.reset({
@@ -265,27 +247,20 @@ const WaitingForCallScreen = ({route, navigation}) => {
             return;
           
         } else if (currentStatus === 'rejected') {
-          if (!didShowRejectedAlertRef.current) {
-            didShowRejectedAlertRef.current = true;
-            console.log('❌ Call rejected');
-            stopPollingForResponse();
-            setStatus('Call Rejected');
-            Alert.alert(
-              'Call Rejected',
-              `${otherUser.username} declined your call.`,
-              [{
-                text: 'OK',
-                onPress: () => {
-                  setTimeout(() => {
-                    // GlobalCallListener will resume polling automatically
-                    console.log('📞 Call rejected - returning to Groups (GlobalCallListener will resume polling)');
-                    navigation.reset({index:0, routes:[{name:'Groups'}]});
-                  }, 150);
-                }
-              }]
-            );
-          }
-          return;
+          console.log('❌ Call rejected');
+          stopPollingForResponse();
+          setStatus('Call Rejected');
+          
+          Alert.alert(
+            'Call Rejected',
+            `${otherUser.username} declined your call.`,
+            [{text: 'OK', onPress: () => {
+              // GlobalCallListener will resume polling automatically
+              console.log('📞 Call rejected - returning to Groups (GlobalCallListener will resume polling)');
+              navigation.reset({index:0, routes:[{name:'Groups'}]});
+            }}]
+          );
+          
         } else if (currentStatus === 'cancelled') {
           console.log('🚫 Call was cancelled');
           stopPollingForResponse();
@@ -400,110 +375,101 @@ const WaitingForCallScreen = ({route, navigation}) => {
 
   return (
     <SafeAreaView style={[styles.container, {backgroundColor}]}>
-      <ScrollView 
-        style={styles.scrollView}
-        contentContainerStyle={styles.scrollContent}
-        showsVerticalScrollIndicator={false}
-      >
-        {/* Header */}
-        <View style={styles.header}>
-          <Text style={[styles.headerTitle, {color: textColor, fontSize: headerFontSize}]}>Calling...</Text>
-          <Text style={[styles.waitingTime, {color: waitingTime >= 50 ? '#ff4444' : textColor, fontSize: fontSize}]}>
-            {formatWaitingTime(waitingTime)} / 1:00
-          </Text>
-        </View>
+      {/* Header */}
+      <View style={styles.header}>
+        <Text style={[styles.headerTitle, {color: textColor}]}>Calling...</Text>
+        <Text style={[styles.waitingTime, {color: waitingTime >= 50 ? '#ff4444' : textColor}]}>
+          {formatWaitingTime(waitingTime)} / 1:00
+        </Text>
+      </View>
 
-        {/* User Info */}
-        <View style={[styles.userInfo, {backgroundColor: cardColor}]}>
-          <Animated.View 
-            style={[
-              styles.userAvatar,
-              {
-                transform: [{scale: pulseAnim}],
-                width: avatarSize,
-                height: avatarSize,
-                borderRadius: avatarSize / 2,
-              },
-            ]}
-          >
-            <Text style={[styles.avatarText, {color: '#fff', fontSize: avatarSize * 0.4}]}>
-              {otherUser.username.charAt(0).toUpperCase()}
-            </Text>
-          </Animated.View>
-          
-          <Text style={[styles.username, {color: textColor, fontSize: fontSize * 1.3}]}>
-            {otherUser.username}
+      {/* User Info */}
+      <View style={[styles.userInfo, {backgroundColor: cardColor}]}>
+        <Animated.View 
+          style={[
+            styles.userAvatar,
+            {
+              transform: [{scale: pulseAnim}],
+            },
+          ]}
+        >
+          <Text style={[styles.avatarText, {color: '#fff'}]}>
+            {otherUser.username.charAt(0).toUpperCase()}
           </Text>
-          <Text style={[styles.userEmail, {color: darkMode ? '#ccc' : '#666', fontSize: fontSize}]}>
-            {otherUser.email}
-          </Text>
-          <Text style={[styles.status, {color: darkMode ? '#91aad4' : '#004080', fontSize: fontSize}]}>
-            {status}
-          </Text>
-        </View>
+        </Animated.View>
+        
+        <Text style={[styles.username, {color: textColor}]}>
+          {otherUser.username}
+        </Text>
+        <Text style={[styles.userEmail, {color: darkMode ? '#ccc' : '#666'}]}>
+          {otherUser.email}
+        </Text>
+        <Text style={[styles.status, {color: darkMode ? '#91aad4' : '#004080'}]}>
+          {status}
+        </Text>
+      </View>
 
-        {/* Calling Animation */}
-        <View style={styles.callingContainer}>
-          <View style={styles.callingRings}>
-            <Animated.View style={[styles.ring, styles.ring1, {transform: [{scale: pulseAnim}]}]} />
-            <Animated.View style={[styles.ring, styles.ring2, {transform: [{scale: pulseAnim}]}]} />
-            <Animated.View style={[styles.ring, styles.ring3, {transform: [{scale: pulseAnim}]}]} />
-          </View>
-          <Text style={[styles.callingText, {color: textColor, fontSize: fontSize}]}>
-            📞 Waiting for {otherUser.username} to answer...
-          </Text>
+      {/* Calling Animation */}
+      <View style={styles.callingContainer}>
+        <View style={styles.callingRings}>
+          <Animated.View style={[styles.ring, styles.ring1, {transform: [{scale: pulseAnim}]}]} />
+          <Animated.View style={[styles.ring, styles.ring2, {transform: [{scale: pulseAnim}]}]} />
+          <Animated.View style={[styles.ring, styles.ring3, {transform: [{scale: pulseAnim}]}]} />
         </View>
+        <Text style={[styles.callingText, {color: textColor}]}>
+          📞 Waiting for {otherUser.username} to answer...
+        </Text>
+      </View>
 
-        {/* Action Buttons */}
-        <View style={styles.actionButtonsContainer}>
-          <TouchableOpacity
-            style={[styles.actionButton, {backgroundColor: '#ff4444', width: buttonSize, height: buttonSize}]}
-            onPress={handleCancelCall}
-          >
-            <Text style={[styles.actionButtonText, {fontSize: fontSize}]}>🚫 Cancel Call</Text>
-          </TouchableOpacity>
-          
-          <TouchableOpacity
-            style={[styles.actionButton, {backgroundColor: '#2196F3', width: buttonSize, height: buttonSize}]}
-            onPress={() => {
-              Alert.alert(
-                'Call Information',
-                `📞 Calling: ${otherUser.username}\n` +
-                `📧 Email: ${otherUser.email}\n` +
-                `🆔 Invitation ID: ${invitationId}\n` +
-                `📡 Channel: ${channelName}\n` +
-                `⏰ Waiting: ${formatWaitingTime(waitingTime)}\n` +
-                `🔄 Status: ${status}`,
-                [{text: 'OK'}]
-              );
-            }}
-          >
-            <Text style={[styles.actionButtonText, {fontSize: fontSize}]}>ℹ️ Call Info</Text>
-          </TouchableOpacity>
-        </View>
+      {/* Action Buttons */}
+      <View style={styles.actionButtonsContainer}>
+        <TouchableOpacity
+          style={[styles.actionButton, {backgroundColor: '#ff4444'}]}
+          onPress={handleCancelCall}
+        >
+          <Text style={styles.actionButtonText}>🚫 Cancel Call</Text>
+        </TouchableOpacity>
+        
+        <TouchableOpacity
+          style={[styles.actionButton, {backgroundColor: '#2196F3'}]}
+          onPress={() => {
+            Alert.alert(
+              'Call Information',
+              `📞 Calling: ${otherUser.username}\n` +
+              `📧 Email: ${otherUser.email}\n` +
+              `🆔 Invitation ID: ${invitationId}\n` +
+              `📡 Channel: ${channelName}\n` +
+              `⏰ Waiting: ${formatWaitingTime(waitingTime)}\n` +
+              `🔄 Status: ${status}`,
+              [{text: 'OK'}]
+            );
+          }}
+        >
+          <Text style={styles.actionButtonText}>ℹ️ Call Info</Text>
+        </TouchableOpacity>
+      </View>
 
-        {/* Instructions */}
-        <View style={styles.instructionsContainer}>
-          <Text style={[styles.instructionsTitle, {color: textColor, fontSize: fontSize}]}>
-            Call Status:
-          </Text>
-          <Text style={[styles.instructionText, {color: darkMode ? '#ccc' : '#666', fontSize: fontSize}]}>
-            📧 Invitation sent to {otherUser.username}
-          </Text>
-          <Text style={[styles.instructionText, {color: darkMode ? '#ccc' : '#666', fontSize: fontSize}]}>
-            ⏰ They have 60 seconds to respond
-          </Text>
-          <Text style={[styles.instructionText, {color: darkMode ? '#ccc' : '#666', fontSize: fontSize}]}>
-            📱 Channel: {channelName}
-          </Text>
-          <Text style={[styles.instructionText, {color: darkMode ? '#ccc' : '#666', fontSize: fontSize}]}>
-            🔄 Checking for response every 2 seconds
-          </Text>
-          <Text style={[styles.instructionText, {color: darkMode ? '#ccc' : '#666', fontSize: fontSize}]}>
-            🚫 You can cancel the call at any time
-          </Text>
-        </View>
-      </ScrollView>
+      {/* Instructions */}
+      <View style={styles.instructionsContainer}>
+        <Text style={[styles.instructionsTitle, {color: textColor}]}>
+          Call Status:
+        </Text>
+        <Text style={[styles.instructionText, {color: darkMode ? '#ccc' : '#666'}]}>
+          📧 Invitation sent to {otherUser.username}
+        </Text>
+        <Text style={[styles.instructionText, {color: darkMode ? '#ccc' : '#666'}]}>
+          ⏰ They have 60 seconds to respond
+        </Text>
+        <Text style={[styles.instructionText, {color: darkMode ? '#ccc' : '#666'}]}>
+          📱 Channel: {channelName}
+        </Text>
+        <Text style={[styles.instructionText, {color: darkMode ? '#ccc' : '#666'}]}>
+          🔄 Checking for response every 2 seconds
+        </Text>
+        <Text style={[styles.instructionText, {color: darkMode ? '#ccc' : '#666'}]}>
+          🚫 You can cancel the call at any time
+        </Text>
+      </View>
     </SafeAreaView>
   );
 };
@@ -513,23 +479,17 @@ const styles = StyleSheet.create({
     flex: 1,
     padding: 20,
   },
-  scrollView: {
-    flex: 1,
-  },
-  scrollContent: {
-    flexGrow: 1,
-    justifyContent: 'center',
-    paddingVertical: 20,
-  },
   header: {
     alignItems: 'center',
     marginBottom: 30,
   },
   headerTitle: {
+    fontSize: 24,
     fontWeight: 'bold',
     marginBottom: 10,
   },
   waitingTime: {
+    fontSize: 18,
     fontWeight: '600',
     color: '#4CAF50',
   },
@@ -545,22 +505,29 @@ const styles = StyleSheet.create({
     shadowRadius: 4,
   },
   userAvatar: {
+    width: 100,
+    height: 100,
+    borderRadius: 50,
     backgroundColor: '#4CAF50',
     justifyContent: 'center',
     alignItems: 'center',
     marginBottom: 15,
   },
   avatarText: {
+    fontSize: 40,
     fontWeight: 'bold',
   },
   username: {
+    fontSize: 24,
     fontWeight: 'bold',
     marginBottom: 5,
   },
   userEmail: {
+    fontSize: 16,
     marginBottom: 10,
   },
   status: {
+    fontSize: 16,
     fontWeight: '600',
     fontStyle: 'italic',
   },
@@ -595,19 +562,17 @@ const styles = StyleSheet.create({
     height: 140,
   },
   callingText: {
+    fontSize: 16,
     textAlign: 'center',
     fontStyle: 'italic',
   },
   actionButtonsContainer: {
     flexDirection: 'row',
-    justifyContent: 'center',
-    alignItems: 'center',
+    justifyContent: 'space-around',
     marginBottom: 30,
     paddingHorizontal: 20,
-    gap: 24, // מרווח בין הכפתורים (אם נתמך)
   },
   actionButton: {
-    flex: 1,
     padding: 15,
     borderRadius: 25,
     alignItems: 'center',
@@ -616,12 +581,11 @@ const styles = StyleSheet.create({
     shadowOffset: {width: 0, height: 2},
     shadowOpacity: 0.2,
     shadowRadius: 4,
-    minWidth: 140,
-    maxWidth: 220,
-    marginHorizontal: 12,
+    minWidth: 120,
   },
   actionButtonText: {
     color: '#fff',
+    fontSize: 16,
     fontWeight: 'bold',
   },
   instructionsContainer: {
@@ -631,10 +595,12 @@ const styles = StyleSheet.create({
     backgroundColor: 'rgba(100, 100, 100, 0.1)',
   },
   instructionsTitle: {
+    fontSize: 16,
     fontWeight: 'bold',
     marginBottom: 10,
   },
   instructionText: {
+    fontSize: 14,
     marginBottom: 5,
   },
 });
