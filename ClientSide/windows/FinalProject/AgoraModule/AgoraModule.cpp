@@ -28,6 +28,13 @@ namespace winrt::FinalProject::implementation
                          std::string("\n  🎤 Ready to publish microphone!") +
                          std::string("\n  👂 Ready to receive remote audio!");
         OutputDebugStringA(("AgoraEventHandler::onJoinChannelSuccess - " + msg + "\n").c_str());
+        
+        // Log additional connection info
+        OutputDebugStringA(("🔗 Connection established to channel: " + std::string(channel) + "\n").c_str());
+        OutputDebugStringA(("👤 My user ID in this channel: " + std::to_string(uid) + "\n").c_str());
+        OutputDebugStringA("🎤 Microphone is ready to transmit\n");
+        OutputDebugStringA("👂 Ready to receive audio from other users\n");
+        OutputDebugStringA("⏳ Waiting for other users to join...\n");
     }
 
     void AgoraEventHandler::onLeaveChannel(const RtcStats& stats)
@@ -45,8 +52,10 @@ namespace winrt::FinalProject::implementation
                          std::string("\n  🎉 You should now be able to hear each other!") +
                          std::string("\n  🎤 Both devices can now communicate!");
         OutputDebugStringA(("AgoraEventHandler::onUserJoined - " + msg + "\n").c_str());
+        
         // Bridge to JS
         if (m_reactContext) {
+            OutputDebugStringA("📡 Sending onUserJoined event to React Native...\n");
             m_reactContext.EmitJSEvent(
                 L"RCTDeviceEventEmitter",
                 L"onUserJoined",
@@ -56,6 +65,9 @@ namespace winrt::FinalProject::implementation
                     }
                 }
             );
+            OutputDebugStringA("✅ onUserJoined event sent to React Native successfully\n");
+        } else {
+            OutputDebugStringA("❌ ReactContext is null - cannot send onUserJoined event to JS\n");
         }
     }
 
@@ -68,8 +80,10 @@ namespace winrt::FinalProject::implementation
                          std::string("\n  📝 Reason: ") + reasonStr +
                          std::string("\n  ⚠️ Voice communication ended with this user");
         OutputDebugStringA(("AgoraEventHandler::onUserOffline - " + msg + "\n").c_str());
+        
         // Bridge to JS
         if (m_reactContext) {
+            OutputDebugStringA("📡 Sending onUserOffline event to React Native...\n");
             m_reactContext.EmitJSEvent(
                 L"RCTDeviceEventEmitter",
                 L"onUserOffline",
@@ -79,6 +93,9 @@ namespace winrt::FinalProject::implementation
                     }
                 }
             );
+            OutputDebugStringA("✅ onUserOffline event sent to React Native successfully\n");
+        } else {
+            OutputDebugStringA("❌ ReactContext is null - cannot send onUserOffline event to JS\n");
         }
     }
 

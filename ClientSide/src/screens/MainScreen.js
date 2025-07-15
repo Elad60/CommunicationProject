@@ -12,6 +12,8 @@ import {
   Modal,
   TextInput,
   Button,
+  DeviceEventEmitter,
+  NativeModules,
 } from 'react-native';
 import RadioChannel from '../components/RadioChannel';
 import AppLayout from '../components/AppLayout';
@@ -20,6 +22,8 @@ import {useAuth} from '../context/AuthContext';
 import {radioChannelsApi} from '../utils/apiService';
 import {useSettings} from '../context/SettingsContext';
 import {useVoice} from '../context/VoiceContext';
+
+const {AgoraModule} = NativeModules;
 
 const MainScreen = ({navigation}) => {
   console.log('MainScreen rendered');
@@ -52,6 +56,47 @@ const MainScreen = ({navigation}) => {
 
   // Hover state for Reset Voice button
   const [resetHovering, setResetHovering] = useState(false);
+
+  // Add event listeners for Agora events
+  useEffect(() => {
+    console.log('🎧 MainScreen: Setting up Agora event listeners...');
+
+    // Listen for when a user joins the channel
+    const onUserJoinedListener = DeviceEventEmitter.addListener('onUserJoined', (data) => {
+      console.log('🔥 MainScreen: USER JOINED VOICE CHANNEL:', data);
+      console.log('🎉 MainScreen: You should now be able to hear each other!');
+      console.log('🎤 MainScreen: Both devices can now communicate!');
+      console.log('📊 MainScreen: User data received:', JSON.stringify(data, null, 2));
+      
+      // Show user-friendly notification
+      Alert.alert(
+        'Voice Connected',
+        `A user joined the voice channel (UID: ${data.uid}). You can now communicate!`,
+        [{text: 'OK'}]
+      );
+    });
+
+    // Listen for when a user leaves the channel
+    const onUserOfflineListener = DeviceEventEmitter.addListener('onUserOffline', (data) => {
+      console.log('😢 MainScreen: USER LEFT VOICE CHANNEL:', data);
+      console.log('⚠️ MainScreen: Voice communication ended with this user');
+      console.log('📊 MainScreen: User data received:', JSON.stringify(data, null, 2));
+      
+      // Show user-friendly notification
+      Alert.alert(
+        'User Left',
+        `A user left the voice channel (UID: ${data.uid}).`,
+        [{text: 'OK'}]
+      );
+    });
+
+    // Cleanup event listeners
+    return () => {
+      console.log('🧹 MainScreen: Cleaning up Agora event listeners...');
+      onUserJoinedListener?.remove();
+      onUserOfflineListener?.remove();
+    };
+  }, []); // Run once on mount
 
   // Colors for Reset Voice button (same as LogoutButton)
   const resetColors = {
@@ -182,16 +227,29 @@ const MainScreen = ({navigation}) => {
       // Handle voice operations ONLY after backend validation
       switch (newState) {
         case 'Idle':
+          console.log('🔄 Setting channel to Idle - leaving voice channel');
           await leaveVoiceChannel();
           break;
         case 'ListenOnly':
         case 'ListenAndTalk':
           if (activeVoiceChannel === channelId) {
+            console.log('🔄 Already connected to channel, updating microphone state...');
             // Channel is already connected, just mute/unmute
+            if (newState === 'ListenOnly') {
+              // Mute microphone
+              AgoraModule.MuteLocalAudio(true);
+              console.log('🎤 Microphone muted (ListenOnly mode)');
+            } else {
+              // Unmute microphone
+              AgoraModule.MuteLocalAudio(false);
+              console.log('🎤 Microphone enabled (ListenAndTalk mode)');
+            }
           } else {
+            console.log('🔄 Joining new voice channel:', channelId);
             // Join the channel and set to muted/unmuted state
-            const joinSuccess = await joinVoiceChannel(channelId, current.name);
+            const joinSuccess = await joinVoiceChannel(channelId, current.name, newState);
             if (joinSuccess) {
+              console.log('✅ Successfully joined voice channel');
               const timeout = setTimeout(
                 () => {
                   setPendingMuteTimeout(null);
@@ -202,6 +260,8 @@ const MainScreen = ({navigation}) => {
               newState === 'ListenOnly'
                 ? setPendingMuteTimeout(timeout)
                 : setPendingUnmuteTimeout(timeout);
+            } else {
+              console.error('❌ Failed to join voice channel');
             }
           }
           break;
