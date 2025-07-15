@@ -8,21 +8,42 @@ import {
   SafeAreaView,
   BackHandler,
   NativeModules,
+  ScrollView,
 } from 'react-native';
 import {useSettings} from '../context/SettingsContext';
 import {privateCallApi} from '../utils/apiService';
+import {useDebouncedDimensions} from '../utils/useDebouncedDimensions';
 
 const {AgoraModule} = NativeModules; // 🎯 NEW: Import AgoraModule
 
 const PrivateCallScreen = ({route, navigation}) => {
   const {otherUser, invitationId, currentUserId, channelName, agoraChannelName, isCaller, isCallAccepted} = route.params; // 🎯 NEW: Extract agoraChannelName
   const {darkMode} = useSettings();
+  
+  // 🎯 NEW: Add responsive dimensions
+  const {height, width} = useDebouncedDimensions(300);
+  const isLandscape = width > height;
+  
   const [callDuration, setCallDuration] = useState(0);
   const [isEnding, setIsEnding] = useState(false);
   const [isCallActive, setIsCallActive] = useState(true);
   const [isAgoraConnected, setIsAgoraConnected] = useState(false); // 🎯 NEW: Track Agora connection
   const intervalRef = useRef(null);
   const statusCheckRef = useRef(null);
+  
+  // 🎯 NEW: Calculate responsive sizes
+  const avatarSize = Math.min(width * 0.15, 80); // Responsive avatar size
+  const buttonSize = Math.min(width * 0.12, 60); // Responsive button size
+  const fontSize = Math.min(width * 0.03, 12); // Responsive font size
+  const headerFontSize = Math.min(width * 0.045, 18); // Responsive header font size
+  
+  // 🎯 NEW: Calculate container widths
+  const containerWidth = Math.min(width * 0.99, 900); // Responsive container width
+  const endCallButtonSize = Math.min(width * 0.10, 64); // Smaller end call button
+
+  // NEW: Mute states (visual only)
+  const [isMicMuted, setIsMicMuted] = useState(false);
+  const [isHeadphonesMuted, setIsHeadphonesMuted] = useState(false);
   
   console.log('🔵 PrivateCallScreen mounted with:', {
     otherUser: otherUser?.username,
@@ -83,13 +104,27 @@ const PrivateCallScreen = ({route, navigation}) => {
 
       console.log('🎤 Manually connecting to Agora channel:', agoraChannelName);
       
-      // Don't re-initialize Agora - it's already initialized by VoiceContext
-      // AgoraModule.InitializeAgoraEngine('e5631d55e8a24b08b067bb73f8797fe3');
+      // 🎯 NEW: Add delay for manual reconnection
+      console.log('⏰ Waiting 1 second before manual reconnection...');
       
-      // Join the Agora channel directly
-      AgoraModule.JoinChannel(agoraChannelName);
-      setIsAgoraConnected(true);
-      console.log('✅ Successfully connected to Agora channel (manual reconnect):', agoraChannelName);
+      setTimeout(() => {
+        try {
+          // Don't re-initialize Agora - it's already initialized by VoiceContext
+          // AgoraModule.InitializeAgoraEngine('e5631d55e8a24b08b067bb73f8797fe3');
+          
+          // Join the Agora channel directly
+          AgoraModule.JoinChannel(agoraChannelName);
+          setIsAgoraConnected(true);
+          console.log('✅ Successfully connected to Agora channel (manual reconnect):', agoraChannelName);
+        } catch (error) {
+          console.error('❌ Failed to connect to Agora:', error);
+          Alert.alert(
+            'Voice Connection Failed',
+            'Voice connection failed. You can still communicate via text.',
+            [{text: 'OK'}]
+          );
+        }
+      }, 1000); // 🎯 1 second delay for manual reconnection
       
     } catch (error) {
       console.error('❌ Failed to connect to Agora:', error);
@@ -377,76 +412,73 @@ const PrivateCallScreen = ({route, navigation}) => {
   const cardColor = darkMode ? '#333' : '#fff';
 
   return (
-    <SafeAreaView style={[styles.container, {backgroundColor}]}>
-      {/* Header */}
-      <View style={styles.header}>
-        <Text style={[styles.headerTitle, {color: textColor}]}>Private Call</Text>
-        <Text style={[styles.duration, {color: textColor}]}>
-          Duration: {formatDuration(callDuration)}
-        </Text>
-        <Text style={[styles.status, {color: '#4CAF50'}]}>
-          {isCallActive ? 'Connected' : 'Disconnected'}
-        </Text>
-      </View>
+    <SafeAreaView style={[styles.container, {backgroundColor}]}> 
+      <ScrollView 
+        style={styles.scrollView}
+        contentContainerStyle={styles.scrollContent}
+        showsVerticalScrollIndicator={false}
+      >
+        {/* Main Container with limited width */}
+        <View style={[styles.mainContainer, {width: containerWidth, alignItems: 'center'}]}>
+          {/* Header */}
+          <View style={styles.header}>
+            <Text style={[styles.headerTitle, {color: textColor, fontSize: headerFontSize}]}>Private Call</Text>
+            <Text style={[styles.duration, {color: textColor, fontSize: fontSize}]}>Duration: {formatDuration(callDuration)}</Text>
+            <Text style={[styles.status, {color: '#4CAF50', fontSize: fontSize}]}>{isCallActive ? 'Connected' : 'Disconnected'}</Text>
+          </View>
 
-      {/* User Info */}
-      <View style={[styles.userInfo, {backgroundColor: cardColor}]}>
-        <View style={styles.userAvatar}>
-          <Text style={[styles.avatarText, {color: '#fff'}]}>
-            {otherUser.username.charAt(0).toUpperCase()}
-          </Text>
+          {/* User Info */}
+          <View style={[styles.userInfo, {backgroundColor: cardColor, alignItems: 'center'}]}>
+            <View style={[styles.userAvatar, {width: avatarSize, height: avatarSize, borderRadius: avatarSize / 2}]}>
+              <Text style={[styles.avatarText, {color: '#fff', fontSize: avatarSize * 0.4}]}>{otherUser.username.charAt(0).toUpperCase()}</Text>
+            </View>
+            <Text style={[styles.username, {color: textColor, fontSize: fontSize * 1.2}]}>{otherUser.username}</Text>
+            <Text style={[styles.userEmail, {color: darkMode ? '#ccc' : '#666', fontSize: fontSize}]}>{otherUser.email}</Text>
+            <Text style={[styles.role, {color: darkMode ? '#91aad4' : '#004080', fontSize: fontSize}]}>You are the {isCaller ? 'Caller' : 'Receiver'}</Text>
+          </View>
+
+          {/* Call Info */}
+          <View style={[styles.callInfo, {backgroundColor: cardColor, alignItems: 'center'}]}> 
+            <Text style={[styles.infoTitle, {color: textColor, fontSize: fontSize, textAlign: 'center'}]}>Call Status</Text>
+            <Text style={[styles.infoText, {color: isAgoraConnected ? '#4CAF50' : '#f44336', fontSize: fontSize, textAlign: 'center'}]}>🔊 Voice: {isAgoraConnected ? 'Connected' : 'Disconnected'}</Text>
+            <Text style={[styles.infoText, {color: darkMode ? '#ccc' : '#666', fontSize: fontSize, textAlign: 'center'}]}>📡 Channel: {channelName}</Text>
+          </View>
+
+          {/* Action Buttons */}
+          <View style={styles.actionButtonsRow}>
+            {/* Mute Mic */}
+            <TouchableOpacity
+              style={[styles.muteButton, isMicMuted ? styles.muteButtonActive : null]}
+              onPress={() => setIsMicMuted(m => !m)}
+            >
+              <Text style={{fontSize: 28}}>{isMicMuted ? '🎤❌' : '🎤'}</Text>
+              <Text style={styles.muteButtonText}>{isMicMuted ? 'Mic Off' : 'Mic On'}</Text>
+            </TouchableOpacity>
+            {/* End Call */}
+            <TouchableOpacity
+              style={[styles.endCallButton, {backgroundColor: '#f44336', width: endCallButtonSize, height: endCallButtonSize, borderRadius: endCallButtonSize / 2, justifyContent: 'center', alignItems: 'center'}]}
+              onPress={handleEndCall}
+            >
+              <Text style={[styles.endCallButtonText, {fontSize: endCallButtonSize * 0.25}]}>✖️</Text>
+              <Text style={[styles.endCallButtonText, {fontSize: 10}]}>End Call</Text>
+            </TouchableOpacity>
+            {/* Mute Headphones */}
+            <TouchableOpacity
+              style={[styles.muteButton, isHeadphonesMuted ? styles.muteButtonActive : null]}
+              onPress={() => setIsHeadphonesMuted(m => !m)}
+            >
+              <Text style={{fontSize: 28}}>{isHeadphonesMuted ? '🎧❌' : '🎧'}</Text>
+              <Text style={styles.muteButtonText}>{isHeadphonesMuted ? 'Headphones Off' : 'Headphones On'}</Text>
+            </TouchableOpacity>
+          </View>
+
+          {/* Instructions */}
+          <View style={styles.instructionsContainer}>
+            <Text style={[styles.instructionsText, {color: darkMode ? '#ccc' : '#666', fontSize: fontSize}]}>🎤 Voice communication active • Tap status to check connection</Text>
+            <Text style={[styles.instructionsText, {color: darkMode ? '#ccc' : '#666', fontSize: fontSize}]}>🔄 Use voice status button if audio issues occur</Text>
+          </View>
         </View>
-        
-        <Text style={[styles.username, {color: textColor}]}>
-          {otherUser.username}
-        </Text>
-        <Text style={[styles.userEmail, {color: darkMode ? '#ccc' : '#666'}]}>
-          {otherUser.email}
-        </Text>
-        <Text style={[styles.role, {color: darkMode ? '#91aad4' : '#004080'}]}>
-          You are the {isCaller ? 'Caller' : 'Receiver'}
-        </Text>
-      </View>
-
-      {/* Call Info */}
-      <View style={[styles.callInfo, {backgroundColor: cardColor}]}>
-        <Text style={[styles.infoTitle, {color: textColor}]}>Call Status</Text>
-        <Text style={[styles.infoText, {color: isAgoraConnected ? '#4CAF50' : '#f44336'}]}>
-          🔊 Voice: {isAgoraConnected ? 'Connected' : 'Disconnected'}
-        </Text>
-        <Text style={[styles.infoText, {color: darkMode ? '#ccc' : '#666'}]}>
-          📡 Channel: {channelName}
-        </Text>
-      </View>
-
-      {/* Action Buttons */}
-      <View style={styles.actionButtonsContainer}>
-        <TouchableOpacity
-          style={[styles.voiceStatusButton, {backgroundColor: isAgoraConnected ? '#4CAF50' : '#ff9800'}]}
-          onPress={checkAgoraStatus}
-        >
-          <Text style={styles.controlButtonText}>
-            {isAgoraConnected ? '🔊 Voice Status' : '🔧 Check Voice'}
-          </Text>
-        </TouchableOpacity>
-
-        <TouchableOpacity
-          style={[styles.endCallButton, {backgroundColor: '#f44336'}]}
-          onPress={handleEndCall}
-        >
-          <Text style={styles.endCallButtonText}>✖️ End Call</Text>
-        </TouchableOpacity>
-      </View>
-
-      {/* Instructions */}
-      <View style={styles.instructionsContainer}>
-        <Text style={[styles.instructionsText, {color: darkMode ? '#ccc' : '#666'}]}>
-          🎤 Voice communication active • Tap status to check connection
-        </Text>
-        <Text style={[styles.instructionsText, {color: darkMode ? '#ccc' : '#666'}]}>
-          🔄 Use voice status button if audio issues occur
-        </Text>
-      </View>
+      </ScrollView>
     </SafeAreaView>
   );
 };
@@ -457,22 +489,32 @@ const styles = StyleSheet.create({
     padding: 20,
     paddingTop: 10,
   },
+  scrollView: {
+    flex: 1,
+  },
+  scrollContent: {
+    flexGrow: 1,
+    paddingVertical: 20,
+    alignItems: 'center',
+  },
+  mainContainer: {
+    alignItems: 'center',
+    width: '100%',
+  },
   header: {
     alignItems: 'center',
     marginBottom: 25,
+    width: '100%',
   },
   headerTitle: {
-    fontSize: 24,
     fontWeight: 'bold',
     marginBottom: 5,
   },
   duration: {
-    fontSize: 18,
     fontWeight: '600',
     marginBottom: 5,
   },
   status: {
-    fontSize: 16,
     fontWeight: '500',
   },
   userInfo: {
@@ -485,31 +527,25 @@ const styles = StyleSheet.create({
     shadowOffset: {width: 0, height: 2},
     shadowOpacity: 0.1,
     shadowRadius: 4,
+    width: '100%',
   },
   userAvatar: {
-    width: 80,
-    height: 80,
-    borderRadius: 40,
     backgroundColor: '#4CAF50',
     justifyContent: 'center',
     alignItems: 'center',
     marginBottom: 15,
   },
   avatarText: {
-    fontSize: 32,
     fontWeight: 'bold',
   },
   username: {
-    fontSize: 20,
     fontWeight: 'bold',
     marginBottom: 5,
   },
   userEmail: {
-    fontSize: 14,
     marginBottom: 5,
   },
   role: {
-    fontSize: 14,
     fontWeight: '600',
   },
   callInfo: {
@@ -521,25 +557,29 @@ const styles = StyleSheet.create({
     shadowOffset: {width: 0, height: 1},
     shadowOpacity: 0.1,
     shadowRadius: 3,
+    width: '100%',
   },
   infoTitle: {
-    fontSize: 16,
     fontWeight: 'bold',
     marginBottom: 10,
   },
   infoText: {
-    fontSize: 14,
     marginBottom: 3,
   },
   actionButtonsContainer: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
     marginBottom: 20,
     paddingHorizontal: 10,
+    width: '100%',
   },
   voiceStatusButton: {
-    padding: 12,
+    flex: 1,
+    padding: 15,
     borderRadius: 10,
     alignItems: 'center',
-    marginBottom: 12,
+    marginRight: 15,
     elevation: 2,
     shadowColor: '#000',
     shadowOffset: {width: 0, height: 1},
@@ -549,13 +589,10 @@ const styles = StyleSheet.create({
   controlButtonText: {
     color: '#fff',
     fontWeight: 'bold',
-    fontSize: 14,
   },
   endCallButton: {
-    padding: 14,
-    borderRadius: 20,
+    justifyContent: 'center',
     alignItems: 'center',
-    marginBottom: 15,
     elevation: 3,
     shadowColor: '#000',
     shadowOffset: {width: 0, height: 2},
@@ -564,7 +601,6 @@ const styles = StyleSheet.create({
   },
   endCallButtonText: {
     color: '#fff',
-    fontSize: 18,
     fontWeight: 'bold',
   },
   instructionsContainer: {
@@ -572,12 +608,39 @@ const styles = StyleSheet.create({
     padding: 12,
     borderRadius: 10,
     backgroundColor: 'rgba(100, 100, 100, 0.1)',
+    width: '100%',
   },
   instructionsText: {
-    fontSize: 11,
     textAlign: 'center',
     marginBottom: 3,
     fontStyle: 'italic',
+  },
+  actionButtonsRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-around',
+    alignItems: 'center',
+    marginBottom: 20,
+    width: '100%',
+  },
+  muteButton: {
+    flex: 1,
+    alignItems: 'center',
+    paddingVertical: 10,
+    paddingHorizontal: 15,
+    borderRadius: 10,
+    marginHorizontal: 10,
+    backgroundColor: 'rgba(100, 100, 100, 0.2)',
+    borderWidth: 1,
+    borderColor: 'transparent',
+  },
+  muteButtonActive: {
+    backgroundColor: 'rgba(100, 100, 100, 0.3)',
+    borderColor: 'rgba(255, 255, 255, 0.5)',
+  },
+  muteButtonText: {
+    marginTop: 5,
+    fontSize: 12,
+    color: '#fff',
   },
 });
 

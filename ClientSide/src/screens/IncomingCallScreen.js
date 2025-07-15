@@ -9,10 +9,12 @@ import {
   SafeAreaView,
   Animated,
   NativeModules,
+  ScrollView,
 } from 'react-native';
 import {useAuth} from '../context/AuthContext';
 import {useSettings} from '../context/SettingsContext';
 import {privateCallApi} from '../utils/apiService';
+import {useDebouncedDimensions} from '../utils/useDebouncedDimensions';
 
 const {AgoraModule} = NativeModules; // 🎯 NEW: Import AgoraModule
 
@@ -20,6 +22,10 @@ const IncomingCallScreen = ({route, navigation}) => {
   const {callInvitation} = route.params;
   const {user} = useAuth();
   const {darkMode} = useSettings();
+  
+  // 🎯 NEW: Add responsive dimensions
+  const {height, width} = useDebouncedDimensions(300);
+  const isLandscape = width > height;
   
   // ✅ FIX: Handle case sensitivity for server response
   const callId = callInvitation.Id || callInvitation.id;
@@ -40,6 +46,12 @@ const IncomingCallScreen = ({route, navigation}) => {
   // Refs for cleanup
   const pollIntervalRef = useRef(null);
   const timerRef = useRef(null);
+
+  // 🎯 NEW: Calculate responsive sizes
+  const avatarSize = Math.min(width * 0.25, 120); // Responsive avatar size
+  const buttonSize = Math.min(width * 0.2, 100); // Responsive button size
+  const fontSize = Math.min(width * 0.04, 16); // Responsive font size
+  const headerFontSize = Math.min(width * 0.06, 24); // Responsive header font size
 
   // Create pulsing animation for the avatar
   useEffect(() => {
@@ -287,7 +299,7 @@ const IncomingCallScreen = ({route, navigation}) => {
           // Don't re-initialize Agora - it's already initialized by VoiceContext
           // AgoraModule.InitializeAgoraEngine('e5631d55e8a24b08b067bb73f8797fe3');
           
-          // Join the Agora channel directly
+          // 🎯 NEW: Connect immediately - this user creates the channel
           AgoraModule.JoinChannel(agoraChannelName);
           
           console.log('✅ Successfully connected to Agora channel:', agoraChannelName);
@@ -402,101 +414,116 @@ const IncomingCallScreen = ({route, navigation}) => {
 
   return (
     <SafeAreaView style={[styles.container, {backgroundColor}]}>
-      {/* Header */}
-      <View style={styles.header}>
-        <Text style={[styles.headerTitle, {color: textColor}]}>Incoming Call</Text>
-        <Text style={[styles.timeRemaining, {color: timeLeft <= 10 ? '#ff4444' : textColor}]}>
-          {formatTime(timeLeft)}
-        </Text>
-      </View>
-
-      {/* Caller Info */}
-      <View style={styles.callerContainer}>
-        <Animated.View 
-          style={[
-            styles.callerAvatar,
-            {
-              backgroundColor: '#4CAF50',
-              transform: [{scale: pulseAnim}],
-            }
-          ]}
-        >
-          <Text style={styles.avatarText}>
-            {callerName.charAt(0).toUpperCase()}
-          </Text>
-        </Animated.View>
-        
-        <Text style={[styles.callerName, {color: textColor}]}>
-          {callerName}
-        </Text>
-        
-        <Text style={[styles.callerDetails, {color: darkMode ? '#ccc' : '#666'}]}>
-          {callerEmail}
-        </Text>
-        
-        <Text style={[styles.callerRole, {color: darkMode ? '#91aad4' : '#004080'}]}>
-          {callerRole}
-        </Text>
-      </View>
-
-      {/* Call Message */}
-      <View style={styles.messageContainer}>
-        <Text style={[styles.messageText, {color: textColor}]}>
-          is calling you...
-        </Text>
-      </View>
-
-      {/* Action Buttons */}
-      <View style={styles.actionsContainer}>
-        {/* Decline Button */}
-        <TouchableOpacity
-          style={[
-            styles.actionButton, 
-            styles.rejectButton,
-            {
-              opacity: isResponding ? 0.6 : 1,
-              transform: isResponding ? [{scale: 0.95}] : [{scale: 1}]
-            }
-          ]}
-          onPress={rejectCall}
-          disabled={isResponding}
-          activeOpacity={0.8}
-        >
-          <View style={styles.buttonContent}>
-            <Text style={styles.rejectButtonIcon}>✖️</Text>
-            <Text style={styles.rejectButtonLabel}>Decline</Text>
-          </View>
-        </TouchableOpacity>
-
-        {/* Accept Button */}
-        <TouchableOpacity
-          style={[
-            styles.actionButton, 
-            styles.acceptButton,
-            {
-              opacity: isResponding ? 0.6 : 1,
-              transform: isResponding ? [{scale: 0.95}] : [{scale: 1}]
-            }
-          ]}
-          onPress={acceptCall}
-          disabled={isResponding}
-          activeOpacity={0.8}
-        >
-          <View style={styles.buttonContent}>
-            <Text style={styles.acceptButtonIcon}>📞</Text>
-            <Text style={styles.acceptButtonLabel}>Accept</Text>
-          </View>
-        </TouchableOpacity>
-      </View>
-
-      {/* Loading indicator */}
-      {isResponding && (
-        <View style={styles.loadingContainer}>
-          <Text style={[styles.loadingText, {color: textColor}]}>
-            Responding...
+      <ScrollView 
+        style={styles.scrollView}
+        contentContainerStyle={styles.scrollContent}
+        showsVerticalScrollIndicator={false}
+      >
+        {/* Header */}
+        <View style={styles.header}>
+          <Text style={[styles.headerTitle, {color: textColor, fontSize: headerFontSize}]}>Incoming Call</Text>
+          <Text style={[styles.timeRemaining, {color: timeLeft <= 10 ? '#ff4444' : textColor, fontSize: fontSize}]}>
+            {formatTime(timeLeft)}
           </Text>
         </View>
-      )}
+
+        {/* Caller Info */}
+        <View style={styles.callerContainer}>
+          <Animated.View 
+            style={[
+              styles.callerAvatar,
+              {
+                backgroundColor: '#4CAF50',
+                transform: [{scale: pulseAnim}],
+                width: avatarSize,
+                height: avatarSize,
+                borderRadius: avatarSize / 2,
+              }
+            ]}
+          >
+            <Text style={[styles.avatarText, {fontSize: avatarSize * 0.4}]}>
+              {callerName.charAt(0).toUpperCase()}
+            </Text>
+          </Animated.View>
+          
+          <Text style={[styles.callerName, {color: textColor, fontSize: fontSize * 1.5}]}>
+            {callerName}
+          </Text>
+          
+          <Text style={[styles.callerDetails, {color: darkMode ? '#ccc' : '#666', fontSize: fontSize}]}>
+            {callerEmail}
+          </Text>
+          
+          <Text style={[styles.callerRole, {color: darkMode ? '#91aad4' : '#004080', fontSize: fontSize}]}>
+            {callerRole}
+          </Text>
+        </View>
+
+        {/* Call Message */}
+        <View style={styles.messageContainer}>
+          <Text style={[styles.messageText, {color: textColor, fontSize: fontSize * 1.2}]}>
+            is calling you...
+          </Text>
+        </View>
+
+        {/* Action Buttons */}
+        <View style={styles.actionsContainer}>
+          {/* Decline Button */}
+          <TouchableOpacity
+            style={[
+              styles.actionButton, 
+              styles.rejectButton,
+              {
+                opacity: isResponding ? 0.6 : 1,
+                transform: isResponding ? [{scale: 0.95}] : [{scale: 1}],
+                width: buttonSize,
+                height: buttonSize,
+                borderRadius: buttonSize / 2,
+              }
+            ]}
+            onPress={rejectCall}
+            disabled={isResponding}
+            activeOpacity={0.8}
+          >
+            <View style={styles.buttonContent}>
+              <Text style={[styles.rejectButtonIcon, {fontSize: buttonSize * 0.3}]}>✖️</Text>
+              <Text style={[styles.rejectButtonLabel, {fontSize: fontSize}]}>Decline</Text>
+            </View>
+          </TouchableOpacity>
+
+          {/* Accept Button */}
+          <TouchableOpacity
+            style={[
+              styles.actionButton, 
+              styles.acceptButton,
+              {
+                opacity: isResponding ? 0.6 : 1,
+                transform: isResponding ? [{scale: 0.95}] : [{scale: 1}],
+                width: buttonSize,
+                height: buttonSize,
+                borderRadius: buttonSize / 2,
+              }
+            ]}
+            onPress={acceptCall}
+            disabled={isResponding}
+            activeOpacity={0.8}
+          >
+            <View style={styles.buttonContent}>
+              <Text style={[styles.acceptButtonIcon, {fontSize: buttonSize * 0.35}]}>📞</Text>
+              <Text style={[styles.acceptButtonLabel, {fontSize: fontSize}]}>Accept</Text>
+            </View>
+          </TouchableOpacity>
+        </View>
+
+        {/* Loading indicator */}
+        {isResponding && (
+          <View style={styles.loadingContainer}>
+            <Text style={[styles.loadingText, {color: textColor, fontSize: fontSize}]}>
+              Responding...
+            </Text>
+          </View>
+        )}
+      </ScrollView>
     </SafeAreaView>
   );
 };
@@ -506,17 +533,24 @@ const styles = StyleSheet.create({
     flex: 1,
     padding: 20,
   },
+  scrollView: {
+    flex: 1,
+  },
+  scrollContent: {
+    flexGrow: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    paddingVertical: 20,
+  },
   header: {
     alignItems: 'center',
     marginBottom: 40,
   },
   headerTitle: {
-    fontSize: 24,
     fontWeight: 'bold',
     marginBottom: 10,
   },
   timeRemaining: {
-    fontSize: 18,
     fontWeight: 'bold',
   },
   callerContainer: {
@@ -524,9 +558,6 @@ const styles = StyleSheet.create({
     marginBottom: 40,
   },
   callerAvatar: {
-    width: 120,
-    height: 120,
-    borderRadius: 60,
     justifyContent: 'center',
     alignItems: 'center',
     marginBottom: 20,
@@ -537,23 +568,19 @@ const styles = StyleSheet.create({
     shadowRadius: 5,
   },
   avatarText: {
-    fontSize: 48,
     fontWeight: 'bold',
     color: '#fff',
   },
   callerName: {
-    fontSize: 28,
     fontWeight: 'bold',
     marginBottom: 8,
     textAlign: 'center',
   },
   callerDetails: {
-    fontSize: 16,
     marginBottom: 4,
     textAlign: 'center',
   },
   callerRole: {
-    fontSize: 16,
     fontWeight: '600',
     textAlign: 'center',
   },
@@ -562,7 +589,6 @@ const styles = StyleSheet.create({
     marginBottom: 60,
   },
   messageText: {
-    fontSize: 20,
     fontStyle: 'italic',
     textAlign: 'center',
   },
@@ -576,9 +602,6 @@ const styles = StyleSheet.create({
     marginTop: 20,
   },
   actionButton: {
-    width: 100,
-    height: 100,
-    borderRadius: 50,
     justifyContent: 'center',
     alignItems: 'center',
     elevation: 8,
@@ -609,24 +632,20 @@ const styles = StyleSheet.create({
     elevation: 12,
   },
   rejectButtonIcon: {
-    fontSize: 28,
     color: '#ffffff',
     fontWeight: 'bold',
   },
   acceptButtonIcon: {
-    fontSize: 32,
     color: '#fff',
     fontWeight: 'bold',
   },
   rejectButtonLabel: {
     color: '#ffffff',
-    fontSize: 12,
     fontWeight: 'bold',
     marginTop: 4,
   },
   acceptButtonLabel: {
     color: '#fff',
-    fontSize: 13,
     fontWeight: 'bold',
     marginTop: 6,
   },
@@ -639,7 +658,6 @@ const styles = StyleSheet.create({
     marginTop: 20,
   },
   loadingText: {
-    fontSize: 16,
     fontStyle: 'italic',
   },
 });
