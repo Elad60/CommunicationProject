@@ -83,12 +83,12 @@ const NavPanel = ({handleNavigation, darkMode, height, width}) => {
   /* Button definitions with optional role and badge */
   const buttons = [
     {
-      title: 'Radios',
+      title: 'Channels',
       icon: require('../../assets/logos/radio.png'),
       screen: 'Main',
     },
     {
-      title: 'Groups',
+      title: 'Team',
       icon: require('../../assets/logos/groups.png'),
       screen: 'Groups',
     },

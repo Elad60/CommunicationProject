@@ -1,161 +1,294 @@
-import React, {useState, useEffect} from 'react';
+import React, {useState, useEffect, useRef} from 'react';
 import {
   View,
   Text,
   StyleSheet,
   TouchableOpacity,
   Alert,
-  Image,
   SafeAreaView,
-  NativeModules,
   BackHandler,
+  NativeModules,
+  ScrollView,
 } from 'react-native';
-import {useAuth} from '../context/AuthContext';
 import {useSettings} from '../context/SettingsContext';
+import {privateCallApi} from '../utils/apiService';
 import {useDebouncedDimensions} from '../utils/useDebouncedDimensions';
 
-const {AgoraModule} = NativeModules;
+const {AgoraModule} = NativeModules; // 🎯 NEW: Import AgoraModule
 
 const PrivateCallScreen = ({route, navigation}) => {
-  const {otherUser} = route.params;
-  const {user} = useAuth();
+  const {otherUser, invitationId, currentUserId, channelName, agoraChannelName, isCaller, isCallAccepted} = route.params; // 🎯 NEW: Extract agoraChannelName
   const {darkMode} = useSettings();
+  
+  // 🎯 NEW: Add responsive dimensions
   const {height, width} = useDebouncedDimensions(300);
-
-  // State management
-  const [isCallActive, setIsCallActive] = useState(false);
-  const [isMuted, setIsMuted] = useState(false);
-  const [isSpeakerOn, setIsSpeakerOn] = useState(false);
+  const isLandscape = width > height;
+  
   const [callDuration, setCallDuration] = useState(0);
-  const [callStatus, setCallStatus] = useState('Connecting...');
-  const [isConnecting, setIsConnecting] = useState(true);
+  const [isEnding, setIsEnding] = useState(false);
+  const [isCallActive, setIsCallActive] = useState(true);
+  const [isAgoraConnected, setIsAgoraConnected] = useState(false); // 🎯 NEW: Track Agora connection
+  const intervalRef = useRef(null);
+  const statusCheckRef = useRef(null);
+  
+  // 🎯 NEW: Calculate responsive sizes
+  const avatarSize = Math.min(width * 0.15, 80); // Responsive avatar size
+  const buttonSize = Math.min(width * 0.12, 60); // Responsive button size
+  const fontSize = Math.min(width * 0.03, 12); // Responsive font size
+  const headerFontSize = Math.min(width * 0.045, 18); // Responsive header font size
+  
+  // 🎯 NEW: Calculate container widths
+  const containerWidth = Math.min(width * 0.99, 900); // Responsive container width
+  const endCallButtonSize = Math.min(width * 0.10, 64); // Smaller end call button
 
-  // Generate unique channel name for private call
-  const privateChannelName = `private_${Math.min(user.id, otherUser.id)}_${Math.max(user.id, otherUser.id)}`;
+  // NEW: Mute states (visual only)
+  const [isMicMuted, setIsMicMuted] = useState(false);
+  const [isHeadphonesMuted, setIsHeadphonesMuted] = useState(false);
+  
+  console.log('🔵 PrivateCallScreen mounted with:', {
+    otherUser: otherUser?.username,
+    invitationId,
+    currentUserId,
+    agoraChannelName, // 🎯 Channel name from previous screen
+  });
+  
+  // 🔧 VALIDATION: Check if channel name has duplicate 'call_'
+  if (agoraChannelName && agoraChannelName.includes('call_call_')) {
+    console.warn('⚠️ DUPLICATE DETECTED in channel name:', agoraChannelName);
+  }
 
-  // Timer for call duration
+  // 🎯 FIXED: Set Agora state only once on mount
   useEffect(() => {
-    let timer;
-    if (isCallActive) {
-      timer = setInterval(() => {
-        setCallDuration(prev => prev + 1);
-      }, 1000);
+    console.log('🎤 PrivateCallScreen: Agora already connected from previous screen to:', agoraChannelName);
+    
+    if (agoraChannelName) {
+      // Set the connection state to true since we're already connected
+      setIsAgoraConnected(true);
+    } else {
+      console.log('⚠️ No Agora channel name provided - voice disabled');
     }
-    return () => clearInterval(timer);
-  }, [isCallActive]);
 
-  // Handle back button
+    return () => {
+      console.log('🧹 Cleaning up Agora connection (FORCE CLEANUP)...');
+      // 🔧 FIX: Force cleanup multiple times to ensure disconnect
+      disconnectFromAgora();
+      setTimeout(() => {
+        disconnectFromAgora(); // Second attempt
+      }, 100);
+    };
+  }, []); // Empty dependency array - run only once
+
+  // Component lifecycle logging with cleanup
   useEffect(() => {
-    const backHandler = BackHandler.addEventListener('hardwareBackPress', () => {
-      if (isCallActive) {
-        Alert.alert(
-          'End Call',
-          'Are you sure you want to end this call?',
-          [
-            {text: 'Cancel', style: 'cancel'},
-            {text: 'End Call', onPress: endCall, style: 'destructive'},
-          ]
-        );
-        return true;
-      }
-      return false;
-    });
-
-    return () => backHandler.remove();
-  }, [isCallActive]);
-
-  // Start private call
-  const startCall = async () => {
-    try {
-      console.log(`🔗 Starting private call with ${otherUser.username}`);
-      console.log(`📞 Channel: ${privateChannelName}`);
-      
-      setIsConnecting(true);
-      setCallStatus('Connecting...');
-      
-      // Initialize Agora if not already done
+    console.log('🎬 PrivateCallScreen MOUNTED');
+    return () => {
+      console.log('🏁 PrivateCallScreen UNMOUNTED - FORCE cleaning up all resources');
+      // 🔧 FIX: Final force disconnect on unmount
       if (AgoraModule) {
-        console.log('🔧 Initializing Agora for private call...');
-        await AgoraModule.InitializeAgoraEngine('bf0d04d525da4bcb8f7abab286f4fc11');
-        
-        // Join the private channel
-        console.log(`🎯 Joining private channel: ${privateChannelName}`);
-        await AgoraModule.JoinChannel(privateChannelName);
-        
-        setIsCallActive(true);
-        setIsConnecting(false);
-        setCallStatus('Connected');
-        
-        console.log('✅ Private call established successfully!');
-        
-        // Show success message only if not coming from accepted invitation
-        if (!route.params?.isCallAccepted) {
+        try {
+          AgoraModule.LeaveChannel(); // Force final disconnect
+          console.log('✅ Final Agora disconnect on unmount');
+        } catch (error) {
+          console.error('❌ Error in final disconnect:', error);
+        }
+      }
+    };
+  }, []);
+
+  // Connect to Agora voice channel (FOR MANUAL RECONNECTION ONLY)
+  const connectToAgora = async () => {
+    try {
+      if (!AgoraModule) {
+        throw new Error('AgoraModule not available');
+      }
+
+      console.log('🎤 Manually connecting to Agora channel:', agoraChannelName);
+      
+      // 🎯 NEW: Add delay for manual reconnection
+      console.log('⏰ Waiting 1 second before manual reconnection...');
+      
+      setTimeout(() => {
+        try {
+          // Don't re-initialize Agora - it's already initialized by VoiceContext
+          // AgoraModule.InitializeAgoraEngine('e5631d55e8a24b08b067bb73f8797fe3');
+          
+          // Join the Agora channel directly
+          AgoraModule.JoinChannel(agoraChannelName);
+          setIsAgoraConnected(true);
+          console.log('✅ Successfully connected to Agora channel (manual reconnect):', agoraChannelName);
+        } catch (error) {
+          console.error('❌ Failed to connect to Agora:', error);
           Alert.alert(
-            'Call Started',
-            `You are now in a private call with ${otherUser.username}!`,
+            'Voice Connection Failed',
+            'Voice connection failed. You can still communicate via text.',
             [{text: 'OK'}]
           );
         }
-      } else {
-        throw new Error('AgoraModule not available');
-      }
+      }, 1000); // 🎯 1 second delay for manual reconnection
+      
     } catch (error) {
-      console.error('❌ Error starting private call:', error);
-      setIsConnecting(false);
-      setCallStatus('Connection Failed');
+      console.error('❌ Failed to connect to Agora:', error);
       Alert.alert(
-        'Call Failed',
-        'Failed to start the call. Please try again.',
-        [{text: 'OK', onPress: () => navigation.goBack()}]
+        'Voice Connection Failed',
+        'Voice connection failed. You can still communicate via text.',
+        [{text: 'OK'}]
       );
     }
   };
 
-  // End private call
-  const endCall = async () => {
+  // Disconnect from Agora voice channel (IMPROVED VERSION - MORE RELIABLE)
+  const disconnectFromAgora = () => {
     try {
-      console.log('🔚 Ending private call...');
+      console.log('🎤 Disconnecting from Agora channel (FORCE DISCONNECT)...');
       
+      // 🔧 FIX: Always try to disconnect, don't rely on state
       if (AgoraModule) {
-        await AgoraModule.LeaveChannel();
-        console.log('✅ Left private channel successfully');
+        AgoraModule.LeaveChannel(); // Force disconnect regardless of state
+        console.log('✅ Successfully disconnected from Agora (FORCED)');
       }
       
-      setIsCallActive(false);
-      setCallStatus('Call Ended');
-      
-      // Navigate back with a small delay
-      setTimeout(() => {
-        navigation.goBack();
-      }, 1000);
+      // Update state after successful disconnect
+      setIsAgoraConnected(false);
       
     } catch (error) {
-      console.error('❌ Error ending call:', error);
-      navigation.goBack();
+      console.error('❌ Error disconnecting from Agora:', error);
+      // Even if error, update state to prevent stuck connections
+      setIsAgoraConnected(false);
     }
   };
 
-  // Toggle mute
-  const toggleMute = () => {
-    const newMutedState = !isMuted;
-    setIsMuted(newMutedState);
-    
-    if (AgoraModule && AgoraModule.MuteLocalAudio) {
-      AgoraModule.MuteLocalAudio(newMutedState);
-      console.log(`🎤 Mute toggled: ${newMutedState}`);
-    }
-  };
+  // Start call duration timer
+  useEffect(() => {
+    console.log('⏱️ Starting call duration timer...');
+    intervalRef.current = setInterval(() => {
+      setCallDuration(prev => prev + 1);
+    }, 1000);
 
-  // Toggle speaker
-  const toggleSpeaker = () => {
-    const newSpeakerState = !isSpeakerOn;
-    setIsSpeakerOn(newSpeakerState);
+    return () => {
+      if (intervalRef.current) {
+        clearInterval(intervalRef.current);
+      }
+    };
+  }, []);
+
+  // Monitor call status - check if other user disconnected
+  useEffect(() => {
+    console.log('👁️ Starting call status monitoring...');
     
-    if (AgoraModule && AgoraModule.SetSpeakerphoneOn) {
-      AgoraModule.SetSpeakerphoneOn(newSpeakerState);
-      console.log(`🔊 Speaker toggled: ${newSpeakerState}`);
-    }
-  };
+    let isMonitoring = true; // Flag to prevent multiple alerts
+    let intervalId = null; // Store interval ID locally
+    
+    const checkCallStatus = async () => {
+      console.log('🔍 checkCallStatus called, isMonitoring:', isMonitoring, 'isCallActive:', isCallActive);
+      
+      // Don't check if we're no longer monitoring
+      if (!isMonitoring) {
+        console.log('🛑 Stopping call status check - monitoring stopped');
+        return;
+      }
+      
+      // Don't check if call is not active
+      if (!isCallActive) {
+        console.log('🛑 Stopping call status check - call not active');
+        return;
+      }
+      
+      try {
+        console.log('🔄 Polling for call status...');
+        const response = await privateCallApi.getCallStatus(invitationId, currentUserId);
+        
+        if (response.success) {
+          console.log('📊 Call status:', response.status);
+          
+          // If call was ended by the other user
+          if (response.status === 'cancelled' || response.status === 'ended') {
+            console.log('❌ Call ended by other user');
+            
+            // 🔧 FIX: FORCE disconnect from Agora IMMEDIATELY (multiple attempts)
+            console.log('🎤 Other user ended call - FORCE disconnecting from Agora...');
+            disconnectFromAgora(); // First attempt
+            
+            // Wait and try again to ensure disconnect
+            setTimeout(() => {
+              disconnectFromAgora(); // Second attempt
+            }, 100);
+            
+            // Stop monitoring IMMEDIATELY
+            isMonitoring = false;
+            setIsCallActive(false);
+            
+            // Clear the interval IMMEDIATELY
+            if (intervalId) {
+              console.log('🧹 Clearing local interval:', intervalId);
+              clearInterval(intervalId);
+              intervalId = null;
+            }
+            if (statusCheckRef.current) {
+              console.log('🧹 Clearing ref interval:', statusCheckRef.current);
+              clearInterval(statusCheckRef.current);
+              statusCheckRef.current = null;
+            }
+            
+            // Final disconnect attempt before showing alert
+            setTimeout(() => {
+              disconnectFromAgora(); // Final attempt
+            }, 200);
+            
+            // Show notification and navigate back
+            Alert.alert(
+              'Call Ended',
+              'The other user has ended the call.',
+              [
+                {
+                  text: 'OK',
+                                      onPress: () => {
+                      console.log('📞 Other user ended call - returning to Groups (GlobalCallListener will resume polling)');
+                      navigation.reset({index:0, routes:[{name:'Groups'}]});
+                    },
+                },
+              ],
+              { cancelable: false }
+            );
+            
+            return; // Stop execution
+          }
+        }
+      } catch (error) {
+        console.error('❌ Error checking call status:', error);
+        // Continue monitoring even if there's an error
+      }
+    };
+
+    // Check immediately
+    checkCallStatus();
+    
+    // Then check every 3 seconds
+    intervalId = setInterval(checkCallStatus, 3000);
+    statusCheckRef.current = intervalId;
+    console.log('✅ Started polling with interval ID:', intervalId);
+
+    return () => {
+      console.log('🧹 Cleaning up call status monitoring, interval ID:', intervalId);
+      isMonitoring = false; // Stop monitoring on cleanup
+      if (intervalId) {
+        clearInterval(intervalId);
+        intervalId = null;
+      }
+      if (statusCheckRef.current) {
+        clearInterval(statusCheckRef.current);
+        statusCheckRef.current = null;
+      }
+    };
+  }, [invitationId, currentUserId, navigation]);
+
+  // Handle back button
+  useEffect(() => {
+    const backHandler = BackHandler.addEventListener('hardwareBackPress', () => {
+      handleEndCall();
+      return true;
+    });
+    return () => backHandler.remove();
+  }, []);
 
   // Format call duration
   const formatDuration = (seconds) => {
@@ -164,150 +297,188 @@ const PrivateCallScreen = ({route, navigation}) => {
     return `${mins.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`;
   };
 
-  // Auto-start call when component mounts (only if call was accepted)
-  useEffect(() => {
-    if (route.params?.isCallAccepted) {
-      console.log('✅ Call was accepted, starting private call...');
-      startCall();
-    } else {
-      console.log('⚠️ Private call screen opened without accepted call');
-      setCallStatus('Waiting for call acceptance...');
-      setIsConnecting(false);
+  // Handle call end (IMPROVED WITH PROTECTION AGAINST MULTIPLE CALLS)
+  const handleEndCall = async () => {
+    // 🔧 FIX: Protection against multiple calls
+    if (isEnding) {
+      console.log('⚠️ Call already ending, skipping...');
+      return;
     }
-  }, [route.params?.isCallAccepted]);
+    
+    console.log('🔴 Ending call...');
+    setIsEnding(true);
+    setIsCallActive(false);
+    
+    // 🔧 FIX: Force disconnect from Agora MULTIPLE TIMES to ensure it works
+    console.log('🎤 FORCE disconnecting from Agora before ending call...');
+    disconnectFromAgora(); // First attempt
+    
+    // Wait a bit and try again to make sure
+    setTimeout(() => {
+      disconnectFromAgora(); // Second attempt after small delay
+    }, 100);
+    
+    // Stop all timers IMMEDIATELY
+    console.log('🛑 Stopping all timers...');
+    if (intervalRef.current) {
+      console.log('🧹 Clearing duration timer:', intervalRef.current);
+      clearInterval(intervalRef.current);
+      intervalRef.current = null;
+    }
+    if (statusCheckRef.current) {
+      console.log('🧹 Clearing status check timer:', statusCheckRef.current);
+      clearInterval(statusCheckRef.current);
+      statusCheckRef.current = null;
+    }
+    
+    try {
+      const response = await privateCallApi.endCall(invitationId, 'user_hangup');
+      
+      if (response.success) {
+        console.log('✅ Call ended successfully');
+      } else {
+        console.error('❌ Failed to end call:', response.message);
+      }
+    } catch (error) {
+      console.error('❌ Error ending call:', error);
+    }
+    
+    // 🔧 FIX: One more disconnect attempt before leaving
+    disconnectFromAgora(); // Final attempt
+    
+    // Always navigate back, even if API call fails
+    console.log('📞 User ended call - returning to Groups (GlobalCallListener will resume polling)');
+    navigation.reset({index:0, routes:[{name:'Groups'}]});
+  };
+
+  // Check Agora connection status (REPLACE TEST FEATURES)
+  const checkAgoraStatus = () => {
+    console.log('🔍 Checking Agora status...');
+    
+    let statusMessage = '🎤 AGORA CONNECTION STATUS:\n\n';
+    
+    // Check AgoraModule availability
+    if (!AgoraModule) {
+      statusMessage += '❌ AgoraModule: NOT AVAILABLE\n';
+      statusMessage += '🚨 Critical: Agora SDK not loaded\n\n';
+    } else {
+      statusMessage += '✅ AgoraModule: AVAILABLE\n';
+    }
+    
+    // Check connection status
+    if (isAgoraConnected) {
+      statusMessage += '✅ Connection Status: CONNECTED\n';
+      statusMessage += `🔗 Channel Name: ${agoraChannelName}\n`;
+      statusMessage += '🔊 Voice: ACTIVE\n';
+    } else {
+      statusMessage += '❌ Connection Status: DISCONNECTED\n';
+      statusMessage += '🔇 Voice: INACTIVE\n';
+    }
+    
+    // Check channel info
+    if (agoraChannelName) {
+      statusMessage += `\n📺 Expected Channel: ${agoraChannelName}\n`;
+    } else {
+      statusMessage += '\n⚠️ No channel name provided\n';
+    }
+    
+    // Instructions
+    statusMessage += '\n🛠️ TROUBLESHOOTING:\n';
+    statusMessage += '• If disconnected: Try reconnecting\n';
+    statusMessage += '• If no sound: Check other device\n';
+    statusMessage += '• If issues persist: Restart call\n';
+    
+    Alert.alert(
+      '🎤 Agora Status Check',
+      statusMessage,
+      [
+        {
+          text: '🔄 Reconnect',
+          onPress: () => {
+            console.log('🔄 User requested Agora reconnection');
+            disconnectFromAgora();
+            setTimeout(() => {
+              connectToAgora();
+            }, 500);
+          }
+        },
+        {text: '✅ OK'}
+      ]
+    );
+  };
 
   const backgroundColor = darkMode ? '#1a1a1a' : '#f0f0f0';
   const textColor = darkMode ? '#fff' : '#000';
   const cardColor = darkMode ? '#333' : '#fff';
 
   return (
-    <SafeAreaView style={[styles.container, {backgroundColor}]}>
-      {/* Header */}
-      <View style={styles.header}>
-        <Text style={[styles.headerTitle, {color: textColor}]}>Private Call</Text>
-        <Text style={[styles.callStatus, {color: textColor}]}>{callStatus}</Text>
-      </View>
+    <SafeAreaView style={[styles.container, {backgroundColor}]}> 
+      <ScrollView 
+        style={styles.scrollView}
+        contentContainerStyle={styles.scrollContent}
+        showsVerticalScrollIndicator={false}
+      >
+        {/* Main Container with limited width */}
+        <View style={[styles.mainContainer, {width: containerWidth, alignItems: 'center'}]}>
+          {/* Header */}
+          <View style={styles.header}>
+            <Text style={[styles.headerTitle, {color: textColor, fontSize: headerFontSize}]}>Private Call</Text>
+            <Text style={[styles.duration, {color: textColor, fontSize: fontSize}]}>Duration: {formatDuration(callDuration)}</Text>
+            <Text style={[styles.status, {color: '#4CAF50', fontSize: fontSize}]}>{isCallActive ? 'Connected' : 'Disconnected'}</Text>
+          </View>
 
-      {/* User Info */}
-      <View style={[styles.userInfo, {backgroundColor: cardColor}]}>
-        <View style={styles.userAvatar}>
-          <Text style={[styles.avatarText, {color: textColor}]}>
-            {otherUser.username.charAt(0).toUpperCase()}
-          </Text>
-        </View>
-        <Text style={[styles.username, {color: textColor}]}>
-          {otherUser.username}
-        </Text>
-        <Text style={[styles.userEmail, {color: darkMode ? '#ccc' : '#666'}]}>
-          {otherUser.email}
-        </Text>
-        <Text style={[styles.userRole, {color: darkMode ? '#91aad4' : '#004080'}]}>
-          {otherUser.role}
-        </Text>
-      </View>
+          {/* User Info */}
+          <View style={[styles.userInfo, {backgroundColor: cardColor, alignItems: 'center'}]}>
+            <View style={[styles.userAvatar, {width: avatarSize, height: avatarSize, borderRadius: avatarSize / 2}]}>
+              <Text style={[styles.avatarText, {color: '#fff', fontSize: avatarSize * 0.4}]}>{otherUser.username.charAt(0).toUpperCase()}</Text>
+            </View>
+            <Text style={[styles.username, {color: textColor, fontSize: fontSize * 1.2}]}>{otherUser.username}</Text>
+            <Text style={[styles.userEmail, {color: darkMode ? '#ccc' : '#666', fontSize: fontSize}]}>{otherUser.email}</Text>
+            <Text style={[styles.role, {color: darkMode ? '#91aad4' : '#004080', fontSize: fontSize}]}>You are the {isCaller ? 'Caller' : 'Receiver'}</Text>
+          </View>
 
-      {/* Call Duration */}
-      {isCallActive && (
-        <View style={styles.durationContainer}>
-          <Text style={[styles.duration, {color: textColor}]}>
-            {formatDuration(callDuration)}
-          </Text>
-        </View>
-      )}
+          {/* Call Info */}
+          <View style={[styles.callInfo, {backgroundColor: cardColor, alignItems: 'center'}]}> 
+            <Text style={[styles.infoTitle, {color: textColor, fontSize: fontSize, textAlign: 'center'}]}>Call Status</Text>
+            <Text style={[styles.infoText, {color: isAgoraConnected ? '#4CAF50' : '#f44336', fontSize: fontSize, textAlign: 'center'}]}>🔊 Voice: {isAgoraConnected ? 'Connected' : 'Disconnected'}</Text>
+            <Text style={[styles.infoText, {color: darkMode ? '#ccc' : '#666', fontSize: fontSize, textAlign: 'center'}]}>📡 Channel: {channelName}</Text>
+          </View>
 
-      {/* Connection Status */}
-      {isConnecting && (
-        <View style={styles.connectingContainer}>
-          <Text style={[styles.connectingText, {color: textColor}]}>
-            Connecting to {otherUser.username}...
-          </Text>
-        </View>
-      )}
-
-      {/* Call Status when not connected */}
-      {!isCallActive && !isConnecting && (
-        <View style={styles.statusContainer}>
-          <Text style={[styles.statusText, {color: textColor}]}>
-            {callStatus}
-          </Text>
-          {!route.params?.isCallAccepted && (
+          {/* Action Buttons */}
+          <View style={styles.actionButtonsRow}>
+            {/* Mute Mic */}
             <TouchableOpacity
-              style={[styles.startCallButton, {backgroundColor: '#4CAF50'}]}
-              onPress={startCall}
+              style={[styles.muteButton, isMicMuted ? styles.muteButtonActive : null]}
+              onPress={() => setIsMicMuted(m => !m)}
             >
-              <Text style={styles.startCallButtonText}>Start Call Manually</Text>
+              <Text style={{fontSize: 28}}>{isMicMuted ? '🎤❌' : '🎤'}</Text>
+              <Text style={styles.muteButtonText}>{isMicMuted ? 'Mic Off' : 'Mic On'}</Text>
             </TouchableOpacity>
-          )}
+            {/* End Call */}
+            <TouchableOpacity
+              style={[styles.endCallButton, {backgroundColor: '#f44336', width: endCallButtonSize, height: endCallButtonSize, borderRadius: endCallButtonSize / 2, justifyContent: 'center', alignItems: 'center'}]}
+              onPress={handleEndCall}
+            >
+              <Text style={[styles.endCallButtonText, {fontSize: endCallButtonSize * 0.25}]}>✖️</Text>
+              <Text style={[styles.endCallButtonText, {fontSize: 10}]}>End Call</Text>
+            </TouchableOpacity>
+            {/* Mute Headphones */}
+            <TouchableOpacity
+              style={[styles.muteButton, isHeadphonesMuted ? styles.muteButtonActive : null]}
+              onPress={() => setIsHeadphonesMuted(m => !m)}
+            >
+              <Text style={{fontSize: 28}}>{isHeadphonesMuted ? '🎧❌' : '🎧'}</Text>
+              <Text style={styles.muteButtonText}>{isHeadphonesMuted ? 'Headphones Off' : 'Headphones On'}</Text>
+            </TouchableOpacity>
+          </View>
+
+          {/* Instructions */}
+          <View style={styles.instructionsContainer}>
+            <Text style={[styles.instructionsText, {color: darkMode ? '#ccc' : '#666', fontSize: fontSize}]}>🎤 Voice communication active • Tap status to check connection</Text>
+            <Text style={[styles.instructionsText, {color: darkMode ? '#ccc' : '#666', fontSize: fontSize}]}>🔄 Use voice status button if audio issues occur</Text>
+          </View>
         </View>
-      )}
-
-      {/* Control Buttons */}
-      <View style={styles.controlsContainer}>
-        <TouchableOpacity
-          style={[
-            styles.controlButton,
-            {backgroundColor: isMuted ? '#ff4444' : '#4CAF50'},
-          ]}
-          onPress={toggleMute}
-          disabled={!isCallActive}>
-          <Image
-            source={
-              isMuted
-                ? require('../../assets/logos/crossed-mic.png')
-                : require('../../assets/logos/microphone.png')
-            }
-            style={styles.controlIcon}
-          />
-          <Text style={styles.controlText}>
-            {isMuted ? 'Unmute' : 'Mute'}
-          </Text>
-        </TouchableOpacity>
-
-        <TouchableOpacity
-          style={[
-            styles.controlButton,
-            {backgroundColor: isSpeakerOn ? '#4CAF50' : '#666'},
-          ]}
-          onPress={toggleSpeaker}
-          disabled={!isCallActive}>
-          <Image
-            source={require('../../assets/logos/speaker.png')}
-            style={styles.controlIcon}
-          />
-          <Text style={styles.controlText}>
-            {isSpeakerOn ? 'Speaker On' : 'Speaker Off'}
-          </Text>
-        </TouchableOpacity>
-
-        <TouchableOpacity
-          style={[styles.controlButton, {backgroundColor: '#ff4444'}]}
-          onPress={endCall}>
-          <Text style={[styles.controlText, {fontSize: 18}]}>📞</Text>
-          <Text style={styles.controlText}>End Call</Text>
-        </TouchableOpacity>
-      </View>
-
-      {/* Instructions */}
-      <View style={styles.instructionsContainer}>
-        <Text style={[styles.instructionsTitle, {color: textColor}]}>
-          How Private Calls Work:
-        </Text>
-        <Text style={[styles.instructionText, {color: darkMode ? '#ccc' : '#666'}]}>
-          🔐 Both users joined the same private channel
-        </Text>
-        <Text style={[styles.instructionText, {color: darkMode ? '#ccc' : '#666'}]}>
-          📡 Channel: {privateChannelName}
-        </Text>
-        <Text style={[styles.instructionText, {color: darkMode ? '#ccc' : '#666'}]}>
-          👂 Only you and {otherUser.username} can hear each other
-        </Text>
-        <Text style={[styles.instructionText, {color: darkMode ? '#ccc' : '#666'}]}>
-          🎤 Use mute/unmute to control your microphone
-        </Text>
-        <Text style={[styles.instructionText, {color: darkMode ? '#ccc' : '#666'}]}>
-          🔊 Use speaker toggle for audio output
-        </Text>
-      </View>
+      </ScrollView>
     </SafeAreaView>
   );
 };
@@ -316,86 +487,110 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     padding: 20,
+    paddingTop: 10,
+  },
+  scrollView: {
+    flex: 1,
+  },
+  scrollContent: {
+    flexGrow: 1,
+    paddingVertical: 20,
+    alignItems: 'center',
+  },
+  mainContainer: {
+    alignItems: 'center',
+    width: '100%',
   },
   header: {
     alignItems: 'center',
-    marginBottom: 30,
+    marginBottom: 25,
+    width: '100%',
   },
   headerTitle: {
-    fontSize: 24,
     fontWeight: 'bold',
-    marginBottom: 10,
+    marginBottom: 5,
   },
-  callStatus: {
-    fontSize: 16,
-    opacity: 0.7,
+  duration: {
+    fontWeight: '600',
+    marginBottom: 5,
+  },
+  status: {
+    fontWeight: '500',
   },
   userInfo: {
     alignItems: 'center',
     padding: 20,
     borderRadius: 15,
-    marginBottom: 20,
+    marginBottom: 15,
     elevation: 3,
     shadowColor: '#000',
     shadowOffset: {width: 0, height: 2},
     shadowOpacity: 0.1,
     shadowRadius: 4,
+    width: '100%',
   },
   userAvatar: {
-    width: 80,
-    height: 80,
-    borderRadius: 40,
     backgroundColor: '#4CAF50',
     justifyContent: 'center',
     alignItems: 'center',
     marginBottom: 15,
   },
   avatarText: {
-    fontSize: 32,
     fontWeight: 'bold',
-    color: '#fff',
   },
   username: {
-    fontSize: 22,
     fontWeight: 'bold',
     marginBottom: 5,
   },
   userEmail: {
-    fontSize: 14,
     marginBottom: 5,
   },
-  userRole: {
-    fontSize: 14,
+  role: {
     fontWeight: '600',
   },
-  durationContainer: {
-    alignItems: 'center',
-    marginBottom: 20,
+  callInfo: {
+    padding: 15,
+    borderRadius: 12,
+    marginBottom: 15,
+    elevation: 2,
+    shadowColor: '#000',
+    shadowOffset: {width: 0, height: 1},
+    shadowOpacity: 0.1,
+    shadowRadius: 3,
+    width: '100%',
   },
-  duration: {
-    fontSize: 20,
+  infoTitle: {
     fontWeight: 'bold',
-    padding: 10,
-    borderRadius: 10,
-    backgroundColor: 'rgba(76, 175, 80, 0.1)',
+    marginBottom: 10,
   },
-  connectingContainer: {
+  infoText: {
+    marginBottom: 3,
+  },
+  actionButtonsContainer: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
     alignItems: 'center',
     marginBottom: 20,
+    paddingHorizontal: 10,
+    width: '100%',
   },
-  connectingText: {
-    fontSize: 16,
-    fontStyle: 'italic',
+  voiceStatusButton: {
+    flex: 1,
+    padding: 15,
+    borderRadius: 10,
+    alignItems: 'center',
+    marginRight: 15,
+    elevation: 2,
+    shadowColor: '#000',
+    shadowOffset: {width: 0, height: 1},
+    shadowOpacity: 0.1,
+    shadowRadius: 3,
   },
-  controlsContainer: {
-    flexDirection: 'row',
-    justifyContent: 'space-around',
-    marginBottom: 30,
+  controlButtonText: {
+    color: '#fff',
+    fontWeight: 'bold',
   },
-  controlButton: {
-    width: 80,
-    height: 80,
-    borderRadius: 40,
+  endCallButton: {
     justifyContent: 'center',
     alignItems: 'center',
     elevation: 3,
@@ -404,56 +599,48 @@ const styles = StyleSheet.create({
     shadowOpacity: 0.2,
     shadowRadius: 4,
   },
-  controlIcon: {
-    width: 24,
-    height: 24,
-    tintColor: '#fff',
-    marginBottom: 5,
-  },
-  controlText: {
+  endCallButtonText: {
     color: '#fff',
-    fontSize: 12,
     fontWeight: 'bold',
-    textAlign: 'center',
   },
   instructionsContainer: {
     marginTop: 'auto',
-    padding: 15,
+    padding: 12,
     borderRadius: 10,
     backgroundColor: 'rgba(100, 100, 100, 0.1)',
+    width: '100%',
   },
-  instructionsTitle: {
-    fontSize: 16,
-    fontWeight: 'bold',
-    marginBottom: 10,
+  instructionsText: {
+    textAlign: 'center',
+    marginBottom: 3,
+    fontStyle: 'italic',
   },
-  instructionText: {
-    fontSize: 14,
-    marginBottom: 5,
-  },
-  statusContainer: {
+  actionButtonsRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-around',
     alignItems: 'center',
     marginBottom: 20,
+    width: '100%',
   },
-  statusText: {
-    fontSize: 16,
-    marginBottom: 15,
-    textAlign: 'center',
-  },
-  startCallButton: {
-    padding: 12,
-    borderRadius: 20,
+  muteButton: {
+    flex: 1,
     alignItems: 'center',
-    elevation: 3,
-    shadowColor: '#000',
-    shadowOffset: {width: 0, height: 2},
-    shadowOpacity: 0.2,
-    shadowRadius: 4,
+    paddingVertical: 10,
+    paddingHorizontal: 15,
+    borderRadius: 10,
+    marginHorizontal: 10,
+    backgroundColor: 'rgba(100, 100, 100, 0.2)',
+    borderWidth: 1,
+    borderColor: 'transparent',
   },
-  startCallButtonText: {
+  muteButtonActive: {
+    backgroundColor: 'rgba(100, 100, 100, 0.3)',
+    borderColor: 'rgba(255, 255, 255, 0.5)',
+  },
+  muteButtonText: {
+    marginTop: 5,
+    fontSize: 12,
     color: '#fff',
-    fontSize: 16,
-    fontWeight: 'bold',
   },
 });
 

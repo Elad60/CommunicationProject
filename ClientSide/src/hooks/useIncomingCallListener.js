@@ -1,101 +1,170 @@
-import {useEffect, useRef} from 'react';
-import {Alert, AppState} from 'react-native';
-import {useNavigation} from '@react-navigation/native';
-import {useAuth} from '../context/AuthContext';
+import {useState, useEffect, useRef, useCallback} from 'react';
 import {privateCallApi} from '../utils/apiService';
+import {useAuth} from '../context/AuthContext';
 
-export const useIncomingCallListener = () => {
-  const navigation = useNavigation();
+const useIncomingCallListener = (navigation) => {
+  console.log('🎣 useIncomingCallListener CALLED'); // Track every call
+  
   const {user} = useAuth();
+  const [incomingCall, setIncomingCall] = useState(null);
+  const [isListening, setIsListening] = useState(false);
   const intervalRef = useRef(null);
-  const appState = useRef(AppState.currentState);
+  const incomingCallRef = useRef(null); // ✅ FIX: Use ref to avoid infinite loop
 
+  // Update ref whenever incomingCall changes
   useEffect(() => {
-    if (!user?.id) return;
+    incomingCallRef.current = incomingCall;
+  }, [incomingCall]);
 
-    // Start listening for incoming calls
-    startListening();
-
-    // Listen for app state changes
-    const handleAppStateChange = (nextAppState) => {
-      if (
-        appState.current.match(/inactive|background/) &&
-        nextAppState === 'active'
-      ) {
-        console.log('App has come to the foreground, checking for missed calls');
-        checkForIncomingCalls();
+  // Check for incoming calls - STABLE function
+  const checkForIncomingCalls = useCallback(async () => {
+    if (!user?.id) {
+      return;
+    }
+    
+    try {
+      console.log('🔍 Checking for incoming calls for user:', user.id);
+      const response = await privateCallApi.getIncomingCalls(user.id);
+      console.log('📋 Full API Response:', JSON.stringify(response, null, 2));
+      
+      // ✅ FIX: Check for both IncomingCalls and incomingCalls to handle case sensitivity
+      const incomingCalls = response.IncomingCalls || response.incomingCalls;
+      
+      if (response.success && incomingCalls && incomingCalls.length > 0) {
+        const latestCall = incomingCalls[0];
+        console.log('📞 Found incoming call:', JSON.stringify(latestCall, null, 2));
+        console.log('🔍 Current incomingCallRef:', incomingCallRef.current);
+        
+        // Check if this is a new call using ref
+        const callId = latestCall.Id || latestCall.id; // ✅ FIX: Handle both Id and id
+        const currentCallId = incomingCallRef.current?.Id || incomingCallRef.current?.id;
+        
+        if (!incomingCallRef.current || callId !== currentCallId) {
+          console.log('🆕 New incoming call detected!');
+          console.log('🆕 Previous call ID:', currentCallId);
+          console.log('🆕 New call ID:', callId);
+          
+          setIncomingCall(latestCall);
+          
+          // Navigate and stop listening
+          console.log('✅ Navigating to IncomingCall');
+          navigation.navigate('IncomingCall', {
+            callInvitation: latestCall,
+          });
+          
+          // Stop current polling
+          setIsListening(false);
+          if (intervalRef.current) {
+            clearInterval(intervalRef.current);
+            intervalRef.current = null;
+          }
+        } else {
+          console.log('📞 Same call as before, not navigating');
+          console.log('📞 Current ID:', currentCallId, 'New ID:', callId);
+        }
+      } else {
+        console.log('📭 No incoming calls found - Response:', JSON.stringify(response, null, 2));
+        console.log('🔍 Checked both IncomingCalls and incomingCalls properties');
+        if (incomingCallRef.current) {
+          console.log('🔄 Clearing previous incoming call state');
+          setIncomingCall(null);
+        }
       }
-      appState.current = nextAppState;
-    };
+    } catch (error) {
+      console.error('❌ Error checking for incoming calls:', error);
+      console.error('❌ Error details:', JSON.stringify(error, null, 2));
+    }
+  }, [user?.id, navigation]); // ✅ FIX: Removed incomingCall dependency
 
-    const subscription = AppState.addEventListener('change', handleAppStateChange);
-
-    return () => {
-      stopListening();
-      subscription?.remove();
-    };
-  }, [user?.id]);
-
-  const startListening = () => {
-    console.log('🔔 Starting incoming call listener...');
+  // Start listening - STABLE function
+  const startListening = useCallback(() => {
+    if (!user?.id) {
+      console.log('⚠️ No user - cannot start listening');
+      return;
+    }
     
-    // Check immediately
-    checkForIncomingCalls();
-    
-    // Then check every 3 seconds
-    intervalRef.current = setInterval(() => {
-      checkForIncomingCalls();
-    }, 3000);
-  };
-
-  const stopListening = () => {
-    console.log('🔕 Stopping incoming call listener...');
     if (intervalRef.current) {
+      console.log('⚠️ Already listening - clearing previous interval');
       clearInterval(intervalRef.current);
       intervalRef.current = null;
     }
-  };
+    
+    console.log('🔔 Starting to listen for incoming calls for user:', user.id);
+    setIsListening(true);
+    
+    // Check immediately
+    console.log('🔔 Checking immediately...');
+    checkForIncomingCalls();
+    
+    // Then check every 3 seconds
+    console.log('🔔 Setting up 3-second interval...');
+    intervalRef.current = setInterval(() => {
+      console.log('⏰ Interval tick - checking for calls...');
+      checkForIncomingCalls();
+    }, 3000);
+    
+    console.log('🔔 Interval set with ID:', intervalRef.current);
+  }, [user?.id, checkForIncomingCalls]);
 
-  const checkForIncomingCalls = async () => {
+  // Stop listening - STABLE function
+  const stopListening = useCallback(() => {
+    console.log('🔕 Stopping incoming call listener...');
+    setIsListening(false);
+    
+    if (intervalRef.current) {
+      console.log('🔕 Clearing interval:', intervalRef.current);
+      clearInterval(intervalRef.current);
+      intervalRef.current = null;
+    }
+  }, []);
+
+  // Clean up on unmount
+  useEffect(() => {
+    return () => {
+      console.log('🧹 useIncomingCallListener cleanup');
+      if (intervalRef.current) {
+        clearInterval(intervalRef.current);
+        intervalRef.current = null;
+      }
+    };
+  }, []);
+
+  // Resume listening - STABLE function
+  const resumeListening = useCallback(() => {
+    console.log('🔄 Manually resuming call listener...');
+    console.log('🔄 User ID:', user?.id);
     try {
-      // Try to check for real incoming calls
-      const incomingCalls = await privateCallApi.checkIncomingCalls(user.id);
-      
-      if (incomingCalls && incomingCalls.length > 0) {
-        // Handle the first incoming call
-        const firstCall = incomingCalls[0];
-        console.log('📞 Incoming call detected:', firstCall);
-        
-        // Stop listening while handling the call
-        stopListening();
-        
-        // Navigate to incoming call screen
-        navigation.navigate('IncomingCall', {
-          invitation: {
-            invitationId: firstCall.id,
-            callerId: firstCall.callerId,
-            callerName: firstCall.callerName,
-            callerEmail: firstCall.callerEmail,
-            callerRole: firstCall.callerRole,
-            timestamp: firstCall.timestamp,
-          },
-        });
+      if (user?.id) {
+        startListening();
+      } else {
+        console.log('⚠️ Cannot resume listening - no user logged in');
       }
     } catch (error) {
-      // Only log the error, don't show to user
-      if (error.response?.status === 404) {
-        console.log('ℹ️ Incoming calls API endpoint not found (expected in development)');
-      } else if (error.code === 'NETWORK_ERROR' || error.message.includes('timeout')) {
-        console.log('🌐 Network error checking for incoming calls (will retry)');
-      } else {
-        console.error('❌ Error checking for incoming calls:', error.message);
-      }
-      // Don't show error to user, just continue listening
+      console.error('❌ Error in resumeListening:', error);
     }
-  };
+  }, [user?.id, startListening]);
+
+  // Pause listening - STABLE function
+  const pauseListening = useCallback(() => {
+    console.log('⏸️ Manually pausing call listener...');
+    try {
+      stopListening();
+    } catch (error) {
+      console.error('❌ Error in pauseListening:', error);
+    }
+  }, [stopListening]);
+
+  // Log state changes
+  useEffect(() => {
+    console.log('📊 Listener state - isListening:', isListening, 'intervalRef:', !!intervalRef.current);
+  }, [isListening]);
 
   return {
-    startListening,
-    stopListening,
+    incomingCall,
+    isListening,
+    resumeListening,
+    pauseListening,
   };
-}; 
+};
+
+export default useIncomingCallListener; 
