@@ -142,6 +142,8 @@ const MainScreen = ({navigation}) => {
   const [pinInput, setPinInput] = useState('');
   const [pendingJoinChannel, setPendingJoinChannel] = useState(null); // channel object
   const [pinError, setPinError] = useState('');
+  const [pinDirection, setPinDirection] = useState('forward'); // 'forward' or 'reverse'
+  const [pinTriesLeft, setPinTriesLeft] = useState(3);
 
   // Fetch radio channels for the authenticated user
   const fetchRadioChannels = async () => {
@@ -245,12 +247,19 @@ const MainScreen = ({navigation}) => {
         (newState === 'ListenOnly' || newState === 'ListenAndTalk')
       ) {
         // For Idle -> ListenOnly/ListenAndTalk, wait for both backend and voice join before updating UI
-        await radioChannelsApi.updateChannelState(
-          userId,
-          channelId,
-          newState,
-          pinCode,
-        );
+        try {
+          await radioChannelsApi.updateChannelState(
+            userId,
+            channelId,
+            newState,
+            pinCode,
+          );
+        } catch (err) {
+          if (err && err.response && err.response.status === 401) {
+            throw new Error('Incorrect PIN');
+          }
+          throw err;
+        }
         let joinSuccess = false;
         if (activeVoiceChannel === channelId) {
           // Channel is already connected, just mute/unmute
@@ -349,6 +358,9 @@ const MainScreen = ({navigation}) => {
     } catch (error) {
       // Rollback UI state and show error
       setRadioChannels(radioChannels);
+      if (error && error.message === 'Incorrect PIN') {
+        throw error; // Let the modal handle this
+      }
       Alert.alert(
         'Connection Error',
         `Failed to ${
@@ -424,7 +436,9 @@ const MainScreen = ({navigation}) => {
       setPendingJoinChannel(channel);
       setPinInput('');
       setPinError('');
+      setPinTriesLeft(3);
       setPinModalVisible(true);
+      setPinDirection('forward');
     } else {
       // For public rooms, join directly
       handleToggleChannelState(channel.id);
@@ -439,12 +453,42 @@ const MainScreen = ({navigation}) => {
     try {
       setPinError('');
       if (!pendingJoinChannel) return;
-      setPinModalVisible(false);
-      setTimeout(() => {
-        handleChannelStateChange(pendingJoinChannel.id, 'forward', pinInput);
-      }, 200);
+      // Try the state change, but catch unauthorized (wrong PIN) and show error in modal
+      const result = await handleChannelStateChangeWithPinResult(
+        pendingJoinChannel.id,
+        pinDirection,
+        pinInput,
+      );
+      if (result === 'unauthorized') {
+        if (pinTriesLeft > 1) {
+          setPinTriesLeft(pinTriesLeft - 1);
+          setPinError(`Incorrect PIN. ${pinTriesLeft - 1} tries left.`);
+        } else {
+          setPinTriesLeft(0);
+          setPinError('Too many failed attempts. Please try again later.');
+        }
+      } else {
+        setPinModalVisible(false);
+      }
     } catch (err) {
-      setPinError('Incorrect PIN or failed to join room');
+      setPinError('Failed to join room. Please try again.');
+    }
+  };
+
+  // Add a helper to handle state change and catch unauthorized
+  const handleChannelStateChangeWithPinResult = async (
+    channelId,
+    direction,
+    pinCode,
+  ) => {
+    try {
+      await handleChannelStateChange(channelId, direction, pinCode);
+      return 'success';
+    } catch (error) {
+      if (error && error.message && error.message.includes('Incorrect PIN')) {
+        return 'unauthorized';
+      }
+      return 'error';
     }
   };
 
@@ -486,10 +530,26 @@ const MainScreen = ({navigation}) => {
               <View key={channel.id}>
                 <TouchableOpacity
                   onPress={e => {
-                    if (e && e.nativeEvent && e.nativeEvent.shiftKey) {
+                    const isShift =
+                      e && e.nativeEvent && e.nativeEvent.shiftKey;
+                    // If channel is Idle and Private, require PIN for both directions
+                    if (
+                      channel.channelState === 'Idle' &&
+                      channel.mode === 'Private'
+                    ) {
+                      const isShift =
+                        e && e.nativeEvent && e.nativeEvent.shiftKey;
+                      setPendingJoinChannel(channel);
+                      setPinInput('');
+                      setPinError('');
+                      setPinTriesLeft(3);
+                      setPinModalVisible(true);
+                      // Store direction for PIN modal
+                      setPinDirection(isShift ? 'reverse' : 'forward');
+                    } else if (isShift) {
                       handleReverseChannelState(channel.id);
                     } else if (channel.channelState === 'Idle') {
-                      handleJoinRoom(channel); // Show PIN modal for Private rooms
+                      handleJoinRoom(channel);
                     } else {
                       handleChannelSelect(channel.id);
                       handleToggleChannelState(channel.id);
@@ -720,10 +780,10 @@ const MainScreen = ({navigation}) => {
                   borderRadius: 8,
                   backgroundColor: darkMode ? '#2196F3' : '#1976d2',
                   marginLeft: 8,
-                  opacity: pinInput.length === 4 ? 1 : 0.5,
+                  opacity: pinInput.length === 4 && pinTriesLeft > 0 ? 1 : 0.5,
                 }}
                 onPress={handlePinJoin}
-                disabled={pinInput.length !== 4}>
+                disabled={pinInput.length !== 4 || pinTriesLeft === 0}>
                 <Text style={{color: '#fff', fontWeight: 'bold'}}>Join</Text>
               </TouchableOpacity>
             </View>
