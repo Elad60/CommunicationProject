@@ -39,7 +39,7 @@ const WaitingForCallScreen = ({route, navigation}) => {
 
   // 🎯 NEW: Calculate responsive sizes
   const avatarSize = Math.min(width * 0.2, 100); // Responsive avatar size
-  const buttonSize = Math.min(width * 0.15, 80); // Responsive button size
+  const buttonSize = Math.min(width * 0.12, 50); // Responsive button size - reduced from 80 to 50
   const fontSize = Math.min(width * 0.035, 14); // Responsive font size
   const headerFontSize = Math.min(width * 0.05, 20); // Responsive header font size
 
@@ -457,14 +457,14 @@ const WaitingForCallScreen = ({route, navigation}) => {
         {/* Action Buttons */}
         <View style={styles.actionButtonsContainer}>
           <TouchableOpacity
-            style={[styles.actionButton, {backgroundColor: '#ff4444', width: buttonSize, height: buttonSize}]}
+            style={[styles.actionButton, {backgroundColor: '#ff4444'}]}
             onPress={handleCancelCall}
           >
             <Text style={[styles.actionButtonText, {fontSize: fontSize}]}>🚫 Cancel Call</Text>
           </TouchableOpacity>
           
           <TouchableOpacity
-            style={[styles.actionButton, {backgroundColor: '#2196F3', width: buttonSize, height: buttonSize}]}
+            style={[styles.actionButton, {backgroundColor: '#2196F3'}]}
             onPress={() => {
               Alert.alert(
                 'Call Information',
@@ -604,21 +604,22 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     marginBottom: 30,
     paddingHorizontal: 20,
-    gap: 24, // מרווח בין הכפתורים (אם נתמך)
+    gap: 16, // Reduced from 24 to 16 for better proportion
   },
   actionButton: {
     flex: 1,
-    padding: 15,
-    borderRadius: 25,
+    padding: 12, // Reduced from 15 to 12
+    borderRadius: 20, // Reduced from 25 to 20
     alignItems: 'center',
     elevation: 3,
     shadowColor: '#000',
     shadowOffset: {width: 0, height: 2},
     shadowOpacity: 0.2,
     shadowRadius: 4,
-    minWidth: 140,
-    maxWidth: 220,
-    marginHorizontal: 12,
+    minWidth: 120, // Reduced from 140 to 120
+    maxWidth: 180, // Reduced from 220 to 180
+    marginHorizontal: 8, // Reduced from 12 to 8
+    minHeight: 44, // Added minimum height for better touch target
   },
   actionButtonText: {
     color: '#fff',

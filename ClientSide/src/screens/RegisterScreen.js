@@ -288,7 +288,7 @@ const RegisterScreen = ({onRegister, onNavigateToLogin}) => {
                 • One special character
               </Text>
             </View>
-            <Text style={styles.label}>Select Group</Text>
+            <Text style={styles.label}>Select Department</Text>
             <View style={styles.letterContainer}>
               {letters.map(letter => (
                 <TouchableOpacity
