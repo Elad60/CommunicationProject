@@ -21,13 +21,11 @@ const radioChannelsApi = {
   },
 
   // Update the state of a specific channel for a user
-  updateChannelState: async (userId, channelId, newState) => {
+  updateChannelState: async (userId, channelId, newState, pinCode) => {
+    const body = pinCode ? {newState, pinCode} : {newState};
     await api.post(
       `/radiochannels/user/${userId}/channel/${channelId}/state`,
-      JSON.stringify(newState),
-      {
-        headers: {'Content-Type': 'application/json'},
-      },
+      body,
     );
   },
 
@@ -43,9 +41,12 @@ const radioChannelsApi = {
     await api.delete(`/radiochannels/${channelId}`);
   },
 
-  // Assign a channel to a specific user
-  addUserChannel: async (userId, channelId) => {
-    await api.post(`/radiochannels/user/${userId}/add-channel/${channelId}`);
+  addUserChannel: async (userId, channelId, pinCode) => {
+    const body = pinCode ? {pinCode} : {};
+    await api.post(
+      `/radiochannels/user/${userId}/add-channel/${channelId}`,
+      body,
+    );
   },
 
   // Remove a channel from a specific user
@@ -54,6 +55,12 @@ const radioChannelsApi = {
       `/radiochannels/user/${userId}/remove-channel/${channelId}`,
     );
   },
+
+  getChannelParticipants: async channelId => {
+    const response = await api.get(`/radiochannels/${channelId}/participants`);
+    return response.data;
+  },
+  
 };
 
 // 🔐 Authentication API
