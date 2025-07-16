@@ -27,6 +27,8 @@ const SettingsScreen = ({navigation}) => {
     setBrightness,
     darkMode,
     setDarkMode,
+    showMode,
+    setShowMode,
   } = useSettings();
 
   // Toggle setting value for switches
@@ -46,11 +48,8 @@ const SettingsScreen = ({navigation}) => {
     <View style={styles.settingItem}>
       <Text style={[styles.settingLabel, {color: textColor}]}>{label}</Text>
       <Switch
-        trackColor={{
-          false: darkMode ? '#444' : '#767577',
-          true: buttonColor,
-        }}
-        thumbColor={darkMode ? '#fff' : '#000'}
+        trackColor={{false: '#bdbdbd', true: '#90caf9'}}
+        thumbColor={value ? '#607D8B' : '#4CAF50'}
         onValueChange={onToggle}
         value={value}
       />
@@ -66,11 +65,8 @@ const SettingsScreen = ({navigation}) => {
             <Text style={[styles.sectionTitle, {color: textColor}]}>
               Display Settings
             </Text>
-            {renderSettingItem(
-              'Show Frequency',
-              'showFrequency',
-              showFrequency,
-              () => setShowFrequency(!showFrequency),
+            {renderSettingItem('Show Mode', 'showMode', showMode, () =>
+              setShowMode(!showMode),
             )}
             {renderSettingItem('Show Status', 'showStatus', showStatus, () =>
               setShowStatus(!showStatus),

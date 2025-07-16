@@ -13,31 +13,32 @@ import AppLayout from '../components/AppLayout';
 import {useAuth} from '../context/AuthContext';
 import {groupUsersApi, privateCallApi} from '../utils/apiService';
 import {useSettings} from '../context/SettingsContext';
-import { useDebouncedDimensions } from '../utils/useDebouncedDimensions';
+import {useDebouncedDimensions} from '../utils/useDebouncedDimensions';
+import {useVoice} from '../context/VoiceContext';
 // import useIncomingCallListener from '../hooks/useIncomingCallListener'; // MOVED TO GLOBAL
 
 const GroupsScreen = ({navigation}) => {
   console.log('🟢 GroupsScreen RENDERED');
-  
+
   // Destructuring user and changeGroup from AuthContext
   const {user, changeGroup} = useAuth();
-  
+
   // States for managing group users, loading status, and errors
   const [groupUsers, setGroupUsers] = useState([]);
   const [loading, setLoading] = useState(true);
   const [, setError] = useState(null);
-  
+
   // Array for group letter options
   const letters = ['A', 'B', 'C', 'D', 'E', 'F'];
-  
+
   // Fetching dark mode setting from SettingsContext
   const {darkMode} = useSettings();
-  
+
   // Setting text color based on dark mode
   const textColor = darkMode ? '#fff' : '#000';
-  
+
   // Debounced dimensions for responsive UI
-  const { height, width } = useDebouncedDimensions(300);
+  const {height, width} = useDebouncedDimensions(300);
 
   // Component lifecycle logging
   useEffect(() => {
@@ -70,7 +71,9 @@ const GroupsScreen = ({navigation}) => {
     try {
       setLoading(true);
       const groupName = user?.group;
-      if (!groupName) {throw new Error('Group not found');}
+      if (!groupName) {
+        throw new Error('Group not found');
+      }
 
       // API call to get users by group
       const users = await groupUsersApi.getUsersByGroup(groupName);
@@ -106,7 +109,7 @@ const GroupsScreen = ({navigation}) => {
   // Function to handle user press for private call options
   const onUserPress = userId => {
     const selectedUser = groupUsers.find(u => u.id === userId);
-    
+
     // Show confirmation dialog before starting private call
     Alert.alert(
       'Start Private Call',
@@ -115,52 +118,59 @@ const GroupsScreen = ({navigation}) => {
         {
           text: 'Cancel',
           style: 'cancel',
-          onPress: () => console.log('Call cancelled by user')
+          onPress: () => console.log('Call cancelled by user'),
         },
         {
           text: 'Call',
           style: 'default',
-          onPress: () => startPrivateCall(selectedUser)
-        }
-      ]
+          onPress: () => startPrivateCall(selectedUser),
+        },
+      ],
     );
   };
 
   // Function to start private call (send invitation)
-  const startPrivateCall = async (otherUser) => {
+  const startPrivateCall = async otherUser => {
     console.log(`📞 Starting private call with ${otherUser.username}`);
-    
+
     try {
+      // Disconnect from radio channel first
+      await leaveVoiceChannel();
       // Send invitation using the API first
-      const response = await privateCallApi.sendInvitation(user.id, otherUser.id);
-      
+      const response = await privateCallApi.sendInvitation(
+        user.id,
+        otherUser.id,
+      );
+
       console.log('📋 Full API response:', response);
-      
-      if (response.success) {  // ← Fixed: lowercase 'success'
+
+      if (response.success) {
+        // ← Fixed: lowercase 'success'
         console.log('✅ Invitation sent successfully:', response);
-        
+
         // Navigate to waiting screen with invitation details
         navigation.navigate('WaitingForCall', {
           otherUser,
-          invitationId: response.invitationId,  // ← Fixed: lowercase 'invitationId'
-          channelName: response.channelName,    // ← Fixed: lowercase 'channelName'
+          invitationId: response.invitationId, // ← Fixed: lowercase 'invitationId'
+          channelName: response.channelName, // ← Fixed: lowercase 'channelName'
         });
       } else {
         console.log('❌ Invitation failed:', response.message);
-        
+
         Alert.alert(
           'Call Failed',
-          response.message || 'Failed to send call invitation. Please try again.',
-          [{text: 'OK'}]
+          response.message ||
+            'Failed to send call invitation. Please try again.',
+          [{text: 'OK'}],
         );
       }
     } catch (error) {
       console.error('❌ Error sending call invitation:', error);
-      
+
       Alert.alert(
         'Call Failed',
         error.message || 'Failed to send call invitation. Please try again.',
-        [{text: 'OK'}]
+        [{text: 'OK'}],
       );
     }
   };
@@ -170,23 +180,22 @@ const GroupsScreen = ({navigation}) => {
     Alert.alert(
       '💡 How to make Private Calls',
       '• Tap on any user to start a private call\n\n' +
-      '📞 Your invitation will be sent immediately\n\n' +
-      '• 🟢 Online users are more likely to respond\n' +
-      '• 🔴 Offline users may not see your call\n\n' +
-      '• You can cancel the call while waiting\n' +
-      '• The other user has 1 minute to respond',
-      [{text: 'Got it!', style: 'default'}]
+        '📞 Your invitation will be sent immediately\n\n' +
+        '• 🟢 Online users are more likely to respond\n' +
+        '• 🔴 Offline users may not see your call\n\n' +
+        '• You can cancel the call while waiting\n' +
+        '• The other user has 1 minute to respond',
+      [{text: 'Got it!', style: 'default'}],
     );
   };
 
   // Loading state display
   if (loading) {
     return (
-      <AppLayout 
-        navigation={navigation} 
+      <AppLayout
+        navigation={navigation}
         title={`Department: ${user?.group}`}
-        onShowInstructions={showInstructions}
-      >
+        onShowInstructions={showInstructions}>
         <View
           style={[
             styles.centerContainer,
@@ -207,11 +216,10 @@ const GroupsScreen = ({navigation}) => {
 
   // Main screen layout
   return (
-    <AppLayout 
-      navigation={navigation} 
-              title={`Department: ${user?.group}`}
-      onShowInstructions={showInstructions}
-    >
+    <AppLayout
+      navigation={navigation}
+      title={`Department: ${user?.group}`}
+      onShowInstructions={showInstructions}>
       <ScrollView
         style={[
           styles.scrollView,
@@ -243,12 +251,12 @@ const GroupsScreen = ({navigation}) => {
                   onPress={u.isActive ? () => onUserPress(u.id) : null}
                   disabled={!u.isActive}
                   activeOpacity={u.isActive ? 0.7 : 1}>
-                  
                   {/* User Avatar Circle */}
-                  <View style={[
-                    styles.userAvatar,
-                    {backgroundColor: u.isActive ? '#4CAF50' : '#f44336'}
-                  ]}>
+                  <View
+                    style={[
+                      styles.userAvatar,
+                      {backgroundColor: u.isActive ? '#4CAF50' : '#f44336'},
+                    ]}>
                     <Text style={styles.avatarText}>
                       {u.username.charAt(0).toUpperCase()}
                     </Text>
@@ -256,27 +264,42 @@ const GroupsScreen = ({navigation}) => {
 
                   {/* User Info */}
                   <View style={styles.userInfo}>
-                    <Text style={[styles.username, {color: textColor}]} numberOfLines={1}>
+                    <Text
+                      style={[styles.username, {color: textColor}]}
+                      numberOfLines={1}>
                       {u.username}
                     </Text>
-                    <Text style={[styles.email, {color: darkMode ? '#ccc' : '#666'}]} numberOfLines={1}>
+                    <Text
+                      style={[
+                        styles.email,
+                        {color: darkMode ? '#ccc' : '#666'},
+                      ]}
+                      numberOfLines={1}>
                       {u.email}
                     </Text>
-                    <Text style={[styles.role, {color: darkMode ? '#91aad4' : '#004080'}]} numberOfLines={1}>
+                    <Text
+                      style={[
+                        styles.role,
+                        {color: darkMode ? '#91aad4' : '#004080'},
+                      ]}
+                      numberOfLines={1}>
                       {u.role}
                     </Text>
                     {!u.isActive && (
-                      <Text style={[styles.offlineText, {color: '#f44336'}]} numberOfLines={1}>
+                      <Text
+                        style={[styles.offlineText, {color: '#f44336'}]}
+                        numberOfLines={1}>
                         Unavailable for calls
                       </Text>
                     )}
                   </View>
 
                   {/* Status Indicator */}
-                  <View style={[
-                    styles.statusIndicator,
-                    {backgroundColor: u.isActive ? '#4CAF50' : '#f44336'}
-                  ]}>
+                  <View
+                    style={[
+                      styles.statusIndicator,
+                      {backgroundColor: u.isActive ? '#4CAF50' : '#f44336'},
+                    ]}>
                     <Text style={styles.statusText}>
                       {u.isActive ? '●' : '●'}
                     </Text>
@@ -297,17 +320,18 @@ const GroupsScreen = ({navigation}) => {
         </View>
       </ScrollView>
 
-      <View style={[
-        styles.bottomSection,
-        {
-          backgroundColor: darkMode ? '#000' : '#d9d9d9',
-          paddingBottom: Math.max(height * 0.15, 90), // Responsive padding based on screen height
-        }
-      ]}>
+      <View
+        style={[
+          styles.bottomSection,
+          {
+            backgroundColor: darkMode ? '#000' : '#d9d9d9',
+            paddingBottom: Math.max(height * 0.15, 90), // Responsive padding based on screen height
+          },
+        ]}>
         <Text style={[styles.label, {color: textColor}]}>
           Change Your Department:
         </Text>
-        
+
         <View style={styles.letterContainer}>
           {letters.map(letter => (
             <TouchableOpacity
@@ -326,7 +350,9 @@ const GroupsScreen = ({navigation}) => {
                 },
               ]}
               onPress={() => handleGroupChange(letter)}>
-              <Text style={[styles.letterText, {color: textColor}]}>{letter}</Text>
+              <Text style={[styles.letterText, {color: textColor}]}>
+                {letter}
+              </Text>
             </TouchableOpacity>
           ))}
         </View>

@@ -52,7 +52,7 @@ const MainScreen = ({navigation}) => {
   const [participantsForModal, setParticipantsForModal] = useState([]);
 
   const {user} = useAuth();
-  const {showFrequency, showStatus, darkMode} = useSettings();
+  const {showFrequency, showStatus, darkMode, showMode} = useSettings();
 
   // Hover state for Reset Voice button
   const [resetHovering, setResetHovering] = useState(false);

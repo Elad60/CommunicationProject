@@ -17,7 +17,7 @@ const RadioChannel = ({
   isMicrophoneEnabled = false,
 }) => {
   // Access settings context values
-  const {darkMode, showFrequency, showStatus} = useSettings();
+  const {darkMode, showFrequency, showStatus, showMode} = useSettings();
 
   // Get screen dimensions with a 300ms debounce to avoid excessive renders
   const {height, width} = useDebouncedDimensions(300);
@@ -120,13 +120,15 @@ const RadioChannel = ({
           {isActive ? 'Active' : 'Inactive'}
         </Text>
       )}
-      <View
-        style={[
-          styles.modeBadge,
-          {backgroundColor: mode === 'Public' ? '#4CAF50' : '#607D8B'},
-        ]}>
-        <Text style={styles.modeBadgeText}>{mode}</Text>
-      </View>
+      {showMode && (
+        <View
+          style={[
+            styles.modeBadge,
+            {backgroundColor: mode === 'Public' ? '#4CAF50' : '#607D8B'},
+          ]}>
+          <Text style={styles.modeBadgeText}>{mode}</Text>
+        </View>
+      )}
       {/* Display headphone and mic icons with voice connection indicator */}
       <View style={styles.iconContainer}>
         <Image source={headphones} style={styles.iconImage} />
