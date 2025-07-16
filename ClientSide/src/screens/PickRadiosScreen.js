@@ -194,14 +194,14 @@ const PickRadiosScreen = ({navigation}) => {
   });
 
   return (
-    <AppLayout navigation={navigation} title="Pick Rooms">
+    <AppLayout navigation={navigation} title="Pick Channels">
       {/* Action Header - Only show when there are changes */}
       {hasChanges && (
         <View style={[styles.actionHeader, dynamicStyles.headerContainer]}>
           <View
             style={[styles.actionHeaderContent, dynamicStyles.headerContent]}>
             <Text style={[styles.actionHeaderTitle, dynamicStyles.headerTitle]}>
-              🎯 Room Selection
+              🎯 Channel Selection
             </Text>
             <View style={styles.actionButtons}>
               <Pressable
@@ -328,7 +328,7 @@ const PickRadiosScreen = ({navigation}) => {
         contentContainerStyle={[styles.container, dynamicStyles.container]}>
         <View style={[styles.sectionCard, dynamicStyles.sectionCard]}>
           <Text style={[styles.title, dynamicStyles.title]}>
-            🎧 Select Your Rooms
+            🎧 Select Your Channels
           </Text>
 
           <TextInput
@@ -341,7 +341,7 @@ const PickRadiosScreen = ({navigation}) => {
 
           {filteredChannels.length === 0 && (
             <Text style={[styles.noResults, dynamicStyles.noResults]}>
-              No matching rooms found.
+              No matching channels found.
             </Text>
           )}
 

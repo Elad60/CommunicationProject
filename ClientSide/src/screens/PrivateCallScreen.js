@@ -70,6 +70,16 @@ const PrivateCallScreen = ({route, navigation}) => {
 
     return () => {
       console.log('🧹 Cleaning up Agora connection (FORCE CLEANUP)...');
+      // 🎤 NEW: Reset audio states on cleanup
+      if (AgoraModule) {
+        try {
+          AgoraModule.MuteLocalAudio(false);
+          AgoraModule.EnableLocalAudio(true);
+          console.log('✅ Audio states reset on cleanup');
+        } catch (error) {
+          console.error('❌ Error resetting audio states on cleanup:', error);
+        }
+      }
       // 🔧 FIX: Force cleanup multiple times to ensure disconnect
       disconnectFromAgora();
       setTimeout(() => {
@@ -83,13 +93,19 @@ const PrivateCallScreen = ({route, navigation}) => {
     console.log('🎬 PrivateCallScreen MOUNTED');
     return () => {
       console.log('🏁 PrivateCallScreen UNMOUNTED - FORCE cleaning up all resources');
-      // 🔧 FIX: Final force disconnect on unmount
+      // 🎤 NEW: Reset audio states on unmount
       if (AgoraModule) {
         try {
+          // Reset audio states
+          AgoraModule.MuteLocalAudio(false);
+          AgoraModule.EnableLocalAudio(true);
+          console.log('✅ Audio states reset on unmount');
+          
+          // Force final disconnect
           AgoraModule.LeaveChannel(); // Force final disconnect
           console.log('✅ Final Agora disconnect on unmount');
         } catch (error) {
-          console.error('❌ Error in final disconnect:', error);
+          console.error('❌ Error in final cleanup:', error);
         }
       }
     };
@@ -141,8 +157,18 @@ const PrivateCallScreen = ({route, navigation}) => {
     try {
       console.log('🎤 Disconnecting from Agora channel (FORCE DISCONNECT)...');
       
-      // 🔧 FIX: Always try to disconnect, don't rely on state
+      // 🎤 NEW: Reset audio states before disconnecting
       if (AgoraModule) {
+        try {
+          AgoraModule.MuteLocalAudio(false);
+          AgoraModule.EnableLocalAudio(true);
+          setIsMicMuted(false);
+          setIsHeadphonesMuted(false);
+          console.log('✅ Audio states reset before disconnect');
+        } catch (audioError) {
+          console.error('❌ Error resetting audio states:', audioError);
+        }
+        
         AgoraModule.LeaveChannel(); // Force disconnect regardless of state
         console.log('✅ Successfully disconnected from Agora (FORCED)');
       }
@@ -203,6 +229,21 @@ const PrivateCallScreen = ({route, navigation}) => {
           // If call was ended by the other user
           if (response.status === 'cancelled' || response.status === 'ended') {
             console.log('❌ Call ended by other user');
+            
+            // 🎤 NEW: Reset audio states when other user ends call
+            console.log('🎤 Other user ended call - resetting audio states...');
+            if (AgoraModule) {
+              try {
+                // Unmute microphone and enable audio output
+                AgoraModule.MuteLocalAudio(false);
+                AgoraModule.EnableLocalAudio(true);
+                setIsMicMuted(false);
+                setIsHeadphonesMuted(false);
+                console.log('✅ Audio states reset successfully');
+              } catch (error) {
+                console.error('❌ Error resetting audio states:', error);
+              }
+            }
             
             // 🔧 FIX: FORCE disconnect from Agora IMMEDIATELY (multiple attempts)
             console.log('🎤 Other user ended call - FORCE disconnecting from Agora...');
@@ -309,6 +350,21 @@ const PrivateCallScreen = ({route, navigation}) => {
     setIsEnding(true);
     setIsCallActive(false);
     
+    // 🎤 NEW: Reset audio states before ending call
+    console.log('🎤 Resetting audio states...');
+    if (AgoraModule) {
+      try {
+        // Unmute microphone and enable audio output
+        AgoraModule.MuteLocalAudio(false);
+        AgoraModule.EnableLocalAudio(true);
+        setIsMicMuted(false);
+        setIsHeadphonesMuted(false);
+        console.log('✅ Audio states reset successfully');
+      } catch (error) {
+        console.error('❌ Error resetting audio states:', error);
+      }
+    }
+    
     // 🔧 FIX: Force disconnect from Agora MULTIPLE TIMES to ensure it works
     console.log('🎤 FORCE disconnecting from Agora before ending call...');
     disconnectFromAgora(); // First attempt
@@ -407,6 +463,80 @@ const PrivateCallScreen = ({route, navigation}) => {
     );
   };
 
+  // 🎤 NEW: Handle microphone mute/unmute with real Agora control
+  const handleMicMute = async () => {
+    try {
+      if (!AgoraModule) {
+        console.log('⚠️ AgoraModule not available for mic control');
+        return;
+      }
+
+      const newMuteState = !isMicMuted;
+      console.log(`🎤 ${newMuteState ? 'Muting' : 'Unmuting'} microphone...`);
+      
+      // Use AgoraModule to actually mute/unmute the microphone
+      AgoraModule.MuteLocalAudio(newMuteState);
+      
+      // Update visual state
+      setIsMicMuted(newMuteState);
+      
+      console.log(`✅ Microphone ${newMuteState ? 'muted' : 'unmuted'} successfully`);
+      
+      // Show user feedback
+      Alert.alert(
+        'Microphone Status',
+        `Microphone ${newMuteState ? 'muted' : 'unmuted'}`,
+        [{text: 'OK'}],
+        {cancelable: true}
+      );
+      
+    } catch (error) {
+      console.error('❌ Error controlling microphone:', error);
+      Alert.alert(
+        'Microphone Error',
+        'Failed to control microphone. Please try again.',
+        [{text: 'OK'}]
+      );
+    }
+  };
+
+  // 🎧 NEW: Handle headphones mute/unmute with real Agora control
+  const handleHeadphonesMute = async () => {
+    try {
+      if (!AgoraModule) {
+        console.log('⚠️ AgoraModule not available for headphones control');
+        return;
+      }
+
+      const newMuteState = !isHeadphonesMuted;
+      console.log(`🎧 ${newMuteState ? 'Muting' : 'Unmuting'} headphones...`);
+      
+      // Use AgoraModule to control audio output (this will mute/unmute what user hears)
+      AgoraModule.EnableLocalAudio(!newMuteState); // Invert because EnableLocalAudio(true) = can hear
+      
+      // Update visual state
+      setIsHeadphonesMuted(newMuteState);
+      
+      console.log(`✅ Headphones ${newMuteState ? 'muted' : 'unmuted'} successfully`);
+      
+      // Show user feedback
+      Alert.alert(
+        'Audio Output Status',
+        `Audio output ${newMuteState ? 'muted' : 'unmuted'}`,
+        [{text: 'OK'}],
+        {cancelable: true}
+      );
+      
+    } catch (error) {
+      console.error('❌ Error controlling headphones:', error);
+      Alert.alert(
+        'Audio Output Error',
+        'Failed to control audio output. Please try again.',
+        [{text: 'OK'}]
+      );
+    }
+  };
+
   const backgroundColor = darkMode ? '#1a1a1a' : '#f0f0f0';
   const textColor = darkMode ? '#fff' : '#000';
   const cardColor = darkMode ? '#333' : '#fff';
@@ -449,7 +579,7 @@ const PrivateCallScreen = ({route, navigation}) => {
             {/* Mute Mic */}
             <TouchableOpacity
               style={[styles.muteButton, isMicMuted ? styles.muteButtonActive : null]}
-              onPress={() => setIsMicMuted(m => !m)}
+              onPress={handleMicMute}
             >
               <Text style={{fontSize: 28}}>{isMicMuted ? '🎤❌' : '🎤'}</Text>
               <Text style={styles.muteButtonText}>{isMicMuted ? 'Mic Off' : 'Mic On'}</Text>
@@ -465,16 +595,18 @@ const PrivateCallScreen = ({route, navigation}) => {
             {/* Mute Headphones */}
             <TouchableOpacity
               style={[styles.muteButton, isHeadphonesMuted ? styles.muteButtonActive : null]}
-              onPress={() => setIsHeadphonesMuted(m => !m)}
+              onPress={handleHeadphonesMute}
             >
-              <Text style={{fontSize: 28}}>{isHeadphonesMuted ? '🎧❌' : '🎧'}</Text>
-              <Text style={styles.muteButtonText}>{isHeadphonesMuted ? 'Headphones Off' : 'Headphones On'}</Text>
+              <Text style={{fontSize: 28}}>{isHeadphonesMuted ? '🔇' : '🔊'}</Text>
+              <Text style={styles.muteButtonText}>{isHeadphonesMuted ? 'Sound Off' : 'Sound On'}</Text>
             </TouchableOpacity>
           </View>
 
           {/* Instructions */}
           <View style={styles.instructionsContainer}>
             <Text style={[styles.instructionsText, {color: darkMode ? '#ccc' : '#666', fontSize: fontSize}]}>🎤 Voice communication active • Tap status to check connection</Text>
+            <Text style={[styles.instructionsText, {color: darkMode ? '#ccc' : '#666', fontSize: fontSize}]}>🎤 Tap microphone button to mute/unmute your voice</Text>
+            <Text style={[styles.instructionsText, {color: darkMode ? '#ccc' : '#666', fontSize: fontSize}]}>🔊 Tap sound button to mute/unmute incoming audio</Text>
             <Text style={[styles.instructionsText, {color: darkMode ? '#ccc' : '#666', fontSize: fontSize}]}>🔄 Use voice status button if audio issues occur</Text>
           </View>
         </View>

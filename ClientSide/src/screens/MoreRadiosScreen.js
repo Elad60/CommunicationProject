@@ -24,7 +24,7 @@ const MoreRadiosScreen = ({navigation}) => {
 
   const [name, setName] = useState(''); // State to hold new channel name input
   const [mode, setMode] = useState('Public'); // 'Public' or 'Private'
-  const [pinCode, setPinCode] = useState(''); // For Private rooms
+  const [pinCode, setPinCode] = useState(''); // For Private channels
 
   // Function to load all channels from the API
   const loadChannels = async () => {
@@ -51,7 +51,7 @@ const MoreRadiosScreen = ({navigation}) => {
     }
 
     try {
-      // Adding the new room via API
+      // Adding the new channel via API
       await radioChannelsApi.addChannel({
         name,
         frequency: '', // Always send frequency, even if empty
@@ -61,14 +61,14 @@ const MoreRadiosScreen = ({navigation}) => {
         channelState: 'Idle',
       });
 
-      Alert.alert('Success', 'Room added successfully ✅'); // Success alert
+      Alert.alert('Success', 'Channel added successfully ✅'); // Success alert
       setName(''); // Resetting inputs
       setPinCode('');
       setMode('Public');
       loadChannels(); // Reload channels after adding
     } catch (err) {
-      console.error('Add room failed:', err.response?.data || err.message);
-      Alert.alert('Error', err.response?.data?.message || 'Failed to add room');
+      console.error('Add channel failed:', err.response?.data || err.message);
+      Alert.alert('Error', err.response?.data?.message || 'Failed to add channel');
     }
   };
 
@@ -107,14 +107,14 @@ const MoreRadiosScreen = ({navigation}) => {
   const styles = getStyles(darkMode);
 
   return (
-    <AppLayout navigation={navigation} title="More Rooms">
+    <AppLayout navigation={navigation} title="More Channels">
       <ScrollView contentContainerStyle={styles.container}>
-        {/* Add Room Section */}
+        {/* Add Channel Section */}
         <View style={styles.sectionCard}>
-          <Text style={styles.title}>Add New Room</Text>
+          <Text style={styles.title}>Add New Channel</Text>
           <TextInput
             style={styles.input}
-            placeholder="🔤 Room Name"
+            placeholder="🔤 Channel Name"
             placeholderTextColor="#aaa"
             value={name}
             onChangeText={setName}
@@ -158,13 +158,13 @@ const MoreRadiosScreen = ({navigation}) => {
             onPress={handleAddChannel}
             darkMode={darkMode}
             style={{marginTop: 5, marginBottom: 10, minWidth: 120}}>
-            Create Room
+            Create Channel
           </StyledButton>
         </View>
 
         {/* Search + List Section */}
         <View style={styles.sectionCard}>
-          <Text style={styles.title}>Existing Rooms</Text>
+          <Text style={styles.title}>Existing Channels</Text>
           <TextInput
             style={styles.input}
             placeholder="🔍 Search by name / mode"
@@ -174,7 +174,7 @@ const MoreRadiosScreen = ({navigation}) => {
           />
 
           {filteredChannels.length === 0 && (
-            <Text style={styles.noResultsText}>No matching rooms found.</Text>
+            <Text style={styles.noResultsText}>No matching channels found.</Text>
           )}
 
           {filteredChannels.map(c => (

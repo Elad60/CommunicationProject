@@ -100,7 +100,7 @@ const NavPanel = ({handleNavigation, darkMode, height, width}) => {
       badgeCount: unreadCount, // Number of unread messages
     },
     {
-      title: 'More Radios',
+      title: 'More Channels',
       icon: require('../../assets/logos/radio-plus.png'),
       screen: 'ChannelConfig',
       roles: ['Technician', 'Admin'],

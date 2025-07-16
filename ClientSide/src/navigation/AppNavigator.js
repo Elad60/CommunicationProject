@@ -67,7 +67,7 @@ const AppNavigator = () => {
         // App navigator when user is logged in
         <>
           <Stack.Navigator
-            initialRouteName="Groups"
+            initialRouteName="Main"
             screenOptions={{
               headerShown: false, // Hide the default header since we have our own in AppLayout
             }}>
