@@ -764,6 +764,7 @@ const styles = StyleSheet.create({
     backgroundColor: 'rgba(100, 100, 100, 0.2)',
     borderWidth: 1,
     borderColor: 'transparent',
+    
   },
   muteButtonActive: {
     backgroundColor: 'rgba(100, 100, 100, 0.3)',

@@ -103,11 +103,34 @@ const MoreRadiosScreen = ({navigation}) => {
     setFilteredChannels(filtered); // Updating filtered channels
   }, [search, channels]);
 
+  // Function to show instructions for channel management
+  const showInstructions = () => {
+    Alert.alert(
+      '📻 How to manage Channels',
+      '• View and manage all available channels\n\n' +
+        '➕ Creating Channels:\n' +
+        '• Fill in channel name\n' +
+        '• Choose Public or Private mode\n' +
+        '• For Private channels, set a 4-digit PIN\n' +
+        '• Tap "Create Channel" to add\n\n' +
+        '🔍 Managing Channels:\n' +
+        '• Search channels by name or mode\n' +
+        '• Only Admins can delete channels\n' +
+        '• Tap 🗑️ to delete a channel\n\n' +
+        '📱 Adding to Your List:\n' +
+        '• Go to "Pick Channels" to add channels to your list',
+      [{text: 'Got it!', style: 'default'}],
+    );
+  };
+
   // Getting styles based on dark mode
   const styles = getStyles(darkMode);
 
   return (
-    <AppLayout navigation={navigation} title="More Channels">
+    <AppLayout 
+      navigation={navigation} 
+      title="More Channels"
+      onShowInstructions={showInstructions}>
       <ScrollView contentContainerStyle={styles.container}>
         {/* Add Channel Section */}
         <View style={styles.sectionCard}>

@@ -98,7 +98,7 @@ const ControlPanel = ({
         // Add Details button only when onShowInstructions is available (Groups screen)
         ...(onShowInstructions ? [{
             title: 'Details',
-            icon: require('../../assets/logos/announcement.png'),
+            icon: require('../../assets/logos/icon-details.jpg'),
             onPress: () => {
                 setSelectedButton('Details');
                 onShowInstructions();

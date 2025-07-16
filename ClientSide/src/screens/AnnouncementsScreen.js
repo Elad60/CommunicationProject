@@ -13,6 +13,7 @@ import {
   ActivityIndicator,
   KeyboardAvoidingView,
   Platform,
+  Alert,
 } from 'react-native';
 import AppLayout from '../components/AppLayout';
 import { useAuth } from '../context/AuthContext';
@@ -87,10 +88,30 @@ const AnnouncementsScreen = ({ navigation }) => {
 
   const textColor = darkMode ? '#fff' : '#000';
 
+  // Function to show instructions for announcements
+  const showInstructions = () => {
+    Alert.alert(
+      '📋 How to use Announcements',
+      '• View all announcements from your team\n\n' +
+        '📝 Creating Announcements:\n' +
+        '• Only Technicians and Admins can post\n' +
+        '• Tap the + button to create new announcement\n' +
+        '• Fill in title and content\n\n' +
+        '📖 Reading Announcements:\n' +
+        '• NEW badge shows unread announcements\n' +
+        '• Announcements are marked as read automatically\n' +
+        '• Scroll to see all announcements',
+      [{text: 'Got it!', style: 'default'}],
+    );
+  };
+
   // Display loading screen while fetching data
   if (contextLoading || loading) {
     return (
-      <AppLayout navigation={navigation} title="📋 Announcements">
+      <AppLayout 
+        navigation={navigation} 
+        title="📋 Announcements"
+        onShowInstructions={showInstructions}>
         <View style={[styles.centerContainer, { backgroundColor: darkMode ? '#121212' : '#fff' }]}>
           <ActivityIndicator size="large" color="#0066cc" />
           <Text style={[styles.loadingText, { color: darkMode ? '#aaa' : '#222' }]}>Loading announcements...</Text>
@@ -100,7 +121,10 @@ const AnnouncementsScreen = ({ navigation }) => {
   }
 
   return (
-    <AppLayout navigation={navigation} title="📋 Announcements">
+    <AppLayout 
+      navigation={navigation} 
+      title="📋 Announcements"
+      onShowInstructions={showInstructions}>
       <KeyboardAvoidingView
         style={styles.container}
         behavior={Platform.OS === 'ios' ? 'padding' : undefined}>

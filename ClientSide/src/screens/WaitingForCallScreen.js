@@ -481,28 +481,6 @@ const WaitingForCallScreen = ({route, navigation}) => {
             <Text style={[styles.actionButtonText, {fontSize: fontSize}]}>ℹ️ Call Info</Text>
           </TouchableOpacity>
         </View>
-
-        {/* Instructions */}
-        <View style={styles.instructionsContainer}>
-          <Text style={[styles.instructionsTitle, {color: textColor, fontSize: fontSize}]}>
-            Call Status:
-          </Text>
-          <Text style={[styles.instructionText, {color: darkMode ? '#ccc' : '#666', fontSize: fontSize}]}>
-            📧 Invitation sent to {otherUser.username}
-          </Text>
-          <Text style={[styles.instructionText, {color: darkMode ? '#ccc' : '#666', fontSize: fontSize}]}>
-            ⏰ They have 60 seconds to respond
-          </Text>
-          <Text style={[styles.instructionText, {color: darkMode ? '#ccc' : '#666', fontSize: fontSize}]}>
-            📱 Channel: {channelName}
-          </Text>
-          <Text style={[styles.instructionText, {color: darkMode ? '#ccc' : '#666', fontSize: fontSize}]}>
-            🔄 Checking for response every 2 seconds
-          </Text>
-          <Text style={[styles.instructionText, {color: darkMode ? '#ccc' : '#666', fontSize: fontSize}]}>
-            🚫 You can cancel the call at any time
-          </Text>
-        </View>
       </ScrollView>
     </SafeAreaView>
   );
@@ -543,6 +521,8 @@ const styles = StyleSheet.create({
     shadowOffset: {width: 0, height: 2},
     shadowOpacity: 0.1,
     shadowRadius: 4,
+    alignSelf: 'center',
+    width: '25%',
   },
   userAvatar: {
     backgroundColor: '#4CAF50',
