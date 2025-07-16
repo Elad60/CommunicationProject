@@ -11,6 +11,7 @@ import {
 import CustomSlider from '../components/CustomSlider';
 import AppLayout from '../components/AppLayout';
 import {useSettings} from '../context/SettingsContext';
+import StyledButton from '../components/StyledButton';
 
 const SettingsScreen = ({navigation}) => {
   // Destructure settings values and setters from the context
@@ -107,31 +108,27 @@ const SettingsScreen = ({navigation}) => {
               System
             </Text>
             {/* Button to reset all settings */}
-            <TouchableOpacity
-              style={[styles.button, {backgroundColor: buttonColor}]}
+            <StyledButton
               onPress={() => {
                 setToolBarAdjustment(true);
                 setControlBarAdjustment(true);
                 setDarkMode(true);
                 setBrightness(1);
-              }}>
-              <Text style={[styles.buttonText, {color: textColor}]}>
-                Reset All Settings
-              </Text>
-            </TouchableOpacity>
-
-            {/* Button to check for updates */}
-            <TouchableOpacity
-              style={[styles.button, {backgroundColor: buttonColor}]}
+              }}
+              darkMode={darkMode}
+              style={{marginVertical: 8, minWidth: 160}}>
+              Reset All Settings
+            </StyledButton>
+            <StyledButton
               onPress={() =>
                 Linking.openURL(
                   'https://github.com/Elad60/CommunicationProject',
                 )
-              }>
-              <Text style={[styles.buttonText, {color: textColor}]}>
-                Check for Updates
-              </Text>
-            </TouchableOpacity>
+              }
+              darkMode={darkMode}
+              style={{marginVertical: 8, minWidth: 160}}>
+              Check for Updates
+            </StyledButton>
           </View>
 
           {/* Version Info Section */}

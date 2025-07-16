@@ -168,7 +168,6 @@ const ChannelParticipantsModal = ({
                   <Text style={styles.participantName}>
                     {participant.username}
                   </Text>
-                  <Text style={styles.participantRole}>{participant.role}</Text>
                 </View>
                 <View
                   style={[

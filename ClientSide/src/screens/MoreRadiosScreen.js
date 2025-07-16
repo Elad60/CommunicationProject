@@ -9,6 +9,7 @@ import {
   Alert,
   Switch,
 } from 'react-native';
+import StyledButton from '../components/StyledButton';
 import {useAuth} from '../context/AuthContext';
 import AppLayout from '../components/AppLayout';
 import {radioChannelsApi} from '../utils/apiService';
@@ -149,9 +150,12 @@ const MoreRadiosScreen = ({navigation}) => {
               secureTextEntry
             />
           )}
-          <TouchableOpacity style={styles.button} onPress={handleAddChannel}>
-            <Text style={styles.buttonText}>Create Room</Text>
-          </TouchableOpacity>
+          <StyledButton
+            onPress={handleAddChannel}
+            darkMode={darkMode}
+            style={{marginTop: 5, marginBottom: 10, minWidth: 120}}>
+            Create Room
+          </StyledButton>
         </View>
 
         {/* Search + List Section */}
