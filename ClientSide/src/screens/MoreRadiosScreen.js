@@ -74,6 +74,10 @@ const MoreRadiosScreen = ({navigation}) => {
 
   // Function to handle deleting a channel
   const handleDelete = async id => {
+    if (user.role !== 'Admin') {
+      Alert.alert('Unauthorized', 'Only admins can delete channels.');
+      return;
+    }
     try {
       await radioChannelsApi.deleteChannel(id); // Deleting the channel
       loadChannels(); // Reload channels after deletion
@@ -179,9 +183,10 @@ const MoreRadiosScreen = ({navigation}) => {
                 <Text style={styles.channelName}>{c.name}</Text>
                 <Text style={styles.channelDetails}>{c.mode}</Text>
               </View>
-              <TouchableOpacity onPress={() => handleDelete(c.id)}>
-                <Text style={styles.deleteText}>🗑️</Text>
-              </TouchableOpacity>
+                <TouchableOpacity onPress={() => handleDelete(c.id)}>
+                  <Text style={styles.deleteText}>🗑️</Text>
+                </TouchableOpacity>
+
             </View>
           ))}
         </View>
