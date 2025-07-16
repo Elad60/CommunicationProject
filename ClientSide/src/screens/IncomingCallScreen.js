@@ -15,6 +15,7 @@ import {useAuth} from '../context/AuthContext';
 import {useSettings} from '../context/SettingsContext';
 import {privateCallApi} from '../utils/apiService';
 import {useDebouncedDimensions} from '../utils/useDebouncedDimensions';
+import {useVoice} from '../context/VoiceContext';
 
 const {AgoraModule} = NativeModules; // 🎯 NEW: Import AgoraModule
 
@@ -22,27 +23,37 @@ const IncomingCallScreen = ({route, navigation}) => {
   const {callInvitation} = route.params;
   const {user} = useAuth();
   const {darkMode} = useSettings();
-  
+  const {activeVoiceChannel, leaveVoiceChannel} = useVoice();
+
   // 🎯 NEW: Add responsive dimensions
   const {height, width} = useDebouncedDimensions(300);
   const isLandscape = width > height;
-  
+
   // ✅ FIX: Handle case sensitivity for server response
   const callId = callInvitation.Id || callInvitation.id;
   const callerName = callInvitation.CallerName || callInvitation.callerName;
   const callerEmail = callInvitation.CallerEmail || callInvitation.callerEmail;
   const callerRole = callInvitation.CallerRole || callInvitation.callerRole;
   const callerId = callInvitation.CallerId || callInvitation.callerId;
-  
-  console.log('📞 IncomingCallScreen: Call invitation details:', JSON.stringify(callInvitation, null, 2));
-  console.log('📞 IncomingCallScreen: Extracted values:', {callId, callerName, callerEmail, callerRole, callerId});
-  
+
+  console.log(
+    '📞 IncomingCallScreen: Call invitation details:',
+    JSON.stringify(callInvitation, null, 2),
+  );
+  console.log('📞 IncomingCallScreen: Extracted values:', {
+    callId,
+    callerName,
+    callerEmail,
+    callerRole,
+    callerId,
+  });
+
   // State management
   const [isResponding, setIsResponding] = useState(false);
   const [timeLeft, setTimeLeft] = useState(60); // 60 seconds to respond
   const [pulseAnim] = useState(new Animated.Value(1));
   const [isPolling, setIsPolling] = useState(false);
-  
+
   // Refs for cleanup
   const pollIntervalRef = useRef(null);
   const timerRef = useRef(null);
@@ -70,7 +81,7 @@ const IncomingCallScreen = ({route, navigation}) => {
       ]),
     );
     pulse.start();
-    
+
     return () => pulse.stop();
   }, []);
 
@@ -101,7 +112,7 @@ const IncomingCallScreen = ({route, navigation}) => {
   useEffect(() => {
     console.log('📞 IncomingCallScreen: Starting call status polling');
     startPollingForStatus();
-    
+
     return () => {
       console.log('🧹 IncomingCallScreen: Cleanup - stopping all polling');
       stopPollingForStatus();
@@ -112,32 +123,38 @@ const IncomingCallScreen = ({route, navigation}) => {
   const startPollingForStatus = () => {
     console.log('🔄 Starting polling for call status...');
     setIsPolling(true);
-    
+
     // Clear any existing interval first
     if (pollIntervalRef.current) {
       console.log('🧹 Clearing existing poll interval');
       clearInterval(pollIntervalRef.current);
       pollIntervalRef.current = null;
     }
-    
+
     // Start immediate first call
     checkCallStatus();
-    
+
     // Store interval reference so we can clear it later
     pollIntervalRef.current = setInterval(() => {
       checkCallStatus();
     }, 3000); // Poll every 3 seconds
-    
-    console.log('✅ Call status polling started with interval ID:', pollIntervalRef.current);
+
+    console.log(
+      '✅ Call status polling started with interval ID:',
+      pollIntervalRef.current,
+    );
   };
 
   // Stop polling for call status
   const stopPollingForStatus = () => {
     console.log('🛑 Stopping call status polling');
     setIsPolling(false);
-    
+
     if (pollIntervalRef.current) {
-      console.log('🧹 Clearing call status poll interval:', pollIntervalRef.current);
+      console.log(
+        '🧹 Clearing call status poll interval:',
+        pollIntervalRef.current,
+      );
       clearInterval(pollIntervalRef.current);
       pollIntervalRef.current = null;
     }
@@ -149,36 +166,39 @@ const IncomingCallScreen = ({route, navigation}) => {
       console.log('⚠️ Missing callId or userId for status check');
       return;
     }
-    
+
     try {
       console.log('🔍 Checking call status for invitation:', callId);
       const response = await privateCallApi.getCallStatus(callId, user.id);
-      
-      console.log('📋 Call status response:', JSON.stringify(response, null, 2));
-      
+
+      console.log(
+        '📋 Call status response:',
+        JSON.stringify(response, null, 2),
+      );
+
       if (response.success) {
         const status = response.status || response.Status;
         console.log('📊 Call status:', status);
-        
+
         switch (status) {
           case 'cancelled':
           case 'Cancelled':
             console.log('🚫 Call was cancelled by caller');
             handleCallerCancelled();
             break;
-            
+
           case 'expired':
           case 'Expired':
             console.log('⏰ Call expired');
             handleCallExpired();
             break;
-            
+
           case 'pending':
           case 'Pending':
             // Still waiting - this is normal
             console.log('⏳ Call still pending');
             break;
-            
+
           default:
             console.log('📞 Call status:', status);
         }
@@ -193,125 +213,137 @@ const IncomingCallScreen = ({route, navigation}) => {
   // Handle when caller cancels the call
   const handleCallerCancelled = () => {
     console.log('🚫 Caller cancelled - stopping all timers and polling');
-    
+
     // Stop all timers and polling
     stopPollingForStatus();
     if (timerRef.current) {
       clearInterval(timerRef.current);
       timerRef.current = null;
     }
-    
-    Alert.alert(
-      'Call Cancelled',
-      `${callerName} cancelled the call.`,
-      [{text: 'OK', onPress: () => {
-        console.log('📞 Caller cancelled - returning to Groups (GlobalCallListener will resume polling)');
-        navigation.reset({index:0, routes:[{name:'Groups'}]});
-      }}]
-    );
+
+    Alert.alert('Call Cancelled', `${callerName} cancelled the call.`, [
+      {
+        text: 'OK',
+        onPress: () => {
+          console.log(
+            '📞 Caller cancelled - returning to Groups (GlobalCallListener will resume polling)',
+          );
+          navigation.reset({index: 0, routes: [{name: 'Groups'}]});
+        },
+      },
+    ]);
   };
 
   // Handle when call expires on server
   const handleCallExpired = () => {
     console.log('⏰ Call expired on server - stopping all timers and polling');
-    
+
     // Stop all timers and polling
     stopPollingForStatus();
     if (timerRef.current) {
       clearInterval(timerRef.current);
       timerRef.current = null;
     }
-    
-    Alert.alert(
-      'Call Expired',
-      'The call invitation has expired.',
-      [{text: 'OK', onPress: () => {
-        console.log('📞 Call expired - returning to Groups (GlobalCallListener will resume polling)');
-        navigation.reset({index:0, routes:[{name:'Groups'}]});
-      }}]
-    );
+
+    Alert.alert('Call Expired', 'The call invitation has expired.', [
+      {
+        text: 'OK',
+        onPress: () => {
+          console.log(
+            '📞 Call expired - returning to Groups (GlobalCallListener will resume polling)',
+          );
+          navigation.reset({index: 0, routes: [{name: 'Groups'}]});
+        },
+      },
+    ]);
   };
 
   // Handle timeout
   const handleTimeout = async () => {
     console.log('⏰ Call invitation timed out');
-    
+
     // Stop all timers and polling
     stopPollingForStatus();
     if (timerRef.current) {
       clearInterval(timerRef.current);
       timerRef.current = null;
     }
-    
+
     try {
       await privateCallApi.rejectInvitation(callId, user.id);
       console.log('✅ Call automatically rejected due to timeout');
     } catch (error) {
       console.error('❌ Error auto-rejecting call:', error);
     }
-    
-    Alert.alert(
-      'Call Missed',
-      'The call invitation has expired.',
-      [
-        {
-          text: 'OK',
-          onPress: () => {
-            // GlobalCallListener will resume polling automatically
-            console.log('📞 Call timed out - returning to Groups (GlobalCallListener will resume polling)');
-            navigation.reset({index:0, routes:[{name:'Groups'}]});
-          },
+
+    Alert.alert('Call Missed', 'The call invitation has expired.', [
+      {
+        text: 'OK',
+        onPress: () => {
+          // GlobalCallListener will resume polling automatically
+          console.log(
+            '📞 Call timed out - returning to Groups (GlobalCallListener will resume polling)',
+          );
+          navigation.reset({index: 0, routes: [{name: 'Groups'}]});
         },
-      ]
-    );
+      },
+    ]);
   };
 
   // Accept call invitation
   const acceptCall = async () => {
     if (isResponding) return;
-    
+
     console.log(`✅ Accepting call from ${callerName}`);
     setIsResponding(true);
-    
+
     // Stop polling since we're accepting
     stopPollingForStatus();
     if (timerRef.current) {
       clearInterval(timerRef.current);
       timerRef.current = null;
     }
-    
+
+    // If connected to a radio channel, leave it before accepting the call
+    if (activeVoiceChannel) {
+      await leaveVoiceChannel();
+    }
+
     try {
       const response = await privateCallApi.acceptInvitation(callId, user.id);
-      
+
       if (response.success) {
         console.log('✅ Call accepted successfully:', response);
-        
+
         // 🎯 FIXED: Create proper channel name without duplication
         const agoraChannelName = callId;
         console.log('🎤 Connecting to Agora channel:', agoraChannelName);
-        
+
         try {
           // Same initialization as MainScreen
           if (!AgoraModule) {
             throw new Error('AgoraModule not available');
           }
-          
+
           // Don't re-initialize Agora - it's already initialized by VoiceContext
           // AgoraModule.InitializeAgoraEngine('e5631d55e8a24b08b067bb73f8797fe3');
-          
+
           // 🎯 NEW: Connect immediately - this user creates the channel
           AgoraModule.JoinChannel(agoraChannelName);
-          
-          console.log('✅ Successfully connected to Agora channel:', agoraChannelName);
+
+          console.log(
+            '✅ Successfully connected to Agora channel:',
+            agoraChannelName,
+          );
         } catch (agoraError) {
           console.error('❌ Failed to connect to Agora:', agoraError);
           Alert.alert(
             'Voice Connection Failed',
             'Call accepted but voice connection failed. You can still communicate via text.',
-            [{text: 'OK'}]
+            [{text: 'OK'}],
           );
         }
-        
+
         // Navigate to private call screen
         navigation.reset({
           index: 1,
@@ -332,19 +364,26 @@ const IncomingCallScreen = ({route, navigation}) => {
                 isCallAccepted: true,
                 isCaller: false, // This user is the receiver
                 currentUserId: user.id, // Add current user ID for server monitoring
-              }
-            }
-          ]
+              },
+            },
+          ],
         });
       } else {
         Alert.alert(
           'Call Failed',
           response.message || 'Failed to accept the call. Please try again.',
-          [{text: 'OK', onPress: () => {
-            // GlobalCallListener will resume polling automatically
-            console.log('📞 Failed to accept call - returning to Groups (GlobalCallListener will resume polling)');
-            navigation.reset({index:0, routes:[{name:'Groups'}]});
-          }}]
+          [
+            {
+              text: 'OK',
+              onPress: () => {
+                // GlobalCallListener will resume polling automatically
+                console.log(
+                  '📞 Failed to accept call - returning to Groups (GlobalCallListener will resume polling)',
+                );
+                navigation.reset({index: 0, routes: [{name: 'Groups'}]});
+              },
+            },
+          ],
         );
       }
     } catch (error) {
@@ -352,11 +391,18 @@ const IncomingCallScreen = ({route, navigation}) => {
       Alert.alert(
         'Call Failed',
         error.message || 'Failed to accept the call. Please try again.',
-        [{text: 'OK', onPress: () => {
-          // GlobalCallListener will resume polling automatically
-          console.log('📞 Error accepting call - returning to Groups (GlobalCallListener will resume polling)');
-          navigation.reset({index:0, routes:[{name:'Groups'}]});
-        }}]
+        [
+          {
+            text: 'OK',
+            onPress: () => {
+              // GlobalCallListener will resume polling automatically
+              console.log(
+                '📞 Error accepting call - returning to Groups (GlobalCallListener will resume polling)',
+              );
+              navigation.reset({index: 0, routes: [{name: 'Groups'}]});
+            },
+          },
+        ],
       );
     } finally {
       setIsResponding(false);
@@ -366,43 +412,49 @@ const IncomingCallScreen = ({route, navigation}) => {
   // Reject call invitation
   const rejectCall = async () => {
     if (isResponding) return;
-    
+
     console.log(`❌ Rejecting call from ${callerName}`);
     setIsResponding(true);
-    
+
     // Stop polling since we're rejecting
     stopPollingForStatus();
     if (timerRef.current) {
       clearInterval(timerRef.current);
       timerRef.current = null;
     }
-    
+
     try {
       const response = await privateCallApi.rejectInvitation(callId, user.id);
-      
+
       if (response.success) {
         console.log('✅ Call rejected successfully');
         // GlobalCallListener will resume polling automatically
-        console.log('📞 Call rejected - returning to Groups (GlobalCallListener will resume polling)');
-        navigation.reset({index:0, routes:[{name:'Groups'}]});
+        console.log(
+          '📞 Call rejected - returning to Groups (GlobalCallListener will resume polling)',
+        );
+        navigation.reset({index: 0, routes: [{name: 'Groups'}]});
       } else {
         console.error('❌ Failed to reject call:', response.message);
         // Even if rejection fails, go back - user doesn't want the call
         // GlobalCallListener will resume polling automatically
-        console.log('📞 Failed to reject call - returning to Groups (GlobalCallListener will resume polling)');
-        navigation.reset({index:0, routes:[{name:'Groups'}]});
+        console.log(
+          '📞 Failed to reject call - returning to Groups (GlobalCallListener will resume polling)',
+        );
+        navigation.reset({index: 0, routes: [{name: 'Groups'}]});
       }
     } catch (error) {
       console.error('❌ Error rejecting call:', error);
       // Even if rejection fails, go back - user doesn't want the call
       // GlobalCallListener will resume polling automatically
-      console.log('📞 Error rejecting call - returning to Groups (GlobalCallListener will resume polling)');
-      navigation.reset({index:0, routes:[{name:'Groups'}]});
+      console.log(
+        '📞 Error rejecting call - returning to Groups (GlobalCallListener will resume polling)',
+      );
+      navigation.reset({index: 0, routes: [{name: 'Groups'}]});
     }
   };
 
   // Format time remaining
-  const formatTime = (seconds) => {
+  const formatTime = seconds => {
     const mins = Math.floor(seconds / 60);
     const secs = seconds % 60;
     return `${mins}:${secs.toString().padStart(2, '0')}`;
@@ -414,22 +466,34 @@ const IncomingCallScreen = ({route, navigation}) => {
 
   return (
     <SafeAreaView style={[styles.container, {backgroundColor}]}>
-      <ScrollView 
+      <ScrollView
         style={styles.scrollView}
         contentContainerStyle={styles.scrollContent}
-        showsVerticalScrollIndicator={false}
-      >
+        showsVerticalScrollIndicator={false}>
         {/* Header */}
         <View style={styles.header}>
-          <Text style={[styles.headerTitle, {color: textColor, fontSize: headerFontSize}]}>Incoming Call</Text>
-          <Text style={[styles.timeRemaining, {color: timeLeft <= 10 ? '#ff4444' : textColor, fontSize: fontSize}]}>
+          <Text
+            style={[
+              styles.headerTitle,
+              {color: textColor, fontSize: headerFontSize},
+            ]}>
+            Incoming Call
+          </Text>
+          <Text
+            style={[
+              styles.timeRemaining,
+              {
+                color: timeLeft <= 10 ? '#ff4444' : textColor,
+                fontSize: fontSize,
+              },
+            ]}>
             {formatTime(timeLeft)}
           </Text>
         </View>
 
         {/* Caller Info */}
         <View style={styles.callerContainer}>
-          <Animated.View 
+          <Animated.View
             style={[
               styles.callerAvatar,
               {
@@ -438,30 +502,45 @@ const IncomingCallScreen = ({route, navigation}) => {
                 width: avatarSize,
                 height: avatarSize,
                 borderRadius: avatarSize / 2,
-              }
-            ]}
-          >
+              },
+            ]}>
             <Text style={[styles.avatarText, {fontSize: avatarSize * 0.4}]}>
               {callerName.charAt(0).toUpperCase()}
             </Text>
           </Animated.View>
-          
-          <Text style={[styles.callerName, {color: textColor, fontSize: fontSize * 1.5}]}>
+
+          <Text
+            style={[
+              styles.callerName,
+              {color: textColor, fontSize: fontSize * 1.5},
+            ]}>
             {callerName}
           </Text>
-          
-          <Text style={[styles.callerDetails, {color: darkMode ? '#ccc' : '#666', fontSize: fontSize}]}>
+
+          <Text
+            style={[
+              styles.callerDetails,
+              {color: darkMode ? '#ccc' : '#666', fontSize: fontSize},
+            ]}>
             {callerEmail}
           </Text>
-          
-          <Text style={[styles.callerRole, {color: darkMode ? '#91aad4' : '#004080', fontSize: fontSize}]}>
+
+          <Text
+            style={[
+              styles.callerRole,
+              {color: darkMode ? '#91aad4' : '#004080', fontSize: fontSize},
+            ]}>
             {callerRole}
           </Text>
         </View>
 
         {/* Call Message */}
         <View style={styles.messageContainer}>
-          <Text style={[styles.messageText, {color: textColor, fontSize: fontSize * 1.2}]}>
+          <Text
+            style={[
+              styles.messageText,
+              {color: textColor, fontSize: fontSize * 1.2},
+            ]}>
             is calling you...
           </Text>
         </View>
@@ -471,7 +550,7 @@ const IncomingCallScreen = ({route, navigation}) => {
           {/* Decline Button */}
           <TouchableOpacity
             style={[
-              styles.actionButton, 
+              styles.actionButton,
               styles.rejectButton,
               {
                 opacity: isResponding ? 0.6 : 1,
@@ -479,22 +558,26 @@ const IncomingCallScreen = ({route, navigation}) => {
                 width: buttonSize,
                 height: buttonSize,
                 borderRadius: buttonSize / 2,
-              }
+              },
             ]}
             onPress={rejectCall}
             disabled={isResponding}
-            activeOpacity={0.8}
-          >
+            activeOpacity={0.8}>
             <View style={styles.buttonContent}>
-              <Text style={[styles.rejectButtonIcon, {fontSize: buttonSize * 0.3}]}>✖️</Text>
-              <Text style={[styles.rejectButtonLabel, {fontSize: fontSize}]}>Decline</Text>
+              <Text
+                style={[styles.rejectButtonIcon, {fontSize: buttonSize * 0.3}]}>
+                ✖️
+              </Text>
+              <Text style={[styles.rejectButtonLabel, {fontSize: fontSize}]}>
+                Decline
+              </Text>
             </View>
           </TouchableOpacity>
 
           {/* Accept Button */}
           <TouchableOpacity
             style={[
-              styles.actionButton, 
+              styles.actionButton,
               styles.acceptButton,
               {
                 opacity: isResponding ? 0.6 : 1,
@@ -502,15 +585,22 @@ const IncomingCallScreen = ({route, navigation}) => {
                 width: buttonSize,
                 height: buttonSize,
                 borderRadius: buttonSize / 2,
-              }
+              },
             ]}
             onPress={acceptCall}
             disabled={isResponding}
-            activeOpacity={0.8}
-          >
+            activeOpacity={0.8}>
             <View style={styles.buttonContent}>
-              <Text style={[styles.acceptButtonIcon, {fontSize: buttonSize * 0.35}]}>📞</Text>
-              <Text style={[styles.acceptButtonLabel, {fontSize: fontSize}]}>Accept</Text>
+              <Text
+                style={[
+                  styles.acceptButtonIcon,
+                  {fontSize: buttonSize * 0.35},
+                ]}>
+                📞
+              </Text>
+              <Text style={[styles.acceptButtonLabel, {fontSize: fontSize}]}>
+                Accept
+              </Text>
             </View>
           </TouchableOpacity>
         </View>
@@ -518,7 +608,11 @@ const IncomingCallScreen = ({route, navigation}) => {
         {/* Loading indicator */}
         {isResponding && (
           <View style={styles.loadingContainer}>
-            <Text style={[styles.loadingText, {color: textColor, fontSize: fontSize}]}>
+            <Text
+              style={[
+                styles.loadingText,
+                {color: textColor, fontSize: fontSize},
+              ]}>
               Responding...
             </Text>
           </View>
@@ -662,4 +756,4 @@ const styles = StyleSheet.create({
   },
 });
 
-export default IncomingCallScreen; 
+export default IncomingCallScreen;
