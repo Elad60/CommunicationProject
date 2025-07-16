@@ -18,6 +18,7 @@ import {useVoice} from '../context/VoiceContext';
 // import useIncomingCallListener from '../hooks/useIncomingCallListener'; // MOVED TO GLOBAL
 
 const GroupsScreen = ({navigation}) => {
+  const {activeVoiceChannel} = useVoice();
   console.log('🟢 GroupsScreen RENDERED');
 
   // Destructuring user and changeGroup from AuthContext
@@ -131,23 +132,25 @@ const GroupsScreen = ({navigation}) => {
 
   // Function to start private call (send invitation)
   const startPrivateCall = async otherUser => {
+    if (activeVoiceChannel) {
+      Alert.alert(
+        'Cannot Start Call',
+        'You cannot start a private call while connected to a radio channel. Please disconnect from the channel first.',
+        [{text: 'OK'}],
+      );
+      return;
+    }
     console.log(`📞 Starting private call with ${otherUser.username}`);
-
     try {
-      // Disconnect from radio channel first
-      await leaveVoiceChannel();
       // Send invitation using the API first
       const response = await privateCallApi.sendInvitation(
         user.id,
         otherUser.id,
       );
-
       console.log('📋 Full API response:', response);
-
       if (response.success) {
         // ← Fixed: lowercase 'success'
         console.log('✅ Invitation sent successfully:', response);
-
         // Navigate to waiting screen with invitation details
         navigation.navigate('WaitingForCall', {
           otherUser,
@@ -156,7 +159,6 @@ const GroupsScreen = ({navigation}) => {
         });
       } else {
         console.log('❌ Invitation failed:', response.message);
-
         Alert.alert(
           'Call Failed',
           response.message ||
@@ -166,7 +168,6 @@ const GroupsScreen = ({navigation}) => {
       }
     } catch (error) {
       console.error('❌ Error sending call invitation:', error);
-
       Alert.alert(
         'Call Failed',
         error.message || 'Failed to send call invitation. Please try again.',
