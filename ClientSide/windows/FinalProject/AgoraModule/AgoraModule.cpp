@@ -559,6 +559,25 @@ namespace winrt::FinalProject::implementation
         }
     }
 
+    void AgoraManager::MuteRemoteAudioStream(unsigned int uid, bool mute)
+    {
+        try {
+            OutputDebugStringA((std::string("\xF0\x9F\x94\x8A MuteRemoteAudioStream - UID: ") + std::to_string(uid) + (mute ? " MUTE" : " UNMUTE") + "\n").c_str());
+            if (!m_isInitialized || !m_rtcEngine) {
+                OutputDebugStringA("\xE2\x9D\x8C Engine not initialized\n");
+                return;
+            }
+            int result = m_rtcEngine->muteRemoteAudioStream(uid, mute);
+            if (result == 0) {
+                OutputDebugStringA((std::string("\xE2\x9C\x85 Remote audio ") + (mute ? "muted" : "unmuted") + " for UID: " + std::to_string(uid) + "\n").c_str());
+            } else {
+                OutputDebugStringA((std::string("\xE2\x9D\x8C Failed to mute/unmute remote audio, error: ") + std::to_string(result) + "\n").c_str());
+            }
+        } catch (...) {
+            OutputDebugStringA("\xE2\x9D\x8C Exception in MuteRemoteAudioStream\n");
+        }
+    }
+
     void AgoraManager::ReleaseEngine()
     {
         try {

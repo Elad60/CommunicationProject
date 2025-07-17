@@ -33,6 +33,9 @@ const ControlPanel = ({
   }
 
   const [selectedButton, setSelectedButton] = useState(null);
+  const [channelVolume, setChannelVolume] = useState(1); // 1 = 100%
+  const [isMuted, setIsMuted] = useState(false); // NEW
+  const [lastVolume, setLastVolume] = useState(1); // NEW, store last non-zero volume
 
   // Extract settings context values
   const {
@@ -53,7 +56,6 @@ const ControlPanel = ({
   };
   const {selectedChannel, setSelectedChannel} = useVoice();
   const [volumeModalVisible, setVolumeModalVisible] = useState(false);
-  const [lastVolume, setLastVolume] = useState(1); // default to 100%
 
   const backgroundColor = darkMode ? '#1a1a1a' : '#fff';
   const buttonTextColor = darkMode ? '#fff' : '#000';
@@ -81,30 +83,67 @@ const ControlPanel = ({
             icon: require('../../assets/logos/speaker.png'),
             onPress: () => {
               setSpeakerVolume((speakerVolume + 10) % 110);
-              selectedButton === 'Speaker'
-                ? setSelectedButton(null)
-                : setSelectedButton('Speaker');
+              setSelectedButton('Speaker');
             },
           },
           {
             title: 'Ch Vol',
             icon: require('../../assets/logos/volume-adjustment.png'),
             onPress: () => {
+              setSelectedButton('Ch Vol');
               if (selectedChannel) {
-                setVolumeModalVisible(true);
+                setSelectedChannelForVolume(selectedChannel);
+              } else if (channels && channels.length) {
+                const active = channels.find(
+                  c =>
+                    c.channelState === 'ListenOnly' ||
+                    c.channelState === 'ListenAndTalk',
+                );
+                if (active) {
+                  setSelectedChannelForVolume(active.id);
+                } else {
+                  alert('Please select a channel first');
+                }
               } else {
                 alert('Please select a channel first');
               }
             },
           },
           {
-            title: 'Mute All',
+            title: isMuted ? 'Unmute' : 'Mute',
             icon: require('../../assets/logos/mute.png'),
             onPress: () => {
-              setSpeakerVolume(0);
-              selectedButton === 'Mute All' ?
-              setSelectedButton(null) :
-              setSelectedButton('Mute All');
+              setSelectedButton('Mute');
+              // Only allow mute if a channel is selected (same logic as Ch Vol)
+              let channelSelected = selectedChannel;
+              if (!channelSelected && channels && channels.length) {
+                const active = channels.find(
+                  c =>
+                    c.channelState === 'ListenOnly' ||
+                    c.channelState === 'ListenAndTalk',
+                );
+                if (active) channelSelected = active.id;
+              }
+              if (!channelSelected) {
+                alert('Please select a channel first');
+                return;
+              }
+              if (!isMuted) {
+                setLastVolume(channelVolume); // Save last volume
+                setIsMuted(true);
+                setChannelVolume(0);
+                if (AgoraModule && AgoraModule.AdjustPlaybackVolume) {
+                  AgoraModule.AdjustPlaybackVolume(0);
+                }
+              } else {
+                setIsMuted(false);
+                setChannelVolume(lastVolume || 1);
+                if (AgoraModule && AgoraModule.AdjustPlaybackVolume) {
+                  AgoraModule.AdjustPlaybackVolume(
+                    Math.round((lastVolume || 1) * 400),
+                  );
+                }
+              }
             },
           },
         ]

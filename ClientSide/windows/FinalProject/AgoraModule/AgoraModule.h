@@ -81,6 +81,7 @@ namespace winrt::FinalProject::implementation
         void AdjustRecordingVolume(int volume);
         void AdjustPlaybackVolume(int volume);
         void SetClientRole(int role);
+        void MuteRemoteAudioStream(unsigned int uid, bool mute); // NEW
         
         // Audio quality methods
         void EnableNoiseSuppressionMode(bool enabled, int mode);
@@ -176,6 +177,13 @@ namespace winrt::FinalProject::implementation
         void AdjustPlaybackVolume(int volume) noexcept
         {
             AgoraManager::GetInstance()->AdjustPlaybackVolume(volume);
+        }
+
+        // Add muteRemoteAudioStream for muting remote user playback
+        REACT_METHOD(MuteRemoteAudioStream)
+        void MuteRemoteAudioStream(unsigned int uid, bool mute) noexcept
+        {
+            AgoraManager::GetInstance()->MuteRemoteAudioStream(uid, mute);
         }
 
         REACT_METHOD(SetClientRole)
