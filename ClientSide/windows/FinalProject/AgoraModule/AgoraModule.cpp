@@ -423,22 +423,45 @@ namespace winrt::FinalProject::implementation
     void AgoraManager::AdjustRecordingVolume(int volume)
     {
         try {
-            OutputDebugStringA(("🔊 AdjustRecordingVolume - Setting to " + std::to_string(volume) + "\n").c_str());
+            OutputDebugStringA(("\xF0\x9F\x94\x8A AdjustRecordingVolume - Setting to " + std::to_string(volume) + "\n").c_str());
             
             if (!m_isInitialized || !m_rtcEngine) {
-                OutputDebugStringA("❌ Engine not initialized\n");
+                OutputDebugStringA("\xE2\x9D\x8C Engine not initialized\n");
                 return;
             }
 
             int clampedVolume = std::max(0, std::min(400, volume));
             int result = m_rtcEngine->adjustRecordingSignalVolume(clampedVolume);
             if (result == 0) {
-                OutputDebugStringA(("✅ Recording volume set to " + std::to_string(clampedVolume) + "\n").c_str());
+                OutputDebugStringA(("\xE2\x9C\x85 Recording volume set to " + std::to_string(clampedVolume) + "\n").c_str());
             } else {
-                OutputDebugStringA(("❌ Failed to adjust volume, error: " + std::to_string(result) + "\n").c_str());
+                OutputDebugStringA(("\xE2\x9D\x8C Failed to adjust volume, error: " + std::to_string(result) + "\n").c_str());
             }
         } catch (...) {
-            OutputDebugStringA("❌ Exception in AdjustRecordingVolume\n");
+            OutputDebugStringA("\xE2\x9D\x8C Exception in AdjustRecordingVolume\n");
+        }
+    }
+
+    // Add AdjustPlaybackVolume implementation
+    void AgoraManager::AdjustPlaybackVolume(int volume)
+    {
+        try {
+            OutputDebugStringA(("\xF0\x9F\x94\x8A AdjustPlaybackVolume - Setting to " + std::to_string(volume) + "\n").c_str());
+            
+            if (!m_isInitialized || !m_rtcEngine) {
+                OutputDebugStringA("\xE2\x9D\x8C Engine not initialized\n");
+                return;
+            }
+
+            int clampedVolume = std::max(0, std::min(400, volume));
+            int result = m_rtcEngine->adjustPlaybackSignalVolume(clampedVolume);
+            if (result == 0) {
+                OutputDebugStringA(("\xE2\x9C\x85 Playback volume set to " + std::to_string(clampedVolume) + "\n").c_str());
+            } else {
+                OutputDebugStringA(("\xE2\x9D\x8C Failed to adjust playback volume, error: " + std::to_string(result) + "\n").c_str());
+            }
+        } catch (...) {
+            OutputDebugStringA("\xE2\x9D\x8C Exception in AdjustPlaybackVolume\n");
         }
     }
 
@@ -533,6 +556,25 @@ namespace winrt::FinalProject::implementation
         } catch (...) {
             OutputDebugStringA("❌ Exception in IsLocalAudioMuted\n");
             return false;
+        }
+    }
+
+    void AgoraManager::MuteRemoteAudioStream(unsigned int uid, bool mute)
+    {
+        try {
+            OutputDebugStringA((std::string("\xF0\x9F\x94\x8A MuteRemoteAudioStream - UID: ") + std::to_string(uid) + (mute ? " MUTE" : " UNMUTE") + "\n").c_str());
+            if (!m_isInitialized || !m_rtcEngine) {
+                OutputDebugStringA("\xE2\x9D\x8C Engine not initialized\n");
+                return;
+            }
+            int result = m_rtcEngine->muteRemoteAudioStream(uid, mute);
+            if (result == 0) {
+                OutputDebugStringA((std::string("\xE2\x9C\x85 Remote audio ") + (mute ? "muted" : "unmuted") + " for UID: " + std::to_string(uid) + "\n").c_str());
+            } else {
+                OutputDebugStringA((std::string("\xE2\x9D\x8C Failed to mute/unmute remote audio, error: ") + std::to_string(result) + "\n").c_str());
+            }
+        } catch (...) {
+            OutputDebugStringA("\xE2\x9D\x8C Exception in MuteRemoteAudioStream\n");
         }
     }
 

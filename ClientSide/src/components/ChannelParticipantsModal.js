@@ -8,10 +8,9 @@ import {
   Dimensions,
 } from 'react-native';
 import {useSettings} from '../context/SettingsContext';
+import {useDebouncedDimensions} from '../utils/useDebouncedDimensions';
 
-const {width, height} = Dimensions.get('window');
-
-const getStyles = darkMode =>
+const getStyles = (darkMode, width, height) =>
   StyleSheet.create({
     overlay: {
       position: 'absolute',
@@ -124,7 +123,8 @@ const ChannelParticipantsModal = ({
   participants = [],
 }) => {
   const {darkMode} = useSettings();
-  const styles = getStyles(darkMode);
+  const {width, height} = useDebouncedDimensions(300);
+  const styles = getStyles(darkMode, width, height);
 
   if (!visible) return null;
 

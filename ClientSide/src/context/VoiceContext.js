@@ -16,6 +16,7 @@ export const VoiceProvider = ({children}) => {
   const [voiceStatus, setVoiceStatus] = useState('disconnected'); // 'disconnected', 'connecting', 'connected'
   const [isMicrophoneEnabled, setIsMicrophoneEnabled] = useState(false); // Is microphone active
   const [isAgoraInitialized, setIsAgoraInitialized] = useState(false); // Is Agora engine ready
+ const [selectedChannel, setSelectedChannel] = useState(null);
 
   // Race condition prevention
   const [pendingMuteTimeout, setPendingMuteTimeout] = useState(null);
@@ -320,6 +321,8 @@ export const VoiceProvider = ({children}) => {
         isAgoraInitialized,
         pendingMuteTimeout,
         pendingUnmuteTimeout,
+        selectedChannel,
+        setSelectedChannel,
         // Actions
         joinVoiceChannel,
         leaveVoiceChannel,
