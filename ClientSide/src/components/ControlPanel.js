@@ -43,6 +43,7 @@ const ControlPanel = ({
     controlPanelPosition,
     setControlPanelPosition,
     toolBarAdjustment,
+    headerHeight, // get headerHeight from context
   } = useSettings();
 
   const position = useRef(new Animated.Value(controlPanelPosition)).current;
@@ -64,7 +65,7 @@ const ControlPanel = ({
   useEffect(() => {
     const targetPosition = controlBarAdjustment
       ? height - CONTROL_PANEL_HEIGHT
-      : height * 0.05;
+      : headerHeight; // position just below header
 
     Animated.spring(position, {
       toValue: targetPosition,
@@ -72,7 +73,15 @@ const ControlPanel = ({
     }).start();
 
     setControlPanelPosition(targetPosition);
-  }, [controlBarAdjustment, height, width]);
+  }, [
+    controlBarAdjustment,
+    height,
+    width,
+    headerHeight,
+    CONTROL_PANEL_HEIGHT,
+    position,
+    setControlPanelPosition,
+  ]);
 
   const buttons = [
     // Show volume controls only if NOT in Groups screen (when onShowInstructions is not available)

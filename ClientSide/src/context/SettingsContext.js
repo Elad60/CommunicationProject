@@ -7,6 +7,7 @@ const SettingsContext = createContext();
 const {width, height} = Dimensions.get('window');
 const NAV_PANEL_WIDTH = width * 0.08;
 const CONTROL_PANEL_HEIGHT = height * 0.1;
+const HEADER_HEIGHT = 64; // Fixed header height in pixels
 
 // Provider Component
 export const SettingsProvider = ({children}) => {
@@ -46,6 +47,7 @@ export const SettingsProvider = ({children}) => {
         setDarkMode,
         showMode,
         setShowMode,
+        headerHeight: HEADER_HEIGHT, // Add headerHeight to context
       }}>
       {children}
     </SettingsContext.Provider>
