@@ -1,13 +1,19 @@
-import React, { useRef, useEffect } from 'react';
-import { View, Text, StyleSheet, PanResponder, Animated } from 'react-native';
+import React, {useRef, useEffect} from 'react';
+import {View, Text, StyleSheet, PanResponder, Animated} from 'react-native';
 
-const CustomSlider = ({ value = 0.5, onValueChange = () => {}, label = 'Brightness', darkMode }) => {
-  const trackWidth = 300;
-  const thumbSize = 18;
+const SLIDER_WIDTH = 300;
+const THUMB_SIZE = 28;
 
+const CustomSlider = ({
+  value = 0.5,
+  onValueChange = () => {},
+  label = 'Volume',
+  darkMode,
+}) => {
   // Utility functions to convert between value [0-1] and X position
-  const valueToX = (val) => val * (trackWidth - thumbSize);
-  const xToValue = (x) => Math.min(Math.max(x / (trackWidth - thumbSize), 0), 1);
+  const valueToX = val => val * (SLIDER_WIDTH - THUMB_SIZE);
+  const xToValue = x =>
+    Math.min(Math.max(x / (SLIDER_WIDTH - THUMB_SIZE), 0), 1);
 
   const panX = useRef(valueToX(value));
   const animatedX = useRef(new Animated.Value(panX.current)).current;
@@ -32,38 +38,87 @@ const CustomSlider = ({ value = 0.5, onValueChange = () => {}, label = 'Brightne
         animatedX.setValue(0);
       },
       onPanResponderMove: (evt, gesture) => {
-        let newX = Math.min(Math.max(panX.current + gesture.dx, 0), trackWidth - thumbSize);
+        let newX = Math.min(
+          Math.max(panX.current + gesture.dx, 0),
+          SLIDER_WIDTH - THUMB_SIZE,
+        );
         animatedX.setValue(newX - panX.current);
         onValueChange(xToValue(newX));
       },
       onPanResponderRelease: (evt, gesture) => {
-        const currentX = Math.min(Math.max(panX.current + gesture.dx, 0), trackWidth - thumbSize);
+        const currentX = Math.min(
+          Math.max(panX.current + gesture.dx, 0),
+          SLIDER_WIDTH - THUMB_SIZE,
+        );
         panX.current = currentX;
         animatedX.flattenOffset();
         onValueChange(xToValue(currentX));
       },
-    })
+    }),
   ).current;
 
+  // Calculate the fill width for the track
+  const fillWidth = animatedX.interpolate({
+    inputRange: [0, SLIDER_WIDTH - THUMB_SIZE],
+    outputRange: [0, SLIDER_WIDTH - THUMB_SIZE],
+    extrapolate: 'clamp',
+  });
+
+  // Calculate the value for display (0-100)
+  const displayValue = Math.round(
+    (animatedX.__getValue() / (SLIDER_WIDTH - THUMB_SIZE)) * 100,
+  );
+
+  // Colors
+  const accent = darkMode ? '#1DB954' : '#1976d2';
+  const trackBg = darkMode ? '#333' : '#e0e0e0';
+  const thumbShadow = darkMode ? '#1DB95455' : '#1976d255';
+
   return (
-    <View style={styles.container}>
-      <Text style={[styles.label, { color: darkMode ? '#fff' : '#000' }]}>{label}</Text>
-      <View style={styles.trackContainer}>
-        <View
+    <View style={styles.outerContainer}>
+      {/* Label */}
+      <Text style={[styles.label, {color: darkMode ? '#fff' : '#222'}]}>
+        {label}
+      </Text>
+      <View style={styles.sliderContainer}>
+        {/* Value above thumb */}
+        <Animated.View
           style={[
-            styles.track,
+            styles.valueBubble,
             {
-              width: trackWidth,
-              backgroundColor: darkMode ? '#0066cc' : '#91aad4',
+              left: Animated.add(
+                animatedX,
+                new Animated.Value(THUMB_SIZE / 2 - 18),
+              ),
+              backgroundColor: darkMode ? '#222' : '#fff',
+              borderColor: accent,
             },
           ]}
-        >
+          pointerEvents="none">
+          <Text style={[styles.valueText, {color: accent}]}>
+            {Math.round(value * 100)}
+          </Text>
+        </Animated.View>
+        {/* Track */}
+        <View style={[styles.track, {backgroundColor: trackBg}]}>
+          <Animated.View
+            style={[
+              styles.trackFill,
+              {
+                width: fillWidth,
+                backgroundColor: accent,
+              },
+            ]}
+          />
+          {/* Thumb */}
           <Animated.View
             style={[
               styles.thumb,
               {
-                transform: [{ translateX: animatedX }],
-                backgroundColor: darkMode ? '#fff' : '#000',
+                transform: [{translateX: animatedX}],
+                backgroundColor: '#fff',
+                borderColor: accent,
+                shadowColor: thumbShadow,
               },
             ]}
             {...panResponder.panHandlers}
@@ -75,36 +130,75 @@ const CustomSlider = ({ value = 0.5, onValueChange = () => {}, label = 'Brightne
 };
 
 const styles = StyleSheet.create({
-  container: {
-    flexDirection: 'row',
+  outerContainer: {
+    width: SLIDER_WIDTH,
     alignItems: 'center',
-    justifyContent: 'space-between',
-    paddingHorizontal: 20,
-    paddingVertical: 12,
+    marginVertical: 8,
   },
   label: {
     fontSize: 16,
-    marginLeft: -20,
+    fontWeight: '600',
+    marginBottom: 8,
+    letterSpacing: 0.2,
   },
-  trackContainer: {
-    flexDirection: 'row',
+  sliderContainer: {
+    width: SLIDER_WIDTH,
     alignItems: 'center',
+    justifyContent: 'center',
+    position: 'relative',
   },
   track: {
-    width: 300,
-    height: 22,
-    backgroundColor: '#0066cc',
-    borderRadius: 15,
+    width: SLIDER_WIDTH,
+    height: 12,
+    borderRadius: 8,
+    backgroundColor: '#e0e0e0',
+    overflow: 'hidden',
     justifyContent: 'center',
+  },
+  trackFill: {
+    position: 'absolute',
+    left: 0,
+    top: 0,
+    height: 12,
+    borderRadius: 8,
+    backgroundColor: '#1DB954',
   },
   thumb: {
     position: 'absolute',
-    width: 18,
-    height: 18,
-    borderRadius: 12,
+    width: THUMB_SIZE,
+    height: THUMB_SIZE,
+    borderRadius: THUMB_SIZE / 2,
+    borderWidth: 3,
+    borderColor: '#1DB954',
     backgroundColor: '#fff',
-    top: '50%',
-    marginTop: -9,
+    top: -8,
+    shadowColor: '#1DB95455',
+    shadowOffset: {width: 0, height: 2},
+    shadowOpacity: 0.4,
+    shadowRadius: 6,
+    elevation: 4,
+    zIndex: 2,
+  },
+  valueBubble: {
+    position: 'absolute',
+    top: -36,
+    width: 36,
+    height: 28,
+    borderRadius: 8,
+    borderWidth: 2,
+    alignItems: 'center',
+    justifyContent: 'center',
+    zIndex: 3,
+    shadowColor: '#000',
+    shadowOpacity: 0.08,
+    shadowOffset: {width: 0, height: 2},
+    shadowRadius: 4,
+    elevation: 2,
+  },
+  valueText: {
+    fontSize: 15,
+    fontWeight: 'bold',
+    letterSpacing: 0.2,
   },
 });
 

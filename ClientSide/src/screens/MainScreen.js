@@ -27,7 +27,6 @@ const {AgoraModule} = NativeModules;
 
 const MainScreen = ({navigation}) => {
   console.log('MainScreen rendered');
-  const [selectedChannel, setSelectedChannel] = useState(null);
   const [radioChannels, setRadioChannels] = useState([]);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState(null);
@@ -43,6 +42,8 @@ const MainScreen = ({navigation}) => {
     setPendingMuteTimeout,
     setPendingUnmuteTimeout,
     emergencyVoiceReset,
+    selectedChannel,
+    setSelectedChannel,
   } = useVoice();
 
   // Modal state
@@ -195,8 +196,18 @@ const MainScreen = ({navigation}) => {
   }, [radioChannels]);
 
   // Handle selection of a radio channel
-  const handleChannelSelect = id => {
-    setSelectedChannel(id); // Set selected channel by id
+  const handleChannelSelect = (id, direction = 'forward') => {
+    const current = radioChannels.find(c => c.id === id);
+    if (!current) return;
+    const nextState =
+      direction === 'reverse'
+        ? getPreviousState(current.channelState)
+        : getNextState(current.channelState);
+    if (nextState !== 'Idle') {
+      setSelectedChannel(id);
+    } else {
+      setSelectedChannel(null);
+    }
   };
 
   // Unified channel state handler with Voice Integration
@@ -548,10 +559,12 @@ const MainScreen = ({navigation}) => {
                       setPinDirection(isShift ? 'reverse' : 'forward');
                     } else if (isShift) {
                       handleReverseChannelState(channel.id);
+                      handleChannelSelect(channel.id, 'reverse');
                     } else if (channel.channelState === 'Idle') {
+                      handleChannelSelect(channel.id, 'forward');
                       handleJoinRoom(channel);
                     } else {
-                      handleChannelSelect(channel.id);
+                      handleChannelSelect(channel.id, 'forward');
                       handleToggleChannelState(channel.id);
                     }
                   }}

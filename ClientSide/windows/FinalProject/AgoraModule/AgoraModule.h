@@ -79,6 +79,7 @@ namespace winrt::FinalProject::implementation
         void MuteLocalAudio(bool mute);
         void EnableLocalAudio(bool enabled);
         void AdjustRecordingVolume(int volume);
+        void AdjustPlaybackVolume(int volume);
         void SetClientRole(int role);
         
         // Audio quality methods
@@ -168,6 +169,13 @@ namespace winrt::FinalProject::implementation
         void AdjustRecordingVolume(int volume) noexcept
         {
             AgoraManager::GetInstance()->AdjustRecordingVolume(volume);
+        }
+
+        // Add playback volume adjustment for all remote users
+        REACT_METHOD(AdjustPlaybackVolume)
+        void AdjustPlaybackVolume(int volume) noexcept
+        {
+            AgoraManager::GetInstance()->AdjustPlaybackVolume(volume);
         }
 
         REACT_METHOD(SetClientRole)
