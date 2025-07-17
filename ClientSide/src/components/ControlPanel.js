@@ -81,14 +81,15 @@ const ControlPanel = ({
             icon: require('../../assets/logos/speaker.png'),
             onPress: () => {
               setSpeakerVolume((speakerVolume + 10) % 110);
-              setSelectedButton('Speaker');
+              selectedButton === 'Speaker'
+                ? setSelectedButton(null)
+                : setSelectedButton('Speaker');
             },
           },
           {
             title: 'Ch Vol',
             icon: require('../../assets/logos/volume-adjustment.png'),
             onPress: () => {
-              setSelectedButton('Ch Vol');
               if (selectedChannel) {
                 setVolumeModalVisible(true);
               } else {
@@ -101,6 +102,8 @@ const ControlPanel = ({
             icon: require('../../assets/logos/mute.png'),
             onPress: () => {
               setSpeakerVolume(0);
+              selectedButton === 'Mute All' ?
+              setSelectedButton(null) :
               setSelectedButton('Mute All');
             },
           },
