@@ -20,7 +20,7 @@ This is a sophisticated communication system designed for organizations requirin
 
 ### Frontend (Client-Side)
 
-- **React Native for Windows** - Cross-platform mobile app
+- **React Native for Windows** 
 - **Fluent UI** - Microsoft's design system
 - **React Navigation** - Screen navigation and routing
 - **Context API** - State management
@@ -40,22 +40,6 @@ This is a sophisticated communication system designed for organizations requirin
 - **React Native bridge** for C++ to JavaScript communication
 - **Real-time audio processing** with noise suppression
 - **Native Windows audio integration**
-
-## 🏗️ Architecture
-
-### Frontend Architecture
-
-- **Component-based design** with reusable UI components
-- **Context-based state management** for global state
-- **Native module integration** for voice communication
-- **Responsive design** with Fluent UI components
-
-### Backend Architecture
-
-- **RESTful API** with proper HTTP status codes
-- **Stored procedures** for database operations
-- **Role-based authorization** at API level
-- **Comprehensive error handling**
 
 ### Security Features
 
@@ -125,19 +109,23 @@ This communication system is ideal for:
 
 ![Login Interface](Screenshots/a1.png)
 ![Registration](Screenshots/a2.png)
-![Radios Main Panel](Screenshots/a3.png)
+![Radios Main Panel](Screenshots/b1.png)
 
 ### Channel Management
 
-![Pick Radios](Screenshots/a4.png)
-![Create Channel Panel](Screenshots/a8.png)
 
-### User Management & Communication
+![Create Channel Panel](Screenshots/b2.png)
+![Add Room](Screenshots/b8.png)
 
-![Groups Page](Screenshots/a6.png)
-![User Management](Screenshots/a10.png)
-![Announcements Panel](Screenshots/a11.png)
+### Direct Calling Management
 
+![Team Page](Screenshots/b3.png)
+![Incoming call](Screenshots/b4.png)
+![Calling interface](Screenshots/b5.png)
+![During Call interface](Screenshots/b6.png)
+
+
+![Announcements](Screenshots/b7.png)
 ### Settings & Configuration
 
 ![Settings](Screenshots/a5.png)
