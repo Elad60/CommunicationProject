@@ -109,23 +109,23 @@ This communication system is ideal for:
 
 ![Login Interface](Screenshots/a1.png)
 ![Registration](Screenshots/a2.png)
-![Radios Main Panel](Screenshots/b1.png)
+![Radios Main Panel](Screenshots/b1.jpg)
 
 ### Channel Management
 
 
-![Create Channel Panel](Screenshots/b2.png)
-![Add Room](Screenshots/b8.png)
+![Create Channel Panel](Screenshots/b2.jpg)
+![Add Room](Screenshots/b8.jpg)
 
 ### Direct Calling Management
 
-![Team Page](Screenshots/b3.png)
-![Incoming call](Screenshots/b4.png)
-![Calling interface](Screenshots/b5.png)
-![During Call interface](Screenshots/b6.png)
+![Team Page](Screenshots/b3.jpg)
+![Incoming call](Screenshots/b4.jpg)
+![Calling interface](Screenshots/b5.jpg)
+![During Call interface](Screenshots/b6.jpg)
 
 
-![Announcements](Screenshots/b7.png)
+![Announcements](Screenshots/b7.jpg)
 ### Settings & Configuration
 
 ![Settings](Screenshots/a5.png)
