@@ -41,12 +41,6 @@ This is a sophisticated communication system designed for organizations requirin
 - **Real-time audio processing** with noise suppression
 - **Native Windows audio integration**
 
-### Security Features
-
-- **PIN-based channel access** with cryptographic hashing
-- **Session management** preventing multiple logins
-- **Input validation** and sanitization
-- **Role-based permissions** throughout the system
 
 ## 🚀 Features
 
@@ -91,6 +85,13 @@ This is a sophisticated communication system designed for organizations requirin
 - **System-wide user blocking**
 - **User deletion capabilities**
 - **Group reassignment tools**
+
+### Security Features
+
+- **PIN-based channel access** with cryptographic hashing
+- **Session management** preventing multiple logins
+- **Input validation** and sanitization
+- **Role-based permissions** throughout the system
 
 ## 🎯 Use Cases
 
