@@ -15,6 +15,7 @@ This is a sophisticated communication system designed for organizations requirin
 - 📢 **Real-time announcements** with read/unread tracking
 - 🛡️ **Secure authentication** with session management
 - 🎨 **Modern UI/UX** with Fluent Design principles
+- 🌗 Dark Mode / Light Mode support with seamless switching
 
 ## 🛠 Tech Stack
 
