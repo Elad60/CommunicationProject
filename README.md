@@ -1,64 +1,145 @@
-# Communication System Interface (Ongoing)
+# 📡 IronWave
 
-## Overview
-This project is a secure and user-friendly communication system developed as a final academic project in collaboration with a defense company. Designed to operate in classified and sensitive environments, the system focuses on both security and usability. It provides real-time communication capabilities for personnel via a robust and intuitive interface, optimized for both performance and operational needs.
+A comprehensive, real-time communication platform built with React Native for Windows, featuring voice communication, radio channel management, private calling, and administrative controls. This project demonstrates full-stack development skills with native integration, real-time communication, and enterprise-grade features.
 
-## Project Timeline
-**Duration:** March 2025 – Present
+## 🎯 Project Overview
 
-## Key Features
-- **Secure User Authentication**: Supports login and registration flows with validation rules.
-- **Channel-Based Communication**: Users can choose, activate, or mute multiple communication channels.
-- **User Roles**: Includes role-based access for Operators, Technicians, and Admins.
-- **Real-Time Announcements**: Admins can post live updates and system tips.
-- **Custom Settings**: Toggle dark mode, save transmissions, control power/brightness levels, and more.
-- **Dynamic Channel Management**: Create, update, and delete radio channels from within the interface.
+This is a sophisticated communication system designed for organizations requiring secure, real-time voice communication with role-based access control. The system combines radio channel management, private calling capabilities, and administrative tools in a modern, responsive interface.
+
+**Key Highlights:**
+
+- 🎤 **Real-time voice communication** powered by Agora SDK
+- 📻 **Multi-channel radio system** with PIN protection
+- 📞 **Private calling system** with invitation management
+- 👥 **Role-based access control** (Admin, Technician, Operator)
+- 📢 **Real-time announcements** with read/unread tracking
+- 🛡️ **Secure authentication** with session management
+- 🎨 **Modern UI/UX** with Fluent Design principles
 
 ## 🛠 Tech Stack
 
-- **Languages**: JavaScript, TypeScript
-- **Frameworks & Libraries**: React Native
-- **API Communication**: REST API
-- **Platform**: Windows
-- **Design & Architecture**:
-  - Component-Based Architecture
-  - Role-Based Access Control
-  - Secure Authentication
-- **Tools & Concepts**:
-  - Version Control (Git & GitHub)
-  - UI/UX Design Principles
-  - Light Mode / Dark Mode and Accessibility Features
-  - Customizable Settings and Real-Time Data Handling
+### Frontend (Client-Side)
 
-## Screenshots
+- **React Native for Windows** - Cross-platform mobile app
+- **Fluent UI** - Microsoft's design system
+- **React Navigation** - Screen navigation and routing
+- **Context API** - State management
+- **Agora SDK** - Real-time voice communication
+- **Axios** - HTTP client for API communication
 
-### 1. Login Interface
+### Backend (Server-Side)
+
+- **ASP.NET Core 6.0** - Web API framework
+- **SQL Server** - Database with stored procedures
+- **Entity Framework** - Data access layer
+- **Swagger/OpenAPI** - API documentation
+
+### Native Integration
+
+- **Custom Agora C++ module** for Windows
+- **React Native bridge** for C++ to JavaScript communication
+- **Real-time audio processing** with noise suppression
+- **Native Windows audio integration**
+
+## 🏗️ Architecture
+
+### Frontend Architecture
+
+- **Component-based design** with reusable UI components
+- **Context-based state management** for global state
+- **Native module integration** for voice communication
+- **Responsive design** with Fluent UI components
+
+### Backend Architecture
+
+- **RESTful API** with proper HTTP status codes
+- **Stored procedures** for database operations
+- **Role-based authorization** at API level
+- **Comprehensive error handling**
+
+### Security Features
+
+- **PIN-based channel access** with cryptographic hashing
+- **Session management** preventing multiple logins
+- **Input validation** and sanitization
+- **Role-based permissions** throughout the system
+
+## 🚀 Features
+
+### 📻 Radio Channel Management
+
+- **Multi-channel support** with Public/Private modes
+- **PIN-protected channels** with SHA256 encryption
+- **Channel states**: Idle, ListenOnly, ListenAndTalk
+- **Real-time participant tracking**
+- **User-specific channel assignments**
+
+### 🎤 Voice Communication
+
+- **Agora-powered real-time voice** with native C++ integration
+- **AI Noise Suppression** for crystal-clear audio
+- **Microphone controls** (mute/unmute & voice adjustments)
+
+### 📞 Private Calling System
+
+- **One-to-one private calls** between users
+- **Call invitation system** with acceptance/rejection
+- **Real-time call status tracking**
+- **Group-based user discovery**
+
+### 👥 User Management & Authentication
+
+- **Role-based access control** (Admin, Technician, Operator)
+- **Group assignments**
+- **User blocking capabilities**
+- **Session management** with logout tracking
+- **Secure password handling**
+
+### 📢 Announcements System
+
+- **Real-time announcements**
+- **Role-based posting** (Technicians & Admins only)
+
+### 🛠 Administrative Features
+
+- **Comprehensive user management dashboard**
+- **Role and permission management**
+- **System-wide user blocking**
+- **User deletion capabilities**
+- **Group reassignment tools**
+
+## 🎯 Use Cases
+
+This communication system is ideal for:
+
+- **Emergency services** and first responders
+- **Security teams** and law enforcement
+- **Industrial communication** systems
+- **Corporate communication** platforms
+- **Event management** and coordination
+- **Any organization** requiring secure, real-time voice communication
+
+## 📱 Screenshots
+
+### Authentication & Main Interface
+
 ![Login Interface](Screenshots/a1.png)
-
-### 2. Registration Interface
 ![Registration](Screenshots/a2.png)
+![Radios Main Panel](Screenshots/a3.png)
 
-### 3. Radios Main Panel
-![Admin Dashboard](Screenshots/a3.png)
+### Channel Management
 
-### 4. Pick Radios
 ![Pick Radios](Screenshots/a4.png)
+![Create Channel Panel](Screenshots/a8.png)
 
-### 5. Settings Page
+### User Management & Communication
+
+![Groups Page](Screenshots/a6.png)
+![User Management](Screenshots/a10.png)
+![Announcements Panel](Screenshots/a11.png)
+
+### Settings & Configuration
+
 ![Settings](Screenshots/a5.png)
 
-### 6. Groups Page
-![Add Radios](Screenshots/a6.png)
-
-### 7. User Management
-![User Management](Screenshots/a10.png)
-
-### 8. Announcements Panel
-![Announcements](Screenshots/a11.png)
-
-### 9. Create Channel Panel
-![Announcements](Screenshots/a8.png)
-
 ---
-
-> For demonstration purposes only. The system shown is part of a simulated communication environment.
