@@ -89,7 +89,7 @@ const AppLayout = ({
         <View style={styles.headerLeft}>
           <View style={styles.logoContainer}>
             <Image
-              source={require('../../assets/logos/comm.webp')}
+              source={require('../../assets/logos/comm.png')}
               style={styles.logoImage}
               resizeMode="cover"
             />

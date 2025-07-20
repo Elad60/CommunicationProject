@@ -13,6 +13,7 @@ import {
 import {useSettings} from '../context/SettingsContext';
 import {privateCallApi} from '../utils/apiService';
 import {useDebouncedDimensions} from '../utils/useDebouncedDimensions';
+import VolumeModal from '../components/VolumeModal'; // 🎵 NEW: Import VolumeModal
 
 const {AgoraModule} = NativeModules; // 🎯 NEW: Import AgoraModule
 
@@ -44,6 +45,11 @@ const PrivateCallScreen = ({route, navigation}) => {
   // NEW: Mute states (visual only)
   const [isMicMuted, setIsMicMuted] = useState(false);
   const [isHeadphonesMuted, setIsHeadphonesMuted] = useState(false);
+  
+  // 🎵 NEW: Volume control states (like in main screen)
+  const [volumeModalVisible, setVolumeModalVisible] = useState(false);
+  const [channelVolume, setChannelVolume] = useState(1); // 1 = 100%
+  const [lastVolume, setLastVolume] = useState(1); // Store last non-zero volume
   
   console.log('🔵 PrivateCallScreen mounted with:', {
     otherUser: otherUser?.username,
@@ -500,6 +506,12 @@ const PrivateCallScreen = ({route, navigation}) => {
     }
   };
 
+  // 🎵 NEW: Handle volume control (like in main screen)
+  const handleVolumeControl = () => {
+    console.log('🎵 Opening volume control modal...');
+    setVolumeModalVisible(true);
+  };
+
   // 🎧 NEW: Handle headphones mute/unmute with real Agora control
   const handleHeadphonesMute = async () => {
     try {
@@ -511,8 +523,21 @@ const PrivateCallScreen = ({route, navigation}) => {
       const newMuteState = !isHeadphonesMuted;
       console.log(`🎧 ${newMuteState ? 'Muting' : 'Unmuting'} headphones...`);
       
-      // Use AgoraModule to control audio output (this will mute/unmute what user hears)
-      AgoraModule.EnableLocalAudio(!newMuteState); // Invert because EnableLocalAudio(true) = can hear
+      if (newMuteState) {
+        // Muting - save current volume and set to 0
+        setLastVolume(channelVolume);
+        setChannelVolume(0);
+        if (AgoraModule && AgoraModule.AdjustPlaybackVolume) {
+          AgoraModule.AdjustPlaybackVolume(0);
+        }
+      } else {
+        // Unmuting - restore last volume
+        const volumeToRestore = lastVolume || 1;
+        setChannelVolume(volumeToRestore);
+        if (AgoraModule && AgoraModule.AdjustPlaybackVolume) {
+          AgoraModule.AdjustPlaybackVolume(Math.round(volumeToRestore * 400));
+        }
+      }
       
       // Update visual state
       setIsHeadphonesMuted(newMuteState);
@@ -592,25 +617,69 @@ const PrivateCallScreen = ({route, navigation}) => {
               <Text style={[styles.endCallButtonText, {fontSize: endCallButtonSize * 0.25}]}>✖️</Text>
               <Text style={[styles.endCallButtonText, {fontSize: 10}]}>End Call</Text>
             </TouchableOpacity>
-            {/* Mute Headphones */}
+            {/* Volume Control */}
             <TouchableOpacity
-              style={[styles.muteButton, isHeadphonesMuted ? styles.muteButtonActive : null]}
-              onPress={handleHeadphonesMute}
+              style={[styles.muteButton]}
+              onPress={handleVolumeControl}
             >
-              <Text style={{fontSize: 28}}>{isHeadphonesMuted ? '🔇' : '🔊'}</Text>
-              <Text style={styles.muteButtonText}>{isHeadphonesMuted ? 'Sound Off' : 'Sound On'}</Text>
+              <Text style={{fontSize: 28}}>🔊</Text>
+              <Text style={styles.muteButtonText}>Volume</Text>
             </TouchableOpacity>
           </View>
 
+          {/* Volume Display Row */}
+          <View style={styles.volumeControlRow}>
+            {/* Volume Display with Progress Bar */}
+            <View style={[styles.volumeDisplay, {backgroundColor: cardColor}]}>
+              <Text style={[styles.volumeText, {color: textColor, fontSize: fontSize}]}>
+                Volume: {Math.round(channelVolume * 100)}%
+              </Text>
+              {/* Progress Bar */}
+              <View style={styles.volumeProgressContainer}>
+                <View style={styles.volumeProgressBackground}>
+                  <View 
+                    style={[
+                      styles.volumeProgressFill, 
+                      {width: `${Math.round(channelVolume * 100)}%`}
+                    ]} 
+                  />
+                </View>
+              </View>
+            </View>
+          </View>
+
           {/* Instructions */}
-          <View style={styles.instructionsContainer}>
-            <Text style={[styles.instructionsText, {color: darkMode ? '#ccc' : '#666', fontSize: fontSize}]}>🎤 Voice communication active • Tap status to check connection</Text>
-            <Text style={[styles.instructionsText, {color: darkMode ? '#ccc' : '#666', fontSize: fontSize}]}>🎤 Tap microphone button to mute/unmute your voice</Text>
-            <Text style={[styles.instructionsText, {color: darkMode ? '#ccc' : '#666', fontSize: fontSize}]}>🔊 Tap sound button to mute/unmute incoming audio</Text>
-            <Text style={[styles.instructionsText, {color: darkMode ? '#ccc' : '#666', fontSize: fontSize}]}>🔄 Use voice status button if audio issues occur</Text>
+          <View style={[
+            styles.instructionsContainer, 
+            {
+              backgroundColor: darkMode ? 'rgba(50, 50, 50, 0.8)' : 'rgba(240, 240, 240, 0.9)',
+              borderColor: darkMode ? 'rgba(100, 100, 100, 0.3)' : 'rgba(200, 200, 200, 0.5)',
+            }
+          ]}>
+            <Text style={[styles.instructionsText, {color: darkMode ? '#ccc' : '#666'}]}>🎤 Voice communication active • Tap status to check connection</Text>
+            <Text style={[styles.instructionsText, {color: darkMode ? '#ccc' : '#666'}]}>🎤 Tap microphone button to mute/unmute your voice</Text>
+            <Text style={[styles.instructionsText, {color: darkMode ? '#ccc' : '#666'}]}>🔊 Tap volume button to adjust audio level</Text>
+            <Text style={[styles.instructionsText, {color: darkMode ? '#ccc' : '#666'}]}>🔄 Use voice status button if audio issues occur</Text>
           </View>
         </View>
       </ScrollView>
+
+      {/* 🎵 NEW: Volume Modal */}
+      <VolumeModal
+        visible={volumeModalVisible}
+        initialValue={channelVolume}
+        darkMode={darkMode}
+        onCancel={() => setVolumeModalVisible(false)}
+        onSet={vol => {
+          setVolumeModalVisible(false);
+          const newVolume = vol / 100; // Convert from 0-100 to 0-1
+          setChannelVolume(newVolume);
+          setLastVolume(newVolume);
+          if (AgoraModule && typeof AgoraModule.AdjustPlaybackVolume === 'function') {
+            AgoraModule.AdjustPlaybackVolume(vol);
+          }
+        }}
+      />
     </SafeAreaView>
   );
 };
@@ -736,18 +805,27 @@ const styles = StyleSheet.create({
     fontWeight: 'bold',
   },
   instructionsContainer: {
-    marginTop: 'auto',
-    padding: 12,
-    borderRadius: 10,
-    backgroundColor: 'rgba(100, 100, 100, 0.1)',
+    marginTop: 20,
+    padding: 16,
+    borderRadius: 12,
     width: '100%',
+    borderWidth: 1,
   },
   instructionsText: {
-    textAlign: 'center',
-    marginBottom: 3,
-    fontStyle: 'italic',
+    textAlign: 'left',
+    marginBottom: 8,
+    fontSize: 14,
+    lineHeight: 20,
+    fontWeight: '500',
   },
   actionButtonsRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-around',
+    alignItems: 'center',
+    marginBottom: 15,
+    width: '100%',
+  },
+  volumeControlRow: {
     flexDirection: 'row',
     justifyContent: 'space-around',
     alignItems: 'center',
@@ -764,7 +842,6 @@ const styles = StyleSheet.create({
     backgroundColor: 'rgba(100, 100, 100, 0.2)',
     borderWidth: 1,
     borderColor: 'transparent',
-    
   },
   muteButtonActive: {
     backgroundColor: 'rgba(100, 100, 100, 0.3)',
@@ -774,6 +851,39 @@ const styles = StyleSheet.create({
     marginTop: 5,
     fontSize: 12,
     color: '#fff',
+  },
+  volumeDisplay: {
+    alignItems: 'center',
+    paddingVertical: 15,
+    paddingHorizontal: 20,
+    borderRadius: 10,
+    elevation: 2,
+    shadowColor: '#000',
+    shadowOffset: {width: 0, height: 1},
+    shadowOpacity: 0.1,
+    shadowRadius: 3,
+    width: '100%',
+  },
+  volumeText: {
+    fontWeight: '600',
+    textAlign: 'center',
+    marginBottom: 10,
+  },
+  volumeProgressContainer: {
+    width: '100%',
+    alignItems: 'center',
+  },
+  volumeProgressBackground: {
+    width: '100%',
+    height: 12,
+    backgroundColor: '#e0e0e0',
+    borderRadius: 6,
+    overflow: 'hidden',
+  },
+  volumeProgressFill: {
+    height: '100%',
+    backgroundColor: '#4CAF50',
+    borderRadius: 6,
   },
 });
 

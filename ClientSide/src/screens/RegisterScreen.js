@@ -197,7 +197,7 @@ const RegisterScreen = ({onRegister, onNavigateToLogin}) => {
           <View style={styles.formContainer}>
             <Text style={styles.title}>Create an Account</Text>
             <Text style={styles.subtitle}>
-              Register to access the communication system
+              Register to access the IronWave system
             </Text>
 
             {/* Show error message if there is any */}

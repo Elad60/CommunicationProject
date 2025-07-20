@@ -11,7 +11,7 @@ import {
   ImageBackground,
 } from 'react-native';
 import authBackgroundPic from '../../assets/images/tank.jpg';
-import techmerLogo from '../../assets/logos/techmerLogo.jpeg';
+import IronWaveLogo from '../../assets/logos/comm.png';
 
 const LoginScreen = ({onLogin, onNavigateToRegister}) => {
   const [username, setUsername] = useState('');
@@ -67,13 +67,13 @@ const LoginScreen = ({onLogin, onNavigateToRegister}) => {
       <View style={styles.container}>
         <View style={styles.logoContainer}>
           <Image
-            source={techmerLogo}
+            source={IronWaveLogo}
             style={styles.logo}
             resizeMode="contain"
           />
         </View>
         <View style={styles.formContainer}>
-          <Text style={styles.title}>Communication System</Text>
+          <Text style={styles.title}>IronWave System</Text>
           <Text style={styles.subtitle}>Login to your account</Text>
 
           {error ? <Text style={styles.errorText}>{error}</Text> : null}
