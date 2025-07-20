@@ -101,18 +101,7 @@ const ControlPanel = ({
             onPress: () => {
               setSelectedButton('Ch Vol');
               if (selectedChannel) {
-                setSelectedChannelForVolume(selectedChannel);
-              } else if (channels && channels.length) {
-                const active = channels.find(
-                  c =>
-                    c.channelState === 'ListenOnly' ||
-                    c.channelState === 'ListenAndTalk',
-                );
-                if (active) {
-                  setSelectedChannelForVolume(active.id);
-                } else {
-                  alert('Please select a channel first');
-                }
+                setVolumeModalVisible(true);
               } else {
                 alert('Please select a channel first');
               }
@@ -123,17 +112,8 @@ const ControlPanel = ({
             icon: require('../../assets/logos/mute.png'),
             onPress: () => {
               setSelectedButton('Mute');
-              // Only allow mute if a channel is selected (same logic as Ch Vol)
-              let channelSelected = selectedChannel;
-              if (!channelSelected && channels && channels.length) {
-                const active = channels.find(
-                  c =>
-                    c.channelState === 'ListenOnly' ||
-                    c.channelState === 'ListenAndTalk',
-                );
-                if (active) channelSelected = active.id;
-              }
-              if (!channelSelected) {
+              // Only allow mute if a channel is selected
+              if (!selectedChannel) {
                 alert('Please select a channel first');
                 return;
               }
