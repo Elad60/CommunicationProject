@@ -234,15 +234,13 @@ This project is licensed under the MIT License - see the [LICENSE](LICENSE) file
 
 ## 👨‍💻 Author
 
-**Your Name** - Full Stack Developer
-- GitHub: [@yourusername](https://github.com/yourusername)
-- LinkedIn: [Your LinkedIn](https://linkedin.com/in/yourprofile)
-- Portfolio: [Your Portfolio](https://yourportfolio.com)
+**Elad Aharon** - Full Stack Developer
+- GitHub: [@Elad60](https://github.com/Elad60)
+- LinkedIn: [Elad LinkedIn](https://linkedin.com/in/elad-ah)
 
 **Your Name** - Full Stack Developer
-- GitHub: [@yourusername](https://github.com/yourusername)
-- LinkedIn: [Your LinkedIn](https://linkedin.com/in/yourprofile)
-- Portfolio: [Your Portfolio](https://yourportfolio.com)
+- GitHub: [@RotemRosenberg](https://github.com/RotemRosenberg)
+- LinkedIn: [Rotem LinkedIn](www.linkedin.com/in/rotemrosenberg)
 
 ## 🙏 Acknowledgments
 
