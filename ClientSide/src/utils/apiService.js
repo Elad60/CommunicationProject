@@ -2,7 +2,7 @@ import axios from 'axios';
 
 // Create a pre-configured axios instance with base URL and timeout
 const api = axios.create({
-  baseURL: 'http://localhost:7220/api',
+  baseURL: 'https://proj.ruppin.ac.il/cgroup90/test2/tar1/api',
   timeout: 5000,
 });
 
