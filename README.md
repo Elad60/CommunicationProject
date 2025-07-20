@@ -168,28 +168,6 @@ ServerSide/CommunicationServer/
 ![Announcements](Screenshots/Announcements.png)
 *Real-time announcements system with read/unread tracking*
 
-### Additional Screenshots
-![Interface Variant 1](Screenshots/a1.png)
-![Interface Variant 2](Screenshots/a2.png)
-![Interface Variant 3](Screenshots/a3.png)
-![Interface Variant 4](Screenshots/a4.png)
-![Interface Variant 5](Screenshots/a5.png)
-![Interface Variant 6](Screenshots/a6.png)
-![Interface Variant 7](Screenshots/a7.png)
-![Interface Variant 8](Screenshots/a8.png)
-![Interface Variant 9](Screenshots/a9.png)
-![Interface Variant 10](Screenshots/a10.png)
-![Interface Variant 11](Screenshots/a11.png)
-
-### Legacy Screenshots (JPG Format)
-![Legacy Interface 1](Screenshots/b1.jpg)
-![Legacy Interface 2](Screenshots/b2.jpg)
-![Legacy Interface 3](Screenshots/b3.jpg)
-![Legacy Interface 4](Screenshots/b4.jpg)
-![Legacy Interface 5](Screenshots/b5.jpg)
-![Legacy Interface 6](Screenshots/b6.jpg)
-![Legacy Interface 7](Screenshots/b7.jpg)
-![Legacy Interface 8](Screenshots/b8.jpg)
 
 ## 🎯 Use Cases
 
