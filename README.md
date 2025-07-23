@@ -254,6 +254,10 @@ This project is licensed under the MIT License - see the [LICENSE](LICENSE) file
 - GitHub: [@RotemRosenberg](https://github.com/RotemRosenberg)
 - LinkedIn: [Rotem LinkedIn](www.linkedin.com/in/rotemrosenberg)
 
+**Ilan Haskel** - Full Stack Developer
+- GitHub: [@ilan53](https://github.com/ilan53)
+- LinkedIn: [Ilan LinkedIn](https://www.linkedin.com/in/ilan-haskel)
+
 ## 🙏 Acknowledgments
 
 - **Agora.io** - Real-time communication SDK
