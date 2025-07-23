@@ -115,7 +115,7 @@ export const AuthProvider = ({children}) => {
             userMessage = 'This account is already logged in on another device.';
             break;
           case 'USER_BLOCKED':
-            userMessage = 'Your account has been blocked. Please contact support.';
+            userMessage = 'Your account has been blocked.';
             break;
         }
 
