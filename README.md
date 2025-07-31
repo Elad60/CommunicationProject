@@ -181,49 +181,6 @@ This enterprise communication system is ideal for:
 - **🏥 Healthcare** - Medical team communication
 - **🏫 Educational Institutions** - Campus-wide communication
 
-## 🚀 Getting Started
-
-### Prerequisites
-- Windows 10/11
-- Node.js 18+
-- .NET 6.0 SDK
-- SQL Server 2019+
-- Visual Studio 2022 (for native development)
-
-### Installation
-
-1. **Clone the repository**
-   ```bash
-   git clone https://github.com/yourusername/ironwave.git
-   cd ironwave
-   ```
-
-2. **Backend Setup**
-   ```bash
-   cd ServerSide/CommunicationServer
-   dotnet restore
-   dotnet run
-   ```
-
-3. **Frontend Setup**
-   ```bash
-   cd ClientSide
-   npm install
-   npm run windows
-   ```
-
-### Configuration
-- Update database connection string in `appsettings.json`
-- Configure Agora SDK credentials
-- Set up CORS policies for production
-
-## 🧪 Testing
-
-- **API Testing** - Swagger UI at `/swagger`
-- **Unit Tests** - Jest for frontend, xUnit for backend
-- **Integration Tests** - End-to-end communication testing
-- **Performance Testing** - Load testing for voice channels
-
 ## 📊 Performance Metrics
 
 - **Voice Latency** - < 100ms end-to-end
@@ -240,9 +197,6 @@ This enterprise communication system is ideal for:
 4. Push to the branch (`git push origin feature/AmazingFeature`)
 5. Open a Pull Request
 
-## 📄 License
-
-This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
 
 ## 👨‍💻 Author
 
@@ -257,14 +211,3 @@ This project is licensed under the MIT License - see the [LICENSE](LICENSE) file
 **Ilan Haskel** - Full Stack Developer
 - GitHub: [@ilan53](https://github.com/ilan53)
 - LinkedIn: [Ilan LinkedIn](https://www.linkedin.com/in/ilan-haskel)
-
-## 🙏 Acknowledgments
-
-- **Agora.io** - Real-time communication SDK
-- **Microsoft** - React Native for Windows
-- **Fluent UI** - Design system components
-- **React Native Community** - Windows platform support
-
----
-
-⭐ **Star this repository if you find it helpful!**
